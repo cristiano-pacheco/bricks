@@ -12,7 +12,7 @@ Optimized JSON response helpers for Go HTTP handlers with high performance and m
 ## Installation
 
 ```bash
-go get github.com/cristiano-pacheco/bricks/pkg/http/response
+go get github.com/cristiano-pacheco/bricks
 ```
 
 ## Usage

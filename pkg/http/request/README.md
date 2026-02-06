@@ -12,7 +12,7 @@ High-performance JSON request parser with built-in security features for Go HTTP
 ## Installation
 
 ```bash
-go get github.com/cristiano-pacheco/bricks/pkg/http/request
+go get github.com/cristiano-pacheco/bricks
 ```
 
 ## Usage

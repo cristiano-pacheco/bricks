@@ -14,7 +14,7 @@ A robust HTTP server implementation using the Chi router with support for CORS a
 ## Installation
 
 ```bash
-go get github.com/cristiano-pacheco/bricks/pkg/http/server/chi
+go get github.com/cristiano-pacheco/bricks
 ```
 
 ## Usage
