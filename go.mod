@@ -3,6 +3,8 @@ module github.com/cristiano-pacheco/bricks
 go 1.25.7
 
 require (
+	github.com/go-chi/chi/v5 v5.2.5
+	github.com/go-chi/cors v1.2.2
 	go.uber.org/fx v1.24.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.1
