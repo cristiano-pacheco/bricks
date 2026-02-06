@@ -71,7 +71,11 @@ database:
 `
 	os.WriteFile(filepath.Join(configDir, "base.yaml"), []byte(baseConfig), 0644)
 
-	cfg, _ := config.New(configDir, "local")
+	cfg, err := config.New(configDir, "local")
+	if err != nil {
+		exampleLogger().Error("failed to load config", "err", err)
+		return
+	}
 
 	type AppConfig struct {
 		App struct {
@@ -86,8 +90,8 @@ database:
 	}
 
 	var appConfig AppConfig
-	if err := cfg.Unmarshal(&appConfig); err != nil {
-		exampleLogger().Error("failed to unmarshal config", "err", err)
+	if errUnmarshal := cfg.Unmarshal(&appConfig); errUnmarshal != nil {
+		exampleLogger().Error("failed to unmarshal config", "err", errUnmarshal)
 		return
 	}
 
@@ -127,7 +131,11 @@ app:
 	os.WriteFile(filepath.Join(configDir, "production.yaml"), []byte(prodConfig), 0644)
 
 	// Load production config
-	cfg, _ := config.New(configDir, "production")
+	cfg, err := config.New(configDir, "production")
+	if err != nil {
+		exampleLogger().Error("failed to load config", "err", err)
+		return
+	}
 
 	fmt.Printf("Name: %s (from base)\n", cfg.GetString("app.name"))
 	fmt.Printf("Port: %d (overridden by production)\n", cfg.GetInt("app.port"))
