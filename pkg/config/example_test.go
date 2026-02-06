@@ -235,3 +235,54 @@ server:
 	// Output:
 	// Server: 0.0.0.0:8080
 }
+
+func Example_envVarExpansion() {
+	tmpDir := os.TempDir()
+	configDir := filepath.Join(tmpDir, "example-env-expansion")
+	os.MkdirAll(configDir, 0755)
+	defer os.RemoveAll(configDir)
+
+	// Set environment variables
+	os.Setenv("MY_APP_NAME", "ExpandedApp")
+	os.Setenv("DB_HOST", "prod-db.example.com")
+	defer func() {
+		os.Unsetenv("MY_APP_NAME")
+		os.Unsetenv("DB_HOST")
+	}()
+
+	// Config with environment variable expansion
+	baseConfig := `
+app:
+  name: ${MY_APP_NAME}
+  port: ${APP_PORT:-8080}
+  debug: ${DEBUG:-false}
+
+database:
+  host: ${DB_HOST}
+  port: ${DB_PORT:-5432}
+  user: ${DB_USER:-postgres}
+`
+	os.WriteFile(filepath.Join(configDir, "base.yaml"), []byte(baseConfig), 0644)
+
+	type Config struct {
+		App struct {
+			Name  string `koanf:"name"`
+			Port  int    `koanf:"port"`
+			Debug bool   `koanf:"debug"`
+		} `koanf:"app"`
+		Database struct {
+			Host string `koanf:"host"`
+			Port int    `koanf:"port"`
+			User string `koanf:"user"`
+		} `koanf:"database"`
+	}
+
+	cfg, _ := config.Load[Config](configDir)
+
+	fmt.Printf("App: %s (port: %d, debug: %v)\n", cfg.App.Name, cfg.App.Port, cfg.App.Debug)
+	fmt.Printf("Database: %s@%s:%d\n", cfg.Database.User, cfg.Database.Host, cfg.Database.Port)
+
+	// Output:
+	// App: ExpandedApp (port: 8080, debug: false)
+	// Database: postgres@prod-db.example.com:5432
+}

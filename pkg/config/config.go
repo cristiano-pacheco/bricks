@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
-	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 )
 
@@ -67,6 +67,41 @@ func getEnvironment() string {
 		return strings.ToLower(strings.TrimSpace(env))
 	}
 	return "local"
+}
+
+// expandEnvVars expands environment variables in the format ${VAR} or ${VAR:-default}
+// Examples:
+//
+//	${DATABASE_HOST} -> value of DATABASE_HOST env var
+//	${PORT:-8080} -> value of PORT env var, or "8080" if not set
+func expandEnvVars(content []byte) []byte {
+	// Match ${VAR} or ${VAR:-default}
+	re := regexp.MustCompile(`\$\{([A-Z0-9_]+)(:-([^}]*))?\}`)
+
+	expanded := re.ReplaceAllFunc(content, func(match []byte) []byte {
+		matches := re.FindSubmatch(match)
+		if len(matches) < 2 {
+			return match
+		}
+
+		varName := string(matches[1])
+		defaultValue := ""
+
+		// Check if default value is provided (${VAR:-default})
+		if len(matches) >= 4 && matches[3] != nil {
+			defaultValue = string(matches[3])
+		}
+
+		// Get environment variable value
+		if value := os.Getenv(varName); value != "" {
+			return []byte(value)
+		}
+
+		// Return default value or empty string
+		return []byte(defaultValue)
+	})
+
+	return expanded
 }
 
 // Config holds the configuration manager
@@ -128,6 +163,7 @@ func New(configDir, environment string) (*Config, error) {
 }
 
 // loadConfigFile loads a specific config file and merges with existing config
+// Environment variables in the format ${VAR} or ${VAR:-default} are automatically expanded
 func (c *Config) loadConfigFile(name string) error {
 	configPath := filepath.Join(c.configDir, name+".yaml")
 
@@ -136,12 +172,41 @@ func (c *Config) loadConfigFile(name string) error {
 		return err
 	}
 
-	// Load and merge config file
-	if err := c.k.Load(file.Provider(configPath), yaml.Parser()); err != nil {
+	// Read file content
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		return fmt.Errorf("failed to read config file %s: %w", configPath, err)
+	}
+
+	// Expand environment variables (${VAR} or ${VAR:-default})
+	expandedContent := expandEnvVars(content)
+
+	// Parse YAML
+	parser := yaml.Parser()
+	data, err := parser.Unmarshal(expandedContent)
+	if err != nil {
+		return fmt.Errorf("failed to parse config file %s: %w", configPath, err)
+	}
+
+	// Merge into koanf
+	if err := c.k.Load(&mapProvider{data: data}, nil); err != nil {
 		return fmt.Errorf("failed to load config file %s: %w", configPath, err)
 	}
 
 	return nil
+}
+
+// mapProvider is a simple provider that returns a map
+type mapProvider struct {
+	data map[string]interface{}
+}
+
+func (m *mapProvider) ReadBytes() ([]byte, error) {
+	return nil, nil
+}
+
+func (m *mapProvider) Read() (map[string]interface{}, error) {
+	return m.data, nil
 }
 
 // Unmarshal unmarshals the config into a struct

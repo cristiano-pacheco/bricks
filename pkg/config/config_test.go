@@ -320,3 +320,113 @@ app:
 		t.Error("Expected app.nonexistent to not be set")
 	}
 }
+
+func TestEnvVarExpansion(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Set test environment variables
+	os.Setenv("TEST_APP_NAME", "ExpandedApp")
+	os.Setenv("TEST_DB_HOST", "db.example.com")
+	os.Setenv("TEST_DB_PORT", "5433")
+	defer func() {
+		os.Unsetenv("TEST_APP_NAME")
+		os.Unsetenv("TEST_DB_HOST")
+		os.Unsetenv("TEST_DB_PORT")
+	}()
+
+	// Config with environment variable expansion
+	baseConfig := `
+app:
+  name: ${TEST_APP_NAME}
+  port: ${TEST_APP_PORT:-8080}
+  timeout: ${TIMEOUT:-30}
+
+database:
+  host: ${TEST_DB_HOST}
+  port: ${TEST_DB_PORT}
+  user: ${DB_USER:-postgres}
+`
+	if err := os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(baseConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.New(tmpDir, "local")
+	if err != nil {
+		t.Fatalf("Failed to create config: %v", err)
+	}
+
+	// Test expanded values
+	if name := cfg.GetString("app.name"); name != "ExpandedApp" {
+		t.Errorf("Expected app.name to be 'ExpandedApp', got '%s'", name)
+	}
+
+	// Test default value when env var not set
+	if port := cfg.GetInt("app.port"); port != 8080 {
+		t.Errorf("Expected app.port to be 8080 (default value), got %d", port)
+	}
+
+	// Test default value for timeout
+	if timeout := cfg.GetInt("app.timeout"); timeout != 30 {
+		t.Errorf("Expected app.timeout to be 30 (default value), got %d", timeout)
+	}
+
+	// Test expanded database values
+	if host := cfg.GetString("database.host"); host != "db.example.com" {
+		t.Errorf("Expected database.host to be 'db.example.com', got '%s'", host)
+	}
+
+	if port := cfg.GetInt("database.port"); port != 5433 {
+		t.Errorf("Expected database.port to be 5433, got %d", port)
+	}
+
+	// Test default value for user
+	if user := cfg.GetString("database.user"); user != "postgres" {
+		t.Errorf("Expected database.user to be 'postgres' (default), got '%s'", user)
+	}
+}
+
+func TestEnvVarExpansionWithStruct(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	os.Setenv("MY_APP_NAME", "GenericExpandedApp")
+	os.Setenv("MY_APP_PORT", "9090")
+	defer func() {
+		os.Unsetenv("MY_APP_NAME")
+		os.Unsetenv("MY_APP_PORT")
+	}()
+
+	baseConfig := `
+app:
+  name: ${MY_APP_NAME}
+  port: ${MY_APP_PORT}
+  debug: ${DEBUG_MODE:-false}
+
+database:
+  host: ${DB_HOST:-localhost}
+  port: ${DB_PORT:-5432}
+`
+	if err := os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(baseConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load[TestConfig](tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if cfg.App.Name != "GenericExpandedApp" {
+		t.Errorf("Expected app.name to be 'GenericExpandedApp', got '%s'", cfg.App.Name)
+	}
+
+	if cfg.App.Port != 9090 {
+		t.Errorf("Expected app.port to be 9090, got %d", cfg.App.Port)
+	}
+
+	if cfg.Database.Host != "localhost" {
+		t.Errorf("Expected database.host to be 'localhost' (default), got '%s'", cfg.Database.Host)
+	}
+
+	if cfg.Database.Port != 5432 {
+		t.Errorf("Expected database.port to be 5432 (default), got %d", cfg.Database.Port)
+	}
+}

@@ -1,0 +1,19 @@
+# Local development configuration
+# This file overrides base.yaml settings for local development
+
+app:
+  debug: true
+  port: 3000
+
+database:
+  # In local dev, you might want to use defaults from base.yaml
+  # or override with specific values
+  password: ${LOCAL_DB_PASSWORD:-devpassword}
+  
+logger:
+  level: "debug"
+  format: "text"
+
+# Enable metrics for local testing
+metrics:
+  enabled: true

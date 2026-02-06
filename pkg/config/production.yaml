@@ -1,0 +1,54 @@
+# Production configuration
+# This file overrides base.yaml settings for production environment
+
+app:
+  # Use environment variables for sensitive/environment-specific config
+  name: ${APP_NAME}
+  port: 443
+  debug: false
+  max_connections: 500
+
+database:
+  host: ${DATABASE_HOST}
+  port: ${DATABASE_PORT:-5432}
+  name: ${DATABASE_NAME}
+  user: ${DATABASE_USER}
+  password: ${DATABASE_PASSWORD}
+  max_connections: 100
+  ssl: true
+  pool:
+    max_idle: 25
+    max_open: 100
+    max_lifetime: 600
+
+redis:
+  host: ${REDIS_HOST}
+  port: ${REDIS_PORT:-6379}
+  password: ${REDIS_PASSWORD}
+  pool_size: 50
+  min_idle_conns: 10
+
+logger:
+  level: "info"
+  format: "json"
+  output: "stdout"
+
+server:
+  read_timeout: 60
+  write_timeout: 60
+  idle_timeout: 300
+  shutdown_timeout: 30
+
+cors:
+  allowed_origins:
+    - ${CORS_ORIGIN_1}
+    - ${CORS_ORIGIN_2}
+
+auth:
+  jwt_secret: ${JWT_SECRET}
+  jwt_expiration: 7200
+  refresh_expiration: 2592000
+
+metrics:
+  enabled: true
+  port: 9090
