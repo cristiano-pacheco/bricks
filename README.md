@@ -42,6 +42,22 @@ Optimized JSON response helpers for standard HTTP handlers.
 - **Import**: `github.com/cristiano-pacheco/bricks/pkg/http/response`
 - **Features**: JSON encoding with/without envelope, error handling, high performance
 
+### Logger
+
+Structured logging with slog and Uber FX integration.
+
+- **Location**: `pkg/logger`
+- **Import**: `github.com/cristiano-pacheco/bricks/pkg/logger`
+- **Documentation**: [pkg/logger/README.md](pkg/logger/README.md)
+
+### Redis
+
+Redis client with connection pooling and Uber FX support.
+
+- **Location**: `pkg/redis`
+- **Import**: `github.com/cristiano-pacheco/bricks/pkg/redis`
+- **Documentation**: [pkg/redis/README.md](pkg/redis/README.md)
+
 ### Errors
 
 Structured error handling with HTTP status codes.
