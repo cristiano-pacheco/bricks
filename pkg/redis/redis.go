@@ -30,7 +30,7 @@ func NewClient(ctx context.Context, cfg Config, opts ...Option) (*Client, error)
 
 	// Validate configuration
 	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrInvalidConfig, err)
+		return nil, fmt.Errorf("%w: %w", ErrInvalidConfig, err)
 	}
 
 	// Apply options

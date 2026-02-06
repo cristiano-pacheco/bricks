@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -153,8 +154,8 @@ func New(configDir, environment string) (*Config, error) {
 	// Example: APP_DATABASE_HOST=localhost overrides database.host
 	// The transformation converts: APP_DATABASE_HOST -> database.host
 	if err := cfg.k.Load(env.Provider("APP_", ".", func(s string) string {
-		return strings.Replace(strings.ToLower(
-			strings.TrimPrefix(s, "APP_")), "_", ".", -1)
+		return strings.ReplaceAll(strings.ToLower(
+			strings.TrimPrefix(s, "APP_")), "_", ".")
 	}), nil); err != nil {
 		return nil, fmt.Errorf("failed to load environment variables: %w", err)
 	}
@@ -212,10 +213,10 @@ func (m *mapProvider) Read() (map[string]interface{}, error) {
 // Unmarshal unmarshals the config into a struct
 func (c *Config) Unmarshal(target interface{}) error {
 	if target == nil {
-		return fmt.Errorf("unmarshal target cannot be nil")
+		return errors.New("unmarshal target cannot be nil")
 	}
 	if err := c.k.Unmarshal("", target); err != nil {
-		return fmt.Errorf("%w: %v", ErrUnmarshalFailed, err)
+		return fmt.Errorf("%w: %w", ErrUnmarshalFailed, err)
 	}
 	return nil
 }
@@ -223,13 +224,13 @@ func (c *Config) Unmarshal(target interface{}) error {
 // UnmarshalKey unmarshals a specific key into a struct
 func (c *Config) UnmarshalKey(key string, target interface{}) error {
 	if target == nil {
-		return fmt.Errorf("unmarshal target cannot be nil")
+		return errors.New("unmarshal target cannot be nil")
 	}
 	if !c.k.Exists(key) {
 		return fmt.Errorf("config key '%s' not found", key)
 	}
 	if err := c.k.Unmarshal(key, target); err != nil {
-		return fmt.Errorf("%w for key '%s': %v", ErrUnmarshalFailed, key, err)
+		return fmt.Errorf("%w for key '%s': %w", ErrUnmarshalFailed, key, err)
 	}
 	return nil
 }

@@ -1,7 +1,7 @@
 package redis
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 	"time"
 )
@@ -111,7 +111,7 @@ func (c Config) Validate() error {
 			return &ConfigError{
 				Field: "ClusterAddrs",
 				Value: c.ClusterAddrs,
-				Err:   fmt.Errorf("cluster addresses or URL is required for cluster mode"),
+				Err:   errors.New("cluster addresses or URL is required for cluster mode"),
 			}
 		}
 	}
@@ -122,14 +122,14 @@ func (c Config) Validate() error {
 			return &ConfigError{
 				Field: "SentinelAddrs",
 				Value: c.SentinelAddrs,
-				Err:   fmt.Errorf("sentinel addresses are required for sentinel mode"),
+				Err:   errors.New("sentinel addresses are required for sentinel mode"),
 			}
 		}
 		if strings.TrimSpace(c.MasterName) == "" {
 			return &ConfigError{
 				Field: "MasterName",
 				Value: c.MasterName,
-				Err:   fmt.Errorf("master name is required for sentinel mode"),
+				Err:   errors.New("master name is required for sentinel mode"),
 			}
 		}
 	}
@@ -140,7 +140,7 @@ func (c Config) Validate() error {
 			return &ConfigError{
 				Field: "MasterName",
 				Value: c.MasterName,
-				Err:   fmt.Errorf("master name is required for failover mode"),
+				Err:   errors.New("master name is required for failover mode"),
 			}
 		}
 	}
@@ -161,7 +161,7 @@ func (c Config) Validate() error {
 		return &ConfigError{
 			Field: "PoolSize",
 			Value: c.PoolSize,
-			Err:   fmt.Errorf("pool size cannot be negative"),
+			Err:   errors.New("pool size cannot be negative"),
 		}
 	}
 
@@ -169,7 +169,7 @@ func (c Config) Validate() error {
 		return &ConfigError{
 			Field: "MinIdleConns",
 			Value: c.MinIdleConns,
-			Err:   fmt.Errorf("min idle connections cannot be negative"),
+			Err:   errors.New("min idle connections cannot be negative"),
 		}
 	}
 
@@ -177,7 +177,7 @@ func (c Config) Validate() error {
 		return &ConfigError{
 			Field: "MaxIdleConns",
 			Value: c.MaxIdleConns,
-			Err:   fmt.Errorf("max idle connections cannot be negative"),
+			Err:   errors.New("max idle connections cannot be negative"),
 		}
 	}
 
@@ -185,7 +185,7 @@ func (c Config) Validate() error {
 		return &ConfigError{
 			Field: "MaxRetries",
 			Value: c.MaxRetries,
-			Err:   fmt.Errorf("max retries cannot be negative"),
+			Err:   errors.New("max retries cannot be negative"),
 		}
 	}
 

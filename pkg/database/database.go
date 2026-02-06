@@ -26,7 +26,7 @@ type Client struct {
 // NewClient creates a new database client with context support
 func NewClient(ctx context.Context, cfg Config, opts ...Option) (*Client, error) {
 	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrInvalidConfig, err)
+		return nil, fmt.Errorf("%w: %w", ErrInvalidConfig, err)
 	}
 
 	options := defaultOptions()
@@ -113,20 +113,20 @@ func connect(ctx context.Context, cfg Config, opts options) (*gorm.DB, error) {
 
 			select {
 			case <-ctx.Done():
-				return nil, fmt.Errorf("%w: context cancelled: %v", ErrConnectionFailed, ctx.Err())
+				return nil, fmt.Errorf("%w: context cancelled: %w", ErrConnectionFailed, ctx.Err())
 			case <-time.After(calculateBackoff(attempt, opts.RetryDelay)):
 				continue
 			}
 		}
 	}
 
-	return nil, fmt.Errorf("%w: %v (after %d attempts)", ErrConnectionFailed, err, opts.MaxRetries)
+	return nil, fmt.Errorf("%w: %w (after %d attempts)", ErrConnectionFailed, err, opts.MaxRetries)
 }
 
 func configureConnectionPool(db *gorm.DB, cfg Config, opts options) error {
 	sqlDB, err := db.DB()
 	if err != nil {
-		return fmt.Errorf("%w: failed to get underlying sql.DB: %v", ErrConnectionFailed, err)
+		return fmt.Errorf("%w: failed to get underlying sql.DB: %w", ErrConnectionFailed, err)
 	}
 
 	if cfg.MaxOpenConnections > 0 {

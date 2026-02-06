@@ -39,7 +39,7 @@ func ProvideConfig[T any]() fx.Option {
 // Params for dependency injection
 type Params struct {
 	fx.In
-	ConfigDir   string `name:"config_dir" optional:"true"`
+	ConfigDir   string `name:"config_dir"  optional:"true"`
 	Environment string `name:"environment" optional:"true"`
 }
 
