@@ -4,8 +4,16 @@ PostgreSQL database connection module with GORM and Uber FX integration.
 
 ## Installation
 
+Install the entire Bricks framework:
+
 ```bash
-go get github.com/cristiano-pacheco/bricks/database@latest
+go get github.com/cristiano-pacheco/bricks@latest
+```
+
+Then import the database module:
+
+```go
+import "github.com/cristiano-pacheco/bricks/pkg/database"
 ```
 
 ## Features
@@ -32,7 +40,7 @@ import (
     "log"
     "time"
 
-    "github.com/cristiano-pacheco/bricks/database"
+    "github.com/cristiano-pacheco/bricks/pkg/database"
 )
 
 func main() {
@@ -76,7 +84,7 @@ import (
     "log"
     "time"
 
-    "github.com/cristiano-pacheco/bricks/database"
+    "github.com/cristiano-pacheco/bricks/pkg/database"
 )
 
 func main() {
@@ -130,7 +138,7 @@ func main() {
 package main
 
 import (
-    "github.com/cristiano-pacheco/bricks/database"
+    "github.com/cristiano-pacheco/bricks/pkg/database"
     "go.uber.org/fx"
     "gorm.io/gorm"
     "gorm.io/gorm/logger"
@@ -171,7 +179,7 @@ package main
 import (
     "context"
 
-    "github.com/cristiano-pacheco/bricks/database"
+    "github.com/cristiano-pacheco/bricks/pkg/database"
     "go.uber.org/fx"
 )
 
