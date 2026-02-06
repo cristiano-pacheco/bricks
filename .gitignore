@@ -1,13 +1,9 @@
 # Bricks modules
 **/vendor/
-**/node_modules/
 
 # Test coverage
 *.out
 coverage.html
-
-# Go workspace
-go.work.sum
 
 # IDE
 .vscode/
