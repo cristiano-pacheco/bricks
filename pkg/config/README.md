@@ -413,7 +413,7 @@ if cfg.IsSet("feature.experimental_mode") {
 cfg, _ := config.New("./config", "local")
 
 // Get all configuration as a map
-allSettings := cfg.AllSettings()
+allSettings := cfg.All()
 fmt.Printf("%+v\n", allSettings)
 ```
 

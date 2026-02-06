@@ -14,7 +14,12 @@ import (
 
 // Load loads configuration from YAML files using generics.
 // It automatically detects environment from APP_ENV or defaults to "local".
-// Loads base.yaml first, then merges environment-specific config.
+//
+// Loading order (later sources override earlier ones):
+//  1. base.yaml (required)
+//  2. {environment}.yaml (optional, e.g., local.yaml, production.yaml)
+//  3. Environment variables with APP_ prefix (e.g., APP_APP_PORT overrides app.port)
+//
 // The struct T should use `koanf` tags to define field mappings.
 //
 // Example:
@@ -37,10 +42,10 @@ func LoadEnv[T any](configDir, environment string) (T, error) {
 	var result T
 	cfg, err := New(configDir, environment)
 	if err != nil {
-		return result, err
+		return result, fmt.Errorf("failed to create config (env=%s): %w", environment, err)
 	}
 	if err := cfg.Unmarshal(&result); err != nil {
-		return result, err
+		return result, fmt.Errorf("failed to unmarshal config (env=%s): %w", environment, err)
 	}
 	return result, nil
 }
@@ -48,9 +53,10 @@ func LoadEnv[T any](configDir, environment string) (T, error) {
 // MustLoad loads configuration and panics on error.
 // Use this for configuration that must be valid for the app to start.
 func MustLoad[T any](configDir string) T {
-	result, err := Load[T](configDir)
+	env := getEnvironment()
+	result, err := LoadEnv[T](configDir, env)
 	if err != nil {
-		panic(fmt.Sprintf("failed to load config: %v", err))
+		panic(fmt.Sprintf("failed to load config from %s (env=%s): %v", configDir, env, err))
 	}
 	return result
 }
@@ -75,24 +81,26 @@ type Config struct {
 // configDir: directory containing config files (e.g., "./config")
 // environment: environment name (e.g., "local", "staging", "production")
 func New(configDir, environment string) (*Config, error) {
-	if strings.TrimSpace(configDir) == "" {
+	configDir = strings.TrimSpace(configDir)
+	if configDir == "" {
 		return nil, ErrMissingConfigDir
 	}
 
-	if strings.TrimSpace(environment) == "" {
+	environment = strings.ToLower(strings.TrimSpace(environment))
+	if environment == "" {
 		environment = getEnvironment()
 	}
 
 	// Validate config directory exists
 	if _, err := os.Stat(configDir); os.IsNotExist(err) {
 		return nil, fmt.Errorf("%w: %s", ErrConfigDirNotFound, configDir)
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to access config directory %s: %w", configDir, err)
 	}
 
-	k := koanf.New(".")
-
 	cfg := &Config{
-		k:           k,
-		environment: strings.ToLower(strings.TrimSpace(environment)),
+		k:           koanf.New("."),
+		environment: environment,
 		configDir:   configDir,
 	}
 
@@ -101,20 +109,20 @@ func New(configDir, environment string) (*Config, error) {
 		return nil, fmt.Errorf("failed to load base config: %w", err)
 	}
 
-	// Load environment-specific configuration (if exists)
-	if err := cfg.loadConfigFile(cfg.environment); err != nil {
-		// Environment config is optional, only fail if base is missing
-		if !os.IsNotExist(err) {
-			return nil, fmt.Errorf("failed to load %s config: %w", cfg.environment, err)
-		}
+	// Load environment-specific configuration (optional)
+	if err := cfg.loadConfigFile(cfg.environment); err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("failed to load %s.yaml config: %w", cfg.environment, err)
 	}
 
-	// Load environment variables with prefix APP_
-	// Example: APP_DATABASE_HOST=localhost will override database.host
-	cfg.k.Load(env.Provider("APP_", ".", func(s string) string {
+	// Load environment variables with APP_ prefix
+	// Example: APP_DATABASE_HOST=localhost overrides database.host
+	// The transformation converts: APP_DATABASE_HOST -> database.host
+	if err := cfg.k.Load(env.Provider("APP_", ".", func(s string) string {
 		return strings.Replace(strings.ToLower(
 			strings.TrimPrefix(s, "APP_")), "_", ".", -1)
-	}), nil)
+	}), nil); err != nil {
+		return nil, fmt.Errorf("failed to load environment variables: %w", err)
+	}
 
 	return cfg, nil
 }
@@ -138,6 +146,9 @@ func (c *Config) loadConfigFile(name string) error {
 
 // Unmarshal unmarshals the config into a struct
 func (c *Config) Unmarshal(target interface{}) error {
+	if target == nil {
+		return fmt.Errorf("unmarshal target cannot be nil")
+	}
 	if err := c.k.Unmarshal("", target); err != nil {
 		return fmt.Errorf("%w: %v", ErrUnmarshalFailed, err)
 	}
@@ -146,8 +157,14 @@ func (c *Config) Unmarshal(target interface{}) error {
 
 // UnmarshalKey unmarshals a specific key into a struct
 func (c *Config) UnmarshalKey(key string, target interface{}) error {
+	if target == nil {
+		return fmt.Errorf("unmarshal target cannot be nil")
+	}
+	if !c.k.Exists(key) {
+		return fmt.Errorf("config key '%s' not found", key)
+	}
 	if err := c.k.Unmarshal(key, target); err != nil {
-		return fmt.Errorf("%w for key %s: %v", ErrUnmarshalFailed, key, err)
+		return fmt.Errorf("%w for key '%s': %v", ErrUnmarshalFailed, key, err)
 	}
 	return nil
 }
@@ -184,16 +201,15 @@ func (c *Config) GetStringSlice(key string) []string {
 
 // GetStringMap returns a map[string]interface{} for the given key
 func (c *Config) GetStringMap(key string) map[string]interface{} {
-	m := make(map[string]interface{})
+	if !c.k.Exists(key) {
+		return make(map[string]interface{})
+	}
+	// Cut returns a new Koanf instance with the given key as root
 	sub := c.k.Cut(key)
 	if sub == nil {
-		return m
+		return make(map[string]interface{})
 	}
-	raw := sub.Raw()
-	for k, v := range raw {
-		m[k] = v
-	}
-	return m
+	return sub.All()
 }
 
 // IsSet checks if a key is set in the config
@@ -206,14 +222,9 @@ func (c *Config) Set(key string, value interface{}) {
 	c.k.Set(key, value)
 }
 
-// AllSettings returns all settings as a map
-func (c *Config) AllSettings() map[string]interface{} {
+// All returns all settings as a map
+func (c *Config) All() map[string]interface{} {
 	return c.k.All()
-}
-
-// Raw returns all settings as raw map (alias for AllSettings)
-func (c *Config) Raw() map[string]interface{} {
-	return c.k.Raw()
 }
 
 // Environment returns the current environment name
@@ -224,9 +235,4 @@ func (c *Config) Environment() string {
 // ConfigDir returns the configuration directory
 func (c *Config) ConfigDir() string {
 	return c.configDir
-}
-
-// Koanf returns the underlying koanf instance for advanced usage
-func (c *Config) Koanf() *koanf.Koanf {
-	return c.k
 }
