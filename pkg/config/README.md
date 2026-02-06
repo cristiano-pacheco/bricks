@@ -28,11 +28,7 @@ A robust and lightweight configuration management package for Go applications, b
 ## Installation
 
 ```bash
-go get github.com/cristiano-pacheco/bricks/pkg/config
-go get github.com/knadh/koanf/v2
-go get github.com/knadh/koanf/parsers/yaml
-go get github.com/knadh/koanf/providers/file
-go get github.com/knadh/koanf/providers/env
+go get github.com/cristiano-pacheco/bricks
 ```
 
 ## Quick Start
