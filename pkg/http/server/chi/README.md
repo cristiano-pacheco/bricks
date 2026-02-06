@@ -14,7 +14,7 @@ A robust HTTP server implementation using the Chi router with support for CORS a
 ## Installation
 
 ```bash
-go get github.com/cristiano-pacheco/bricks/pkg/httpserver/chi
+go get github.com/cristiano-pacheco/bricks/pkg/http/server/chi
 ```
 
 ## Usage
@@ -25,7 +25,7 @@ go get github.com/cristiano-pacheco/bricks/pkg/httpserver/chi
 package main
 
 import (
-    "github.com/cristiano-pacheco/bricks/pkg/httpserver/chi"
+    "github.com/cristiano-pacheco/bricks/pkg/http/server/chi"
 )
 
 func main() {
@@ -56,7 +56,7 @@ func main() {
 package main
 
 import (
-    "github.com/cristiano-pacheco/bricks/pkg/httpserver/chi"
+    "github.com/cristiano-pacheco/bricks/pkg/http/server/chi"
     "go.uber.org/fx"
 )
 
@@ -79,7 +79,7 @@ func registerRoutes(server *chi.Server) {
 }
 ```
 
-### WebSocket Support
+### Custom CORS
 
 ```go
 server, _ := chi.New(
@@ -105,8 +105,6 @@ server, _ := chi.New(
 | `WithShutdownTimeout` | Graceful shutdown timeout | `10s` |
 | `WithHealthCheck` | Enable health check | `true` |
 | `WithHealthCheckPath` | Health check endpoint | `/healthz` |
-| `WithWebSocket` | Enable WebSocket support | `false` |
-| `WithWSBufferSizes` | WebSocket buffer sizes | `1024, 1024` |
 | `WithCORS` | Custom CORS config | `nil` |
 | `WithDefaultCORS` | Permissive CORS config | - |
 
