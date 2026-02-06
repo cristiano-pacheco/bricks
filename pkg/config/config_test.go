@@ -132,8 +132,7 @@ database:
 	}
 
 	// Set environment to test auto-detection
-	os.Setenv("APP_ENV", "local")
-	defer os.Unsetenv("APP_ENV")
+	t.Setenv("APP_ENV", "local")
 
 	// Test Load with generics - automatically detects environment
 	cfg, err := config.Load[TestConfig](tmpDir)
@@ -226,8 +225,7 @@ app:
 	}
 
 	// Set environment variable to override config
-	os.Setenv("APP_APP_PORT", "9999")
-	defer os.Unsetenv("APP_APP_PORT")
+	t.Setenv("APP_APP_PORT", "9999")
 
 	cfg, err := config.LoadEnv[TestConfig](tmpDir, "local")
 	if err != nil {
@@ -325,14 +323,9 @@ func TestEnvVarExpansion(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Set test environment variables
-	os.Setenv("TEST_APP_NAME", "ExpandedApp")
-	os.Setenv("TEST_DB_HOST", "db.example.com")
-	os.Setenv("TEST_DB_PORT", "5433")
-	defer func() {
-		os.Unsetenv("TEST_APP_NAME")
-		os.Unsetenv("TEST_DB_HOST")
-		os.Unsetenv("TEST_DB_PORT")
-	}()
+	t.Setenv("TEST_APP_NAME", "ExpandedApp")
+	t.Setenv("TEST_DB_HOST", "db.example.com")
+	t.Setenv("TEST_DB_PORT", "5433")
 
 	// Config with environment variable expansion
 	baseConfig := `
@@ -388,12 +381,8 @@ database:
 func TestEnvVarExpansionWithStruct(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	os.Setenv("MY_APP_NAME", "GenericExpandedApp")
-	os.Setenv("MY_APP_PORT", "9090")
-	defer func() {
-		os.Unsetenv("MY_APP_NAME")
-		os.Unsetenv("MY_APP_PORT")
-	}()
+	t.Setenv("MY_APP_NAME", "GenericExpandedApp")
+	t.Setenv("MY_APP_PORT", "9090")
 
 	baseConfig := `
 app:

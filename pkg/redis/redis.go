@@ -308,8 +308,19 @@ func (c *Client) pingWithRetry(ctx context.Context) error {
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		pingCtx, cancel := context.WithTimeout(ctx, c.config.DialTimeout)
+		start := time.Now()
 		err := c.client.Ping(pingCtx).Err()
 		cancel()
+
+		if c.metrics != nil {
+			c.metrics.recordCommand(time.Since(start), err)
+			if err != nil {
+				c.metrics.recordConnectionError()
+				if attempt < maxRetries {
+					c.metrics.recordRetry()
+				}
+			}
+		}
 
 		if err == nil {
 			return nil
@@ -441,4 +452,12 @@ func (c *Client) GetMetrics() *Metrics {
 		return nil
 	}
 	return c.metrics.get()
+}
+
+// ResetMetrics clears collected metrics (if enabled)
+func (c *Client) ResetMetrics() {
+	if c.metrics == nil {
+		return
+	}
+	c.metrics.reset()
 }
