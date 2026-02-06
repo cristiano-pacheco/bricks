@@ -2,6 +2,12 @@ package chi
 
 import "time"
 
+const (
+	defaultHost        = "localhost"
+	defaultPort        = 8080
+	defaultMetricsPort = 9090
+)
+
 // Config holds the configuration for the Chi HTTP server.
 type Config struct {
 	Host              string
@@ -32,8 +38,8 @@ type CORSConfig struct {
 
 func defaultConfig() Config {
 	return Config{
-		Host:              "localhost",
-		Port:              8080,
+		Host:              defaultHost,
+		Port:              defaultPort,
 		ReadTimeout:       DefaultReadTimeout * time.Second,
 		WriteTimeout:      DefaultWriteTimeout * time.Second,
 		IdleTimeout:       DefaultIdleTimeout * time.Second,
@@ -41,7 +47,7 @@ func defaultConfig() Config {
 		EnableHealthCheck: true,
 		HealthCheckPath:   "/healthz",
 		EnableMetrics:     false,
-		MetricsPort:       9090,
+		MetricsPort:       defaultMetricsPort,
 		MetricsPath:       "/metrics",
 	}
 }

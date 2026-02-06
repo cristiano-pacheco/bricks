@@ -45,8 +45,8 @@ func LoadEnv[T any](configDir, environment string) (T, error) {
 	if err != nil {
 		return result, fmt.Errorf("failed to create config (env=%s): %w", environment, err)
 	}
-	if err := cfg.Unmarshal(&result); err != nil {
-		return result, fmt.Errorf("failed to unmarshal config (env=%s): %w", environment, err)
+	if unmarshalErr := cfg.Unmarshal(&result); unmarshalErr != nil {
+		return result, fmt.Errorf("failed to unmarshal config (env=%s): %w", environment, unmarshalErr)
 	}
 	return result, nil
 }
@@ -78,10 +78,11 @@ func getEnvironment() string {
 func expandEnvVars(content []byte) []byte {
 	// Match ${VAR} or ${VAR:-default}
 	re := regexp.MustCompile(`\$\{([A-Z0-9_]+)(:-([^}]*))?\}`)
+	const minEnvVarMatches = 2
 
 	expanded := re.ReplaceAllFunc(content, func(match []byte) []byte {
 		matches := re.FindSubmatch(match)
-		if len(matches) < 2 {
+		if len(matches) < minEnvVarMatches {
 			return match
 		}
 
@@ -190,8 +191,8 @@ func (c *Config) loadConfigFile(name string) error {
 	}
 
 	// Merge into koanf
-	if err := c.k.Load(&mapProvider{data: data}, nil); err != nil {
-		return fmt.Errorf("failed to load config file %s: %w", configPath, err)
+	if loadErr := c.k.Load(&mapProvider{data: data}, nil); loadErr != nil {
+		return fmt.Errorf("failed to load config file %s: %w", configPath, loadErr)
 	}
 
 	return nil
@@ -284,8 +285,8 @@ func (c *Config) IsSet(key string) bool {
 }
 
 // Set sets a value for the given key at runtime
-func (c *Config) Set(key string, value interface{}) {
-	c.k.Set(key, value)
+func (c *Config) Set(key string, value interface{}) error {
+	return c.k.Set(key, value)
 }
 
 // All returns all settings as a map

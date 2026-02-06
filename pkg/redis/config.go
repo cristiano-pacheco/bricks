@@ -20,6 +20,21 @@ const (
 	ClientTypeFailover ClientType = "failover"
 )
 
+const (
+	defaultDialTimeout     = 5 * time.Second
+	defaultReadTimeout     = 3 * time.Second
+	defaultWriteTimeout    = 3 * time.Second
+	defaultPoolSize        = 10
+	defaultMinIdleConns    = 2
+	defaultMaxRetries      = 3
+	defaultMinRetryBackoff = 8 * time.Millisecond
+	defaultMaxRetryBackoff = 512 * time.Millisecond
+	defaultPoolTimeout     = 4 * time.Second
+	defaultConnMaxIdleTime = 30 * time.Minute
+	defaultConnMaxLifetime = 1 * time.Hour
+	defaultCommandTimeout  = 5 * time.Second
+)
+
 // Config holds the configuration for Redis connection
 type Config struct {
 	// Connection parameters
@@ -77,7 +92,46 @@ type Config struct {
 
 // Validate validates the Redis configuration
 func (c Config) Validate() error {
-	// Validate client type
+	validators := []func() error{
+		c.validateClientType,
+		c.validateURL,
+		c.validateCluster,
+		c.validateSentinel,
+		c.validateFailover,
+		c.validateDB,
+		c.validatePoolSettings,
+	}
+
+	for _, validate := range validators {
+		if err := validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SetDefaults sets default values for unset configuration fields
+func (c *Config) SetDefaults() {
+	if c.Type == "" {
+		c.Type = ClientTypeSingleNode
+	}
+
+	setDefaultDuration(&c.DialTimeout, defaultDialTimeout)
+	setDefaultDuration(&c.ReadTimeout, defaultReadTimeout)
+	setDefaultDuration(&c.WriteTimeout, defaultWriteTimeout)
+	setDefaultInt(&c.PoolSize, defaultPoolSize)
+	setDefaultInt(&c.MinIdleConns, defaultMinIdleConns)
+	setDefaultInt(&c.MaxRetries, defaultMaxRetries)
+	setDefaultDuration(&c.MinRetryBackoff, defaultMinRetryBackoff)
+	setDefaultDuration(&c.MaxRetryBackoff, defaultMaxRetryBackoff)
+	setDefaultDuration(&c.PoolTimeout, defaultPoolTimeout)
+	setDefaultDuration(&c.ConnMaxIdleTime, defaultConnMaxIdleTime)
+	setDefaultDuration(&c.ConnMaxLifetime, defaultConnMaxLifetime)
+	setDefaultDuration(&c.CommandTimeout, defaultCommandTimeout)
+}
+
+func (c Config) validateClientType() error {
 	if strings.TrimSpace(string(c.Type)) == "" {
 		return ErrEmptyClientType
 	}
@@ -94,69 +148,87 @@ func (c Config) Validate() error {
 		}
 	}
 
-	// Validate URL for single node and failover
-	if c.Type == ClientTypeSingleNode || c.Type == ClientTypeFailover {
-		if strings.TrimSpace(c.URL) == "" {
-			return &ConfigError{
-				Field: "URL",
-				Value: c.URL,
-				Err:   ErrMissingURL,
-			}
+	return nil
+}
+
+func (c Config) validateURL() error {
+	if c.Type != ClientTypeSingleNode && c.Type != ClientTypeFailover {
+		return nil
+	}
+	if strings.TrimSpace(c.URL) == "" {
+		return &ConfigError{
+			Field: "URL",
+			Value: c.URL,
+			Err:   ErrMissingURL,
 		}
 	}
+	return nil
+}
 
-	// Validate cluster addresses
-	if c.Type == ClientTypeCluster {
-		if len(c.ClusterAddrs) == 0 && strings.TrimSpace(c.URL) == "" {
-			return &ConfigError{
-				Field: "ClusterAddrs",
-				Value: c.ClusterAddrs,
-				Err:   errors.New("cluster addresses or URL is required for cluster mode"),
-			}
+func (c Config) validateCluster() error {
+	if c.Type != ClientTypeCluster {
+		return nil
+	}
+	if len(c.ClusterAddrs) == 0 && strings.TrimSpace(c.URL) == "" {
+		return &ConfigError{
+			Field: "ClusterAddrs",
+			Value: c.ClusterAddrs,
+			Err:   errors.New("cluster addresses or URL is required for cluster mode"),
 		}
 	}
+	return nil
+}
 
-	// Validate sentinel configuration
-	if c.Type == ClientTypeSentinel {
-		if len(c.SentinelAddrs) == 0 {
-			return &ConfigError{
-				Field: "SentinelAddrs",
-				Value: c.SentinelAddrs,
-				Err:   errors.New("sentinel addresses are required for sentinel mode"),
-			}
-		}
-		if strings.TrimSpace(c.MasterName) == "" {
-			return &ConfigError{
-				Field: "MasterName",
-				Value: c.MasterName,
-				Err:   errors.New("master name is required for sentinel mode"),
-			}
+func (c Config) validateSentinel() error {
+	if c.Type != ClientTypeSentinel {
+		return nil
+	}
+	if len(c.SentinelAddrs) == 0 {
+		return &ConfigError{
+			Field: "SentinelAddrs",
+			Value: c.SentinelAddrs,
+			Err:   errors.New("sentinel addresses are required for sentinel mode"),
 		}
 	}
-
-	// Validate failover configuration
-	if c.Type == ClientTypeFailover {
-		if strings.TrimSpace(c.MasterName) == "" {
-			return &ConfigError{
-				Field: "MasterName",
-				Value: c.MasterName,
-				Err:   errors.New("master name is required for failover mode"),
-			}
+	if strings.TrimSpace(c.MasterName) == "" {
+		return &ConfigError{
+			Field: "MasterName",
+			Value: c.MasterName,
+			Err:   errors.New("master name is required for sentinel mode"),
 		}
 	}
+	return nil
+}
 
-	// Validate DB number (only applicable for single node)
-	if c.Type == ClientTypeSingleNode {
-		if c.DB < 0 || c.DB > 15 {
-			return &ConfigError{
-				Field: "DB",
-				Value: c.DB,
-				Err:   ErrInvalidDB,
-			}
+func (c Config) validateFailover() error {
+	if c.Type != ClientTypeFailover {
+		return nil
+	}
+	if strings.TrimSpace(c.MasterName) == "" {
+		return &ConfigError{
+			Field: "MasterName",
+			Value: c.MasterName,
+			Err:   errors.New("master name is required for failover mode"),
 		}
 	}
+	return nil
+}
 
-	// Validate pool settings
+func (c Config) validateDB() error {
+	if c.Type != ClientTypeSingleNode {
+		return nil
+	}
+	if c.DB < 0 || c.DB > 15 {
+		return &ConfigError{
+			Field: "DB",
+			Value: c.DB,
+			Err:   ErrInvalidDB,
+		}
+	}
+	return nil
+}
+
+func (c Config) validatePoolSettings() error {
 	if c.PoolSize < 0 {
 		return &ConfigError{
 			Field: "PoolSize",
@@ -192,57 +264,14 @@ func (c Config) Validate() error {
 	return nil
 }
 
-// SetDefaults sets default values for unset configuration fields
-func (c *Config) SetDefaults() {
-	if c.Type == "" {
-		c.Type = ClientTypeSingleNode
+func setDefaultDuration(value *time.Duration, defaultValue time.Duration) {
+	if *value == 0 {
+		*value = defaultValue
 	}
+}
 
-	if c.DialTimeout == 0 {
-		c.DialTimeout = 5 * time.Second
-	}
-
-	if c.ReadTimeout == 0 {
-		c.ReadTimeout = 3 * time.Second
-	}
-
-	if c.WriteTimeout == 0 {
-		c.WriteTimeout = 3 * time.Second
-	}
-
-	if c.PoolSize == 0 {
-		c.PoolSize = 10
-	}
-
-	if c.MinIdleConns == 0 {
-		c.MinIdleConns = 2
-	}
-
-	if c.MaxRetries == 0 {
-		c.MaxRetries = 3
-	}
-
-	if c.MinRetryBackoff == 0 {
-		c.MinRetryBackoff = 8 * time.Millisecond
-	}
-
-	if c.MaxRetryBackoff == 0 {
-		c.MaxRetryBackoff = 512 * time.Millisecond
-	}
-
-	if c.PoolTimeout == 0 {
-		c.PoolTimeout = 4 * time.Second
-	}
-
-	if c.ConnMaxIdleTime == 0 {
-		c.ConnMaxIdleTime = 30 * time.Minute
-	}
-
-	if c.ConnMaxLifetime == 0 {
-		c.ConnMaxLifetime = 1 * time.Hour
-	}
-
-	if c.CommandTimeout == 0 {
-		c.CommandTimeout = 5 * time.Second
+func setDefaultInt(value *int, defaultValue int) {
+	if *value == 0 {
+		*value = defaultValue
 	}
 }

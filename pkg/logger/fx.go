@@ -55,7 +55,7 @@ func ProvideWithLifecycle(lc fx.Lifecycle, config Config) (*ZapLogger, error) {
 	}
 
 	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
+		OnStop: func(_ context.Context) error {
 			return logger.Sync()
 		},
 	})

@@ -48,7 +48,7 @@ func registerLifecycle(lc fx.Lifecycle, server *Server) {
 		OnStart: func(_ context.Context) error {
 			go func() {
 				if err := server.Start(); err != nil {
-					// Server stopped
+					_ = err
 				}
 			}()
 			return nil
@@ -87,8 +87,8 @@ func ProvideOptions(opts ...Option) fx.Option {
 
 // WithLogger is a helper to add a custom logging middleware.
 // Use this with fx to inject your logger.
-func WithLogger(loggerMiddleware func(next http.Handler) http.Handler) Option {
-	return func(c *Config) {
+func WithLogger(_ func(next http.Handler) http.Handler) Option {
+	return func(_ *Config) {
 		// This is a placeholder - actual implementation would require
 		// modifying the server to accept middleware options
 	}

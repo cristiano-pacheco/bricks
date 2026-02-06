@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -34,32 +35,12 @@ func NewClient(ctx context.Context, cfg Config, opts ...Option) (*Client, error)
 	}
 
 	// Apply options
-	options := defaultOptions()
+	clientOptions := defaultOptions()
 	for _, opt := range opts {
-		opt(&options)
+		opt(&clientOptions)
 	}
 
-	// Create the appropriate client based on type
-	var client redis.UniversalClient
-	var err error
-
-	switch cfg.Type {
-	case ClientTypeSingleNode:
-		client, err = createSingleNodeClient(cfg)
-	case ClientTypeCluster:
-		client, err = createClusterClient(cfg)
-	case ClientTypeSentinel:
-		client, err = createSentinelClient(cfg)
-	case ClientTypeFailover:
-		client, err = createFailoverClient(cfg)
-	default:
-		return nil, &ConfigError{
-			Field: "Type",
-			Value: cfg.Type,
-			Err:   ErrInvalidClientType,
-		}
-	}
-
+	client, err := createUniversalClient(cfg)
 	if err != nil {
 		return nil, &ConnectionError{
 			URL:        cfg.URL,
@@ -73,7 +54,7 @@ func NewClient(ctx context.Context, cfg Config, opts ...Option) (*Client, error)
 	c := &Client{
 		client:    client,
 		config:    cfg,
-		opts:      options,
+		opts:      clientOptions,
 		namespace: cfg.Namespace,
 	}
 
@@ -83,20 +64,39 @@ func NewClient(ctx context.Context, cfg Config, opts ...Option) (*Client, error)
 	}
 
 	// Ping the server with retries
-	if err := c.pingWithRetry(ctx); err != nil {
+	if pingErr := c.pingWithRetry(ctx); pingErr != nil {
 		_ = client.Close()
-		return nil, err
+		return nil, pingErr
 	}
 
 	// Call post-connect hook if provided
-	if options.OnConnect != nil {
-		if err := options.OnConnect(ctx, c); err != nil {
+	if clientOptions.OnConnect != nil {
+		if hookErr := clientOptions.OnConnect(ctx, c); hookErr != nil {
 			_ = client.Close()
-			return nil, fmt.Errorf("post-connect hook failed: %w", err)
+			return nil, fmt.Errorf("post-connect hook failed: %w", hookErr)
 		}
 	}
 
 	return c, nil
+}
+
+func createUniversalClient(cfg Config) (redis.UniversalClient, error) {
+	switch cfg.Type {
+	case ClientTypeSingleNode:
+		return createSingleNodeClient(cfg)
+	case ClientTypeCluster:
+		return createClusterClient(cfg)
+	case ClientTypeSentinel:
+		return createSentinelClient(cfg), nil
+	case ClientTypeFailover:
+		return createFailoverClient(cfg)
+	default:
+		return nil, &ConfigError{
+			Field: "Type",
+			Value: cfg.Type,
+			Err:   ErrInvalidClientType,
+		}
+	}
 }
 
 // createSingleNodeClient creates a single-node Redis client
@@ -124,13 +124,14 @@ func createSingleNodeClient(cfg Config) (redis.UniversalClient, error) {
 	opts.ConnMaxIdleTime = cfg.ConnMaxIdleTime
 	opts.ConnMaxLifetime = cfg.ConnMaxLifetime
 	opts.Protocol = cfg.Protocol
-	opts.DisableIndentity = cfg.DisableIndentity
+	opts.DisableIdentity = cfg.DisableIndentity
 	opts.IdentitySuffix = cfg.IdentitySuffix
 
 	// Configure TLS
 	if cfg.EnableTLS {
 		opts.TLSConfig = &tls.Config{
-			MinVersion:         tls.VersionTLS12,
+			MinVersion: tls.VersionTLS12,
+			// #nosec G402 -- configurable for environments where verification is handled elsewhere
 			InsecureSkipVerify: cfg.TLSSkipVerify,
 			ServerName:         cfg.TLSServerName,
 		}
@@ -180,13 +181,14 @@ func createClusterClient(cfg Config) (redis.UniversalClient, error) {
 	opts.MaxRedirects = cfg.MaxRedirects
 	opts.ReadOnly = cfg.ReadOnly
 	opts.Protocol = cfg.Protocol
-	opts.DisableIndentity = cfg.DisableIndentity
+	opts.DisableIdentity = cfg.DisableIndentity
 	opts.IdentitySuffix = cfg.IdentitySuffix
 
 	// Configure TLS
 	if cfg.EnableTLS {
 		opts.TLSConfig = &tls.Config{
-			MinVersion:         tls.VersionTLS12,
+			MinVersion: tls.VersionTLS12,
+			// #nosec G402 -- configurable for environments where verification is handled elsewhere
 			InsecureSkipVerify: cfg.TLSSkipVerify,
 			ServerName:         cfg.TLSServerName,
 		}
@@ -200,7 +202,7 @@ func createClusterClient(cfg Config) (redis.UniversalClient, error) {
 }
 
 // createSentinelClient creates a Redis sentinel client
-func createSentinelClient(cfg Config) (redis.UniversalClient, error) {
+func createSentinelClient(cfg Config) redis.UniversalClient {
 	opts := &redis.FailoverOptions{
 		MasterName:       cfg.MasterName,
 		SentinelAddrs:    cfg.SentinelAddrs,
@@ -227,14 +229,15 @@ func createSentinelClient(cfg Config) (redis.UniversalClient, error) {
 		ConnMaxIdleTime:       cfg.ConnMaxIdleTime,
 		ConnMaxLifetime:       cfg.ConnMaxLifetime,
 		Protocol:              cfg.Protocol,
-		DisableIndentity:      cfg.DisableIndentity,
+		DisableIdentity:       cfg.DisableIndentity,
 		IdentitySuffix:        cfg.IdentitySuffix,
 	}
 
 	// Configure TLS
 	if cfg.EnableTLS {
 		opts.TLSConfig = &tls.Config{
-			MinVersion:         tls.VersionTLS12,
+			MinVersion: tls.VersionTLS12,
+			// #nosec G402 -- configurable for environments where verification is handled elsewhere
 			InsecureSkipVerify: cfg.TLSSkipVerify,
 			ServerName:         cfg.TLSServerName,
 		}
@@ -244,7 +247,7 @@ func createSentinelClient(cfg Config) (redis.UniversalClient, error) {
 		}
 	}
 
-	return redis.NewFailoverClient(opts), nil
+	return redis.NewFailoverClient(opts)
 }
 
 // createFailoverClient creates a Redis failover client (alias for sentinel)
@@ -273,7 +276,7 @@ func createFailoverClient(cfg Config) (redis.UniversalClient, error) {
 		ConnMaxIdleTime:       cfg.ConnMaxIdleTime,
 		ConnMaxLifetime:       cfg.ConnMaxLifetime,
 		Protocol:              cfg.Protocol,
-		DisableIndentity:      cfg.DisableIndentity,
+		DisableIdentity:       cfg.DisableIndentity,
 		IdentitySuffix:        cfg.IdentitySuffix,
 	}
 
@@ -285,7 +288,8 @@ func createFailoverClient(cfg Config) (redis.UniversalClient, error) {
 	// Configure TLS
 	if cfg.EnableTLS {
 		failoverOpts.TLSConfig = &tls.Config{
-			MinVersion:         tls.VersionTLS12,
+			MinVersion: tls.VersionTLS12,
+			// #nosec G402 -- configurable for environments where verification is handled elsewhere
 			InsecureSkipVerify: cfg.TLSSkipVerify,
 			ServerName:         cfg.TLSServerName,
 		}
@@ -350,19 +354,24 @@ func (c *Client) pingWithRetry(ctx context.Context) error {
 
 // calculateBackoff calculates the backoff duration for retry attempts
 func (c *Client) calculateBackoff(attempt int) time.Duration {
-	min := c.config.MinRetryBackoff
-	max := c.config.MaxRetryBackoff
+	minBackoff := c.config.MinRetryBackoff
+	maxBackoff := c.config.MaxRetryBackoff
 
-	if min == 0 {
-		min = 8 * time.Millisecond
+	if minBackoff == 0 {
+		minBackoff = defaultMinRetryBackoff
 	}
-	if max == 0 {
-		max = 512 * time.Millisecond
+	if maxBackoff == 0 {
+		maxBackoff = defaultMaxRetryBackoff
 	}
 
-	backoff := min * time.Duration(1<<uint(attempt-1))
-	if backoff > max {
-		backoff = max
+	if attempt <= 1 {
+		return minBackoff
+	}
+
+	multiplier := math.Pow(2, float64(attempt-1))
+	backoff := time.Duration(float64(minBackoff) * multiplier)
+	if backoff > maxBackoff {
+		backoff = maxBackoff
 	}
 
 	return backoff

@@ -75,7 +75,12 @@ func (m *metricsCollector) get() *Metrics {
 	commandsExecuted := atomic.LoadUint64(&m.commandsExecuted)
 	averageLatency := time.Duration(0)
 	if commandsExecuted > 0 {
-		averageLatency = m.totalLatency / time.Duration(commandsExecuted)
+		const maxInt64 = int64(^uint64(0) >> 1)
+		divisor := int64(commandsExecuted)
+		if commandsExecuted > uint64(maxInt64) {
+			divisor = maxInt64
+		}
+		averageLatency = m.totalLatency / time.Duration(divisor)
 	}
 
 	return &Metrics{

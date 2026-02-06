@@ -112,7 +112,7 @@ func (s *Server) Start() error {
 	if s.metricsServer != nil {
 		go func() {
 			if err := s.metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				// Log error but don't stop the main server
+				_ = err
 			}
 		}()
 	}
@@ -126,7 +126,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// Shutdown metrics server if running
 	if s.metricsServer != nil {
 		if err := s.metricsServer.Shutdown(ctx); err != nil {
-			// Continue to shutdown main server even if metrics server fails
+			_ = err
 		}
 	}
 

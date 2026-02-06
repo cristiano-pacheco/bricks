@@ -2,7 +2,7 @@ package config_test
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -34,7 +34,8 @@ app:
 	// Load config
 	cfg, err := config.New(configDir, "local")
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("failed to load config", "err", err)
+		return
 	}
 
 	fmt.Println(cfg.GetString("app.name"))
@@ -81,7 +82,8 @@ database:
 
 	var appConfig AppConfig
 	if err := cfg.Unmarshal(&appConfig); err != nil {
-		log.Fatal(err)
+		slog.Error("failed to unmarshal config", "err", err)
+		return
 	}
 
 	fmt.Printf("%s running on port %d\n", appConfig.App.Name, appConfig.App.Port)
@@ -161,7 +163,8 @@ app:
 	// Environment is automatically detected from APP_ENV
 	cfg, err := config.Load[AppConfig](configDir)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("failed to load config", "err", err)
+		return
 	}
 
 	fmt.Printf("%s on port %d (debug: %v)\n", cfg.App.Name, cfg.App.Port, cfg.App.Debug)
@@ -195,7 +198,8 @@ app:
 	// Example: APP_APP_PORT=8080 will set app.port
 	cfg, err := config.Load[AppConfig](configDir)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("failed to load config", "err", err)
+		return
 	}
 
 	fmt.Printf("Name: %s\n", cfg.App.Name)

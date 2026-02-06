@@ -97,8 +97,8 @@ app:
 	}
 
 	var appConfig TestConfig
-	if err := cfg.Unmarshal(&appConfig); err != nil {
-		t.Fatalf("Failed to unmarshal config: %v", err)
+	if unmarshalErr := cfg.Unmarshal(&appConfig); unmarshalErr != nil {
+		t.Fatalf("Failed to unmarshal config: %v", unmarshalErr)
 	}
 
 	if appConfig.App.Name != "MyApp" {
@@ -287,7 +287,9 @@ app:
 	}
 
 	// Set runtime value
-	cfg.Set("runtime.value", "test123")
+	if err := cfg.Set("runtime.value", "test123"); err != nil {
+		t.Fatalf("Failed to set runtime value: %v", err)
+	}
 
 	if val := cfg.GetString("runtime.value"); val != "test123" {
 		t.Errorf("Expected runtime.value to be 'test123', got '%s'", val)

@@ -8,6 +8,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const defaultFxTimeout = 30 * time.Second
+
 // Module provides database connection with fx lifecycle
 var Module = fx.Module("database",
 	fx.Provide(NewWithFx),
@@ -22,7 +24,7 @@ type Params struct {
 
 // NewWithFx creates a new database client with fx lifecycle management
 func NewWithFx(lc fx.Lifecycle, params Params) (*gorm.DB, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultFxTimeout)
 	defer cancel()
 
 	client, err := NewClient(ctx, params.Config, params.Options...)
@@ -34,7 +36,7 @@ func NewWithFx(lc fx.Lifecycle, params Params) (*gorm.DB, error) {
 		OnStart: func(ctx context.Context) error {
 			return client.Ping(ctx)
 		},
-		OnStop: func(ctx context.Context) error {
+		OnStop: func(_ context.Context) error {
 			return client.Close()
 		},
 	})
@@ -49,7 +51,7 @@ var ClientModule = fx.Module("database-client",
 
 // NewClientWithFx creates a new database client with fx lifecycle management
 func NewClientWithFx(lc fx.Lifecycle, params Params) (*Client, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultFxTimeout)
 	defer cancel()
 
 	client, err := NewClient(ctx, params.Config, params.Options...)
@@ -61,7 +63,7 @@ func NewClientWithFx(lc fx.Lifecycle, params Params) (*Client, error) {
 		OnStart: func(ctx context.Context) error {
 			return client.Ping(ctx)
 		},
-		OnStop: func(ctx context.Context) error {
+		OnStop: func(_ context.Context) error {
 			return client.Close()
 		},
 	})

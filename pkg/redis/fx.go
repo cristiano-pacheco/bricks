@@ -7,6 +7,8 @@ import (
 	"go.uber.org/fx"
 )
 
+const defaultFxTimeout = 30 * time.Second
+
 // Module provides Redis client with fx lifecycle
 var Module = fx.Module("redis",
 	fx.Provide(NewWithFx),
@@ -21,7 +23,7 @@ type Params struct {
 
 // NewWithFx creates a new Redis client with fx lifecycle management
 func NewWithFx(lc fx.Lifecycle, params Params) (*Client, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultFxTimeout)
 	defer cancel()
 
 	client, err := NewClient(ctx, params.Config, params.Options...)
@@ -33,7 +35,7 @@ func NewWithFx(lc fx.Lifecycle, params Params) (*Client, error) {
 		OnStart: func(ctx context.Context) error {
 			return client.Ping(ctx)
 		},
-		OnStop: func(ctx context.Context) error {
+		OnStop: func(_ context.Context) error {
 			return client.Close()
 		},
 	})
@@ -48,7 +50,7 @@ var UniversalClientModule = fx.Module("redis-universal",
 
 // NewUniversalClientWithFx creates a new Redis universal client with fx lifecycle management
 func NewUniversalClientWithFx(lc fx.Lifecycle, params Params) (UniversalClient, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultFxTimeout)
 	defer cancel()
 
 	client, err := NewClient(ctx, params.Config, params.Options...)
@@ -60,7 +62,7 @@ func NewUniversalClientWithFx(lc fx.Lifecycle, params Params) (UniversalClient, 
 		OnStart: func(ctx context.Context) error {
 			return client.Ping(ctx)
 		},
-		OnStop: func(ctx context.Context) error {
+		OnStop: func(_ context.Context) error {
 			return client.Close()
 		},
 	})

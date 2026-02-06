@@ -2,6 +2,8 @@ package chi
 
 import "time"
 
+const defaultCORSMaxAge = 300
+
 // Option is a functional option for configuring the Server.
 type Option func(*Config)
 
@@ -76,7 +78,7 @@ func WithDefaultCORS() Option {
 			AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 			AllowCredentials: false,
-			MaxAge:           300,
+			MaxAge:           defaultCORSMaxAge,
 		}
 	}
 }

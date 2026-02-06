@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"gorm.io/driver/postgres"
@@ -15,6 +16,7 @@ const (
 	defaultRetryDelay      = 1 * time.Second
 	defaultConnMaxLifetime = 1 * time.Hour
 	defaultConnMaxIdleTime = 10 * time.Minute
+	maxRetryBackoff        = 30 * time.Second
 )
 
 // Client encapsulates database operations
@@ -39,8 +41,8 @@ func NewClient(ctx context.Context, cfg Config, opts ...Option) (*Client, error)
 		return nil, err
 	}
 
-	if err := configureConnectionPool(db, cfg, options); err != nil {
-		return nil, err
+	if poolErr := configureConnectionPool(db, cfg, options); poolErr != nil {
+		return nil, poolErr
 	}
 
 	return &Client{
@@ -176,10 +178,11 @@ func calculateBackoff(attempt int, baseDelay time.Duration) time.Duration {
 		return baseDelay
 	}
 	// Exponential backoff: baseDelay * 2^(attempt-1)
-	backoff := baseDelay * time.Duration(1<<uint(attempt-1))
-	// Cap at 30 seconds
-	if backoff > 30*time.Second {
-		backoff = 30 * time.Second
+	multiplier := math.Pow(2, float64(attempt-1))
+	backoff := time.Duration(float64(baseDelay) * multiplier)
+	// Cap at max retry backoff
+	if backoff > maxRetryBackoff {
+		backoff = maxRetryBackoff
 	}
 	return backoff
 }

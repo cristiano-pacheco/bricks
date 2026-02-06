@@ -5,6 +5,7 @@ import (
 	"math"
 	"net"
 	"strconv"
+	"strings"
 
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
@@ -74,17 +75,12 @@ func (c Config) Validate() error {
 
 // DSN generates a GORM-compatible DSN string
 func (c Config) DSN() string {
-	sslMode := "require"
-	if !c.SSLMode {
-		sslMode = "disable"
-	}
+	sslMode := c.sslModeValue()
+	timeZone := c.timeZoneValue()
 
-	timeZone := c.TimeZone
-	if timeZone == "" {
-		timeZone = "UTC"
-	}
-
-	dsn := fmt.Sprintf(
+	var builder strings.Builder
+	_, _ = fmt.Fprintf(
+		&builder,
 		"host=%s user=%s password=%s dbname=%s port=%d sslmode=%s TimeZone=%s",
 		c.Host,
 		c.User,
@@ -95,38 +91,60 @@ func (c Config) DSN() string {
 		timeZone,
 	)
 
-	// Add optional SSL certificates
-	if c.SSLMode && c.SSLCert != "" {
-		dsn += fmt.Sprintf(" sslcert=%s", c.SSLCert)
-	}
-	if c.SSLMode && c.SSLKey != "" {
-		dsn += fmt.Sprintf(" sslkey=%s", c.SSLKey)
-	}
-	if c.SSLMode && c.SSLRootCert != "" {
-		dsn += fmt.Sprintf(" sslrootcert=%s", c.SSLRootCert)
-	}
+	c.appendSSLParams(&builder)
+	c.appendOptionalParams(&builder)
 
-	// Add optional parameters
+	return builder.String()
+}
+
+func (c Config) sslModeValue() string {
+	if c.SSLMode {
+		return "require"
+	}
+	return "disable"
+}
+
+func (c Config) timeZoneValue() string {
+	if strings.TrimSpace(c.TimeZone) == "" {
+		return "UTC"
+	}
+	return c.TimeZone
+}
+
+func (c Config) appendSSLParams(builder *strings.Builder) {
+	if !c.SSLMode {
+		return
+	}
+	if c.SSLCert != "" {
+		_, _ = fmt.Fprintf(builder, " sslcert=%s", c.SSLCert)
+	}
+	if c.SSLKey != "" {
+		_, _ = fmt.Fprintf(builder, " sslkey=%s", c.SSLKey)
+	}
+	if c.SSLRootCert != "" {
+		_, _ = fmt.Fprintf(builder, " sslrootcert=%s", c.SSLRootCert)
+	}
+}
+
+func (c Config) appendOptionalParams(builder *strings.Builder) {
 	if c.ApplicationName != "" {
-		dsn += fmt.Sprintf(" application_name=%s", c.ApplicationName)
+		_, _ = fmt.Fprintf(builder, " application_name=%s", c.ApplicationName)
 	}
 	if c.SearchPath != "" {
-		dsn += fmt.Sprintf(" search_path=%s", c.SearchPath)
+		_, _ = fmt.Fprintf(builder, " search_path=%s", c.SearchPath)
 	}
 	if c.StatementTimeout > 0 {
-		dsn += fmt.Sprintf(" statement_timeout=%d", c.StatementTimeout)
+		_, _ = fmt.Fprintf(builder, " statement_timeout=%d", c.StatementTimeout)
 	}
 	if c.LockTimeout > 0 {
-		dsn += fmt.Sprintf(" lock_timeout=%d", c.LockTimeout)
+		_, _ = fmt.Fprintf(builder, " lock_timeout=%d", c.LockTimeout)
 	}
 	if c.IdleInTransaction > 0 {
-		dsn += fmt.Sprintf(" idle_in_transaction_session_timeout=%d", c.IdleInTransaction)
+		_, _ = fmt.Fprintf(builder, " idle_in_transaction_session_timeout=%d", c.IdleInTransaction)
 	}
 	if c.ConnectTimeout > 0 {
-		dsn += fmt.Sprintf(" connect_timeout=%d", c.ConnectTimeout)
+		_, _ = fmt.Fprintf(builder, " connect_timeout=%d", c.ConnectTimeout)
 	}
-
-	return dsn
 }
 
 // PostgresDSN generates a standard PostgreSQL connection string (postgres://)
@@ -145,7 +163,8 @@ func (c Config) PostgresDSN() (string, error) {
 		timeZone = "UTC"
 	}
 
-	hostPort := net.JoinHostPort(c.Host, strconv.Itoa(int(c.Port)))
+	port := strconv.FormatUint(uint64(c.Port), 10)
+	hostPort := net.JoinHostPort(c.Host, port)
 	dsn := fmt.Sprintf(
 		"postgres://%s:%s@%s/%s?sslmode=%s&TimeZone=%s",
 		c.User,

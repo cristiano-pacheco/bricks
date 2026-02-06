@@ -21,7 +21,6 @@ type Option func(*options)
 // Default values
 const (
 	defaultConnectTimeout = 30 * time.Second
-	defaultMaxRetries     = 3
 	defaultRetryDelay     = 1 * time.Second
 )
 

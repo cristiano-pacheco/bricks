@@ -6,19 +6,29 @@ import (
 
 func Example_basicUsage() {
 	// Basic usage with default config
-	log := logger.MustNew(logger.DefaultConfig())
+	config := logger.DefaultConfig()
+	config.OutputPaths = []string{"/dev/null"}
+	config.ErrorOutputPaths = []string{"/dev/null"}
+	log := logger.MustNew(config)
 	defer log.Sync()
 
 	log.Info("Application started with default config")
+
+	// Output:
 }
 
 func Example_developmentConfig() {
 	// Development config with colored console output
-	log := logger.MustNew(logger.DevelopmentConfig())
+	config := logger.DevelopmentConfig()
+	config.OutputPaths = []string{"/dev/null"}
+	config.ErrorOutputPaths = []string{"/dev/null"}
+	log := logger.MustNew(config)
 	defer log.Sync()
 
 	log.Debug("Debug message", logger.String("environment", "development"))
 	log.Info("Info message", logger.Int("port", 8080))
+
+	// Output:
 }
 
 func Example_withOptions() {
@@ -26,6 +36,8 @@ func Example_withOptions() {
 	log := logger.MustNewWithOptions(
 		logger.WithLevel("debug"),
 		logger.WithEncoding("console"),
+		logger.WithOutputPaths("/dev/null"),
+		logger.WithErrorOutputPaths("/dev/null"),
 		logger.WithField("service", "example"),
 		logger.WithField("version", "1.0.0"),
 	)
@@ -35,11 +47,16 @@ func Example_withOptions() {
 		logger.String("user_id", "123"),
 		logger.String("email", "user@example.com"),
 	)
+
+	// Output:
 }
 
 func Example_contextLogger() {
 	// Child logger with context
-	log := logger.MustNew(logger.DevelopmentConfig())
+	config := logger.DevelopmentConfig()
+	config.OutputPaths = []string{"/dev/null"}
+	config.ErrorOutputPaths = []string{"/dev/null"}
+	log := logger.MustNew(config)
 	defer log.Sync()
 
 	reqLog := log.With(
@@ -49,4 +66,6 @@ func Example_contextLogger() {
 
 	reqLog.Info("Processing request")
 	reqLog.Info("Request completed", logger.Int("status", 200))
+
+	// Output:
 }
