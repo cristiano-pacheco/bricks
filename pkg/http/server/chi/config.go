@@ -12,6 +12,9 @@ type Config struct {
 	ShutdownTimeout   time.Duration
 	EnableHealthCheck bool
 	HealthCheckPath   string
+	EnableMetrics     bool
+	MetricsPort       uint
+	MetricsPath       string
 	CORS              *CORSConfig
 }
 
@@ -37,5 +40,8 @@ func defaultConfig() Config {
 		ShutdownTimeout:   DefaultShutdownTimeout * time.Second,
 		EnableHealthCheck: true,
 		HealthCheckPath:   "/healthz",
+		EnableMetrics:     false,
+		MetricsPort:       9090,
+		MetricsPath:       "/metrics",
 	}
 }

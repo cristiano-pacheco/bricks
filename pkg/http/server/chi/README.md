@@ -7,7 +7,8 @@ A robust HTTP server implementation using the Chi router with support for CORS a
 - 🚀 Built on top of [Chi router](https://github.com/go-chi/chi)
 - 🌐 CORS middleware support
 - ⚡ Health check endpoint
-- 🔧 Functional options pattern
+- � Prometheus metrics on separate port
+- �🔧 Functional options pattern
 - 📦 Uber FX integration
 - 🛡️ Default middleware stack (RequestID, RealIP, Logger, Recoverer)
 
@@ -79,6 +80,27 @@ func registerRoutes(server *chi.Server) {
 }
 ```
 
+### Prometheus Metrics
+
+Enable Prometheus metrics on a separate HTTP server:
+
+```go
+server, _ := chi.New(
+    chi.WithHost("0.0.0.0"),
+    chi.WithPort(8080),
+    chi.WithMetrics(true),           // Enable metrics endpoint
+    chi.WithMetricsPort(9090),        // Metrics on port 9090 (default)
+    chi.WithMetricsPath("/metrics"),  // Metrics path (default)
+)
+
+// Metrics available at http://localhost:9090/metrics
+```
+
+The metrics server runs on a separate port to:
+- Avoid exposing metrics on the public API
+- Allow different security policies
+- Enable metrics collection without affecting main server performance
+
 ### Custom CORS
 
 ```go
@@ -105,6 +127,9 @@ server, _ := chi.New(
 | `WithShutdownTimeout` | Graceful shutdown timeout | `10s` |
 | `WithHealthCheck` | Enable health check | `true` |
 | `WithHealthCheckPath` | Health check endpoint | `/healthz` |
+| `WithMetrics` | Enable Prometheus metrics | `false` |
+| `WithMetricsPort` | Metrics server port | `9090` |
+| `WithMetricsPath` | Metrics endpoint path | `/metrics` |
 | `WithCORS` | Custom CORS config | `nil` |
 | `WithDefaultCORS` | Permissive CORS config | - |
 
@@ -114,7 +139,21 @@ By default, a health check endpoint is available at `/healthz`:
 
 ```bash
 curl http://localhost:8080/healthz
-# Response: ok
+# RMetrics
+
+When enabled, Prometheus metrics are exposed on a separate server at `/metrics`:
+
+```bash
+curl http://localhost:9090/metrics
+# Response: Prometheus metrics in text format
+```
+
+The metrics include:
+- Go runtime metrics (goroutines, memory, GC)
+- HTTP request metrics (duration, status codes)
+- Custom application metrics (if registered)
+
+## esponse: ok
 ```
 
 ## License

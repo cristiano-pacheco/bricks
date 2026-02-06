@@ -80,3 +80,24 @@ func WithDefaultCORS() Option {
 		}
 	}
 }
+
+// WithMetrics enables the metrics endpoint on a separate HTTP server.
+func WithMetrics(enabled bool) Option {
+	return func(c *Config) {
+		c.EnableMetrics = enabled
+	}
+}
+
+// WithMetricsPort sets the port for the metrics server.
+func WithMetricsPort(port uint) Option {
+	return func(c *Config) {
+		c.MetricsPort = port
+	}
+}
+
+// WithMetricsPath sets the path for the metrics endpoint.
+func WithMetricsPath(path string) Option {
+	return func(c *Config) {
+		c.MetricsPath = path
+	}
+}
