@@ -3,7 +3,6 @@ package response
 import (
 	"encoding/json"
 	"errors"
-	"maps"
 	"net/http"
 
 	"github.com/cristiano-pacheco/bricks/pkg/errs"
@@ -37,23 +36,38 @@ func Error(w http.ResponseWriter, err error) {
 }
 
 func JSON[T any](w http.ResponseWriter, status int, data T, headers http.Header) error {
-	envelope := NewEnvelope(data)
-	js, err := json.MarshalIndent(envelope, "", "\t")
-	if err != nil {
-		return err
+	// Set Content-Type first
+	w.Header().Set("Content-Type", "application/json")
+
+	// Copy custom headers efficiently
+	for key, values := range headers {
+		for _, value := range values {
+			w.Header().Add(key, value)
+		}
 	}
 
-	js = append(js, '\n')
-
-	maps.Copy(w.Header(), headers)
-
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_, _ = w.Write(js)
 
-	return nil
+	// Use encoder to write directly to response writer (more efficient)
+	envelope := NewEnvelope(data)
+	return json.NewEncoder(w).Encode(envelope)
 }
 
 func NoContent(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// JSONRaw sends a JSON response without envelope wrapper for better performance.
+// Use this when you don't need the "data" wrapper.
+func JSONRaw[T any](w http.ResponseWriter, status int, data T, headers http.Header) error {
+	w.Header().Set("Content-Type", "application/json")
+
+	for key, values := range headers {
+		for _, value := range values {
+			w.Header().Add(key, value)
+		}
+	}
+
+	w.WriteHeader(status)
+	return json.NewEncoder(w).Encode(data)
 }
