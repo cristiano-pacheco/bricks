@@ -2,12 +2,17 @@ package config_test
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 
 	"github.com/cristiano-pacheco/bricks/pkg/config"
 )
+
+func exampleLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
 
 func Example_basicUsage() {
 	// Setup temp directory for example
@@ -34,7 +39,7 @@ app:
 	// Load config
 	cfg, err := config.New(configDir, "local")
 	if err != nil {
-		slog.Error("failed to load config", "err", err)
+		exampleLogger().Error("failed to load config", "err", err)
 		return
 	}
 
@@ -82,7 +87,7 @@ database:
 
 	var appConfig AppConfig
 	if err := cfg.Unmarshal(&appConfig); err != nil {
-		slog.Error("failed to unmarshal config", "err", err)
+		exampleLogger().Error("failed to unmarshal config", "err", err)
 		return
 	}
 
@@ -163,7 +168,7 @@ app:
 	// Environment is automatically detected from APP_ENV
 	cfg, err := config.Load[AppConfig](configDir)
 	if err != nil {
-		slog.Error("failed to load config", "err", err)
+		exampleLogger().Error("failed to load config", "err", err)
 		return
 	}
 
@@ -198,7 +203,7 @@ app:
 	// Example: APP_APP_PORT=8080 will set app.port
 	cfg, err := config.Load[AppConfig](configDir)
 	if err != nil {
-		slog.Error("failed to load config", "err", err)
+		exampleLogger().Error("failed to load config", "err", err)
 		return
 	}
 

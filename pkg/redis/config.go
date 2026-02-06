@@ -91,7 +91,7 @@ type Config struct {
 }
 
 // Validate validates the Redis configuration
-func (c Config) Validate() error {
+func (c *Config) Validate() error {
 	validators := []func() error{
 		c.validateClientType,
 		c.validateURL,
@@ -131,7 +131,7 @@ func (c *Config) SetDefaults() {
 	setDefaultDuration(&c.CommandTimeout, defaultCommandTimeout)
 }
 
-func (c Config) validateClientType() error {
+func (c *Config) validateClientType() error {
 	if strings.TrimSpace(string(c.Type)) == "" {
 		return ErrEmptyClientType
 	}
@@ -151,7 +151,7 @@ func (c Config) validateClientType() error {
 	return nil
 }
 
-func (c Config) validateURL() error {
+func (c *Config) validateURL() error {
 	if c.Type != ClientTypeSingleNode && c.Type != ClientTypeFailover {
 		return nil
 	}
@@ -165,7 +165,7 @@ func (c Config) validateURL() error {
 	return nil
 }
 
-func (c Config) validateCluster() error {
+func (c *Config) validateCluster() error {
 	if c.Type != ClientTypeCluster {
 		return nil
 	}
@@ -179,7 +179,7 @@ func (c Config) validateCluster() error {
 	return nil
 }
 
-func (c Config) validateSentinel() error {
+func (c *Config) validateSentinel() error {
 	if c.Type != ClientTypeSentinel {
 		return nil
 	}
@@ -200,7 +200,7 @@ func (c Config) validateSentinel() error {
 	return nil
 }
 
-func (c Config) validateFailover() error {
+func (c *Config) validateFailover() error {
 	if c.Type != ClientTypeFailover {
 		return nil
 	}
@@ -214,7 +214,7 @@ func (c Config) validateFailover() error {
 	return nil
 }
 
-func (c Config) validateDB() error {
+func (c *Config) validateDB() error {
 	if c.Type != ClientTypeSingleNode {
 		return nil
 	}
@@ -228,7 +228,7 @@ func (c Config) validateDB() error {
 	return nil
 }
 
-func (c Config) validatePoolSettings() error {
+func (c *Config) validatePoolSettings() error {
 	if c.PoolSize < 0 {
 		return &ConfigError{
 			Field: "PoolSize",

@@ -287,8 +287,8 @@ app:
 	}
 
 	// Set runtime value
-	if err := cfg.Set("runtime.value", "test123"); err != nil {
-		t.Fatalf("Failed to set runtime value: %v", err)
+	if setErr := cfg.Set("runtime.value", "test123"); setErr != nil {
+		t.Fatalf("Failed to set runtime value: %v", setErr)
 	}
 
 	if val := cfg.GetString("runtime.value"); val != "test123" {

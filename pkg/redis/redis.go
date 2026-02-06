@@ -11,6 +11,8 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+const backoffBase = 2
+
 // UniversalClient is an interface that represents both redis.Client and redis.ClusterClient
 type UniversalClient = redis.UniversalClient
 
@@ -368,7 +370,7 @@ func (c *Client) calculateBackoff(attempt int) time.Duration {
 		return minBackoff
 	}
 
-	multiplier := math.Pow(2, float64(attempt-1))
+	multiplier := math.Pow(backoffBase, float64(attempt-1))
 	backoff := time.Duration(float64(minBackoff) * multiplier)
 	if backoff > maxBackoff {
 		backoff = maxBackoff

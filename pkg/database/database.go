@@ -17,6 +17,7 @@ const (
 	defaultConnMaxLifetime = 1 * time.Hour
 	defaultConnMaxIdleTime = 10 * time.Minute
 	maxRetryBackoff        = 30 * time.Second
+	backoffBase            = 2
 )
 
 // Client encapsulates database operations
@@ -178,7 +179,7 @@ func calculateBackoff(attempt int, baseDelay time.Duration) time.Duration {
 		return baseDelay
 	}
 	// Exponential backoff: baseDelay * 2^(attempt-1)
-	multiplier := math.Pow(2, float64(attempt-1))
+	multiplier := math.Pow(backoffBase, float64(attempt-1))
 	backoff := time.Duration(float64(baseDelay) * multiplier)
 	// Cap at max retry backoff
 	if backoff > maxRetryBackoff {
