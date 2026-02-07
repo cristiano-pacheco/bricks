@@ -1,19 +1,21 @@
 # Production configuration
 # This file overrides base.yaml settings for production environment
+# IMPORTANT: Set sensitive values using environment variables with APP_ prefix
+# Example: APP_DATABASE_PASSWORD=secret123
 
 app:
   # Use environment variables for sensitive/environment-specific config
-  name: ${APP_NAME}
+  name: ProductionApp
   port: 443
   debug: false
   max_connections: 500
 
 database:
-  host: ${DATABASE_HOST}
-  port: ${DATABASE_PORT:-5432}
-  name: ${DATABASE_NAME}
-  user: ${DATABASE_USER}
-  password: ${DATABASE_PASSWORD}
+  host: db.production.com
+  port: 5432
+  name: production_db
+  user: prod_user
+  password: ""  # Set via APP_DATABASE_PASSWORD env var
   max_connections: 100
   ssl: true
   pool:
@@ -22,9 +24,9 @@ database:
     max_lifetime: 600
 
 redis:
-  host: ${REDIS_HOST}
-  port: ${REDIS_PORT:-6379}
-  password: ${REDIS_PASSWORD}
+  host: redis.production.com
+  port: 6379
+  password: ""  # Set via APP_REDIS_PASSWORD env var
   pool_size: 50
   min_idle_conns: 10
 
@@ -41,11 +43,11 @@ server:
 
 cors:
   allowed_origins:
-    - ${CORS_ORIGIN_1}
-    - ${CORS_ORIGIN_2}
+    - "https://app.production.com"
+    - "https://api.production.com"
 
 auth:
-  jwt_secret: ${JWT_SECRET}
+  jwt_secret: ""  # Set via APP_AUTH_JWT_SECRET env var
   jwt_expiration: 7200
   refresh_expiration: 2592000
 

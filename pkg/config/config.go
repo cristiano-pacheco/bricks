@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/knadh/koanf/parsers/yaml"
@@ -70,42 +69,6 @@ func getEnvironment() string {
 	return "local"
 }
 
-// expandEnvVars expands environment variables in the format ${VAR} or ${VAR:-default}
-// Examples:
-//
-//	${DATABASE_HOST} -> value of DATABASE_HOST env var
-//	${PORT:-8080} -> value of PORT env var, or "8080" if not set
-func expandEnvVars(content []byte) []byte {
-	// Match ${VAR} or ${VAR:-default}
-	re := regexp.MustCompile(`\$\{([A-Z0-9_]+)(:-([^}]*))?\}`)
-	const minEnvVarMatches = 2
-
-	expanded := re.ReplaceAllFunc(content, func(match []byte) []byte {
-		matches := re.FindSubmatch(match)
-		if len(matches) < minEnvVarMatches {
-			return match
-		}
-
-		varName := string(matches[1])
-		defaultValue := ""
-
-		// Check if default value is provided (${VAR:-default})
-		if len(matches) >= 4 && matches[3] != nil {
-			defaultValue = string(matches[3])
-		}
-
-		// Get environment variable value
-		if value := os.Getenv(varName); value != "" {
-			return []byte(value)
-		}
-
-		// Return default value or empty string
-		return []byte(defaultValue)
-	})
-
-	return expanded
-}
-
 // Config holds the configuration manager
 type Config struct {
 	k           *koanf.Koanf
@@ -165,7 +128,6 @@ func New(configDir, environment string) (*Config, error) {
 }
 
 // loadConfigFile loads a specific config file and merges with existing config
-// Environment variables in the format ${VAR} or ${VAR:-default} are automatically expanded
 func (c *Config) loadConfigFile(name string) error {
 	configPath := filepath.Join(c.configDir, name+".yaml")
 
@@ -180,12 +142,9 @@ func (c *Config) loadConfigFile(name string) error {
 		return fmt.Errorf("failed to read config file %s: %w", configPath, err)
 	}
 
-	// Expand environment variables (${VAR} or ${VAR:-default})
-	expandedContent := expandEnvVars(content)
-
 	// Parse YAML
 	parser := yaml.Parser()
-	data, err := parser.Unmarshal(expandedContent)
+	data, err := parser.Unmarshal(content)
 	if err != nil {
 		return fmt.Errorf("failed to parse config file %s: %w", configPath, err)
 	}

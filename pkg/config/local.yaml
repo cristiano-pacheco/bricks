@@ -8,7 +8,7 @@ app:
 database:
   # In local dev, you might want to use defaults from base.yaml
   # or override with specific values
-  password: ${LOCAL_DB_PASSWORD:-devpassword}
+  password: devpassword
   
 logger:
   level: "debug"

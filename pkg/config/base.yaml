@@ -2,61 +2,61 @@
 # This file contains default settings that apply to all environments
 # Override specific values in environment-specific files (local.yaml, production.yaml, etc.)
 #
-# Environment Variable Expansion:
-# You can use ${VAR} or ${VAR:-default} syntax to expand environment variables
+# Environment Variable Override:
+# You can override any configuration value using environment variables with APP_ prefix
 # Examples:
-#   ${DATABASE_HOST}           -> expands to value of DATABASE_HOST env var
-#   ${PORT:-8080}              -> expands to PORT env var, or 8080 if not set
-#   ${DB_USER:-postgres}       -> expands to DB_USER env var, or "postgres" if not set
+#   APP_APP_NAME=MyNewApp       -> overrides app.name
+#   APP_APP_PORT=9000           -> overrides app.port
+#   APP_DATABASE_HOST=db.host   -> overrides database.host
 
 app:
-  name: ${APP_NAME:-MyApp}
-  port: ${APP_PORT:-8080}
-  debug: ${DEBUG:-false}
-  timeout: ${APP_TIMEOUT:-30}
-  max_connections: ${MAX_CONNECTIONS:-100}
+  name: MyApp
+  port: 8080
+  debug: false
+  timeout: 30
+  max_connections: 100
   features:
     - "api"
     - "web"
     - "admin"
 
 database:
-  host: ${DATABASE_HOST:-localhost}
-  port: ${DATABASE_PORT:-5432}
-  name: ${DATABASE_NAME:-myapp_db}
-  user: ${DATABASE_USER:-postgres}
-  password: ${DATABASE_PASSWORD}
-  max_connections: ${DATABASE_MAX_CONN:-25}
-  ssl: ${DATABASE_SSL:-false}
+  host: localhost
+  port: 5432
+  name: myapp_db
+  user: postgres
+  password: ""
+  max_connections: 25
+  ssl: false
   pool:
-    max_idle: ${DB_POOL_MAX_IDLE:-10}
-    max_open: ${DB_POOL_MAX_OPEN:-25}
-    max_lifetime: ${DB_POOL_MAX_LIFETIME:-300}
+    max_idle: 10
+    max_open: 25
+    max_lifetime: 300
 
 redis:
-  host: ${REDIS_HOST:-localhost}
-  port: ${REDIS_PORT:-6379}
-  password: ${REDIS_PASSWORD}
-  db: ${REDIS_DB:-0}
-  pool_size: ${REDIS_POOL_SIZE:-10}
-  min_idle_conns: ${REDIS_MIN_IDLE:-5}
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 10
+  min_idle_conns: 5
 
 logger:
-  level: ${LOG_LEVEL:-info}
-  format: ${LOG_FORMAT:-json}
-  output: ${LOG_OUTPUT:-stdout}
-  file_path: ${LOG_FILE_PATH}
+  level: info
+  format: json
+  output: stdout
+  file_path: ""
 
 server:
-  host: ${SERVER_HOST:-0.0.0.0}
-  port: ${SERVER_PORT:-8080}
-  read_timeout: ${SERVER_READ_TIMEOUT:-30}
-  write_timeout: ${SERVER_WRITE_TIMEOUT:-30}
-  idle_timeout: ${SERVER_IDLE_TIMEOUT:-120}
-  shutdown_timeout: ${SERVER_SHUTDOWN_TIMEOUT:-10}
+  host: 0.0.0.0
+  port: 8080
+  read_timeout: 30
+  write_timeout: 30
+  idle_timeout: 120
+  shutdown_timeout: 10
 
 cors:
-  enabled: ${CORS_ENABLED:-true}
+  enabled: true
   allowed_origins:
     - "http://localhost:3000"
   allowed_methods:
@@ -69,19 +69,19 @@ cors:
     - "Authorization"
   expose_headers:
     - "X-Request-ID"
-  allow_credentials: ${CORS_ALLOW_CREDENTIALS:-true}
-  max_age: ${CORS_MAX_AGE:-300}
+  allow_credentials: true
+  max_age: 300
 
 auth:
-  jwt_secret: ${JWT_SECRET}
-  jwt_expiration: ${JWT_EXPIRATION:-3600}
-  refresh_expiration: ${JWT_REFRESH_EXPIRATION:-604800}
+  jwt_secret: ""
+  jwt_expiration: 3600
+  refresh_expiration: 604800
 
 metrics:
-  enabled: ${METRICS_ENABLED:-false}
-  port: ${METRICS_PORT:-9090}
-  path: ${METRICS_PATH:-/metrics}
+  enabled: false
+  port: 9090
+  path: /metrics
 
 health:
-  enabled: ${HEALTH_ENABLED:-true}
-  path: ${HEALTH_PATH:-/health}
+  enabled: true
+  path: /health

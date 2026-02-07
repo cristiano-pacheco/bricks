@@ -7,8 +7,7 @@ A robust and lightweight configuration management package for Go applications, b
 - 🚀 **Generics Support**: Type-safe config loading with `Load[T]()` - simple and elegant
 - ⚡ **Lightweight & Fast**: Built on Koanf - modern, performant, and modular
 - 🔄 **Auto Environment Detection**: Automatically loads config based on `APP_ENV`
-- � **Environment Variable Expansion**: Use `${VAR}` or `${VAR:-default}` syntax in YAML files
-- �📁 **Multi-Environment Support**: Load base config and override with environment-specific configs
+- 📁 **Multi-Environment Support**: Load base config and override with environment-specific configs
 - 🔄 **Automatic Merging**: Base config + environment config = final configuration
 - 📦 **YAML Support**: Native YAML configuration files
 - 🌍 **Environment Variables**: Override any config with `APP_*` env vars
@@ -52,23 +51,23 @@ project/
 **config/base.yaml** (Base configuration):
 ```yaml
 app:
-  name: ${APP_NAME:-MyApp}
-  port: ${APP_PORT:-8080}
-  debug: ${DEBUG:-false}
+  name: MyApp
+  port: 8080
+  debug: false
   
 database:
-  host: ${DATABASE_HOST:-localhost}
-  port: ${DATABASE_PORT:-5432}
-  name: ${DATABASE_NAME:-mydb}
-  user: ${DATABASE_USER:-postgres}
-  password: ${DATABASE_PASSWORD}
-  max_connections: ${DATABASE_MAX_CONN:-25}
+  host: localhost
+  port: 5432
+  name: mydb
+  user: postgres
+  password: ""
+  max_connections: 25
   
 redis:
-  host: ${REDIS_HOST:-localhost}
-  port: ${REDIS_PORT:-6379}
-  password: ${REDIS_PASSWORD}
-  db: ${REDIS_DB:-0}
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
 ```
 
 **config/local.yaml** (Local overrides):
@@ -340,123 +339,65 @@ Priority:
 2. `APP_ENV` environment variable  
 3. Default: `"local"`
 
-## Environment Variable Expansion
+## Advanced Features
 
-The package supports environment variable expansion directly in YAML files using `${VAR}` or `${VAR:-default}` syntax:
+### Environment Variable Overrides
 
-### Syntax
+You can override any configuration value using environment variables with the `APP_` prefix.
 
-```yaml
-# Basic expansion - use environment variable value
-database:
-  host: ${DATABASE_HOST}
-  port: ${DATABASE_PORT}
+The transformation converts environment variables to config keys:
+- `APP_DATABASE_HOST` → `database.host`
+- `APP_APP_PORT` → `app.port`
+- `APP_REDIS_PASSWORD` → `redis.password`
 
-# With default value - use env var or fallback to default
-app:
-  name: ${APP_NAME:-MyApp}
-  port: ${PORT:-8080}
-  debug: ${DEBUG:-false}
-
-# Mix of both
-server:
-  host: ${SERVER_HOST:-0.0.0.0}
-  timeout: ${TIMEOUT:-30}
-  
-# Works with nested values
-database:
-  connection:
-    max_open: ${DB_MAX_OPEN:-25}
-    max_idle: ${DB_MAX_IDLE:-10}
-```
-
-### Example Usage
+**Example:**
 
 **config/base.yaml**:
 ```yaml
 app:
-  name: ${APP_NAME:-DefaultApp}
-  port: ${APP_PORT:-8080}
+  name: MyApp
+  port: 8080
 
 database:
-  host: ${DB_HOST:-localhost}
-  port: ${DB_PORT:-5432}
-  user: ${DB_USER:-postgres}
-  password: ${DB_PASSWORD}
+  host: localhost
+  port: 5432
+  user: postgres
+  password: ""
 ```
 
 **Run with environment variables**:
 ```bash
-export APP_NAME="ProductionApp"
-export DB_HOST="prod-db.example.com"
-export DB_PASSWORD="secret123"
+export APP_APP_NAME="ProductionApp"
+export APP_DATABASE_HOST="prod-db.example.com"
+export APP_DATABASE_PASSWORD="secret123"
 
 go run main.go
 ```
 
-The config will be:
-```yaml
-app:
-  name: "ProductionApp"      # from APP_NAME
-  port: 8080                  # default value (APP_PORT not set)
-
-database:
-  host: "prod-db.example.com" # from DB_HOST
-  port: 5432                   # default value (DB_PORT not set)
-  user: "postgres"             # default value (DB_USER not set)
-  password: "secret123"        # from DB_PASSWORD
+**Result:**
+```go
+cfg.App.Name         // "ProductionApp" (overridden by APP_APP_NAME)
+cfg.App.Port         // 8080 (from base.yaml)
+cfg.Database.Host    // "prod-db.example.com" (overridden)
+cfg.Database.Port    // 5432 (from base.yaml)
+cfg.Database.User    // "postgres" (from base.yaml)
+cfg.Database.Password // "secret123" (overridden)
 ```
 
-### Important Notes
-
-- ✅ Variable names must be **uppercase** with underscores: `DATABASE_HOST`, `APP_PORT`
-- ✅ Default values support any string: `${VAR:-default value with spaces}`
-- ✅ Empty env vars are treated as "not set" and use defaults
-- ✅ Expansion happens **before** YAML parsing
-- ✅ Works with all value types (strings, numbers, booleans)
-- ⚠️ Variables without defaults expand to empty string if not set: `${MISSING_VAR}` → `""`
-
-### Combining with APP_* Environment Variables
-
-You can use both expansion in YAML and `APP_*` overrides:
-
-```yaml
-# config/base.yaml
-app:
-  port: ${PORT:-8080}
-```
-
-```bash
-# Both work, but APP_APP_PORT has higher priority
-export PORT=3000
-export APP_APP_PORT=9000
-
-# Result: port will be 9000 (APP_* overrides have highest priority)
-```
-
-**Loading order (later sources override earlier):**
-1. YAML with `${VAR}` expansion
-2. Environment-specific YAML overrides
-3. `APP_*` environment variables (highest priority)
-
-## Advanced Features
-        log.Printf("Failed to reload config: %v", err)
-    }
-})
-
-cfg.WatchConfig()
-```
-
-### Default Values
+### Runtime Value Modification
 
 ```go
 cfg, _ := config.New("./config", "local")
 
-// Set defaults
-cfg.SetDefault("app.timeout", 30)
-cfg.SetDefault("app.retry_count", 3)
+// Set values at runtime
+cfg.Set("app.maintenance_mode", true)
+cfg.Set("app.debug_level", "verbose")
 
-### Runtime Value Modification
+// Get the values
+maintenanceMode := cfg.GetBool("app.maintenance_mode") // true
+```
+
+### Unmarshal Specific Keys
 
 ```go
 cfg, _ := config.New("./config", "local")
@@ -512,8 +453,8 @@ fmt.Printf("%+v\n", allSettings)
 
 Configuration values are loaded and merged in this order (later values override earlier ones):
 
-1. **base.yaml with `${VAR}` expansion** - Base configuration with environment variable expansion
-2. **{environment}.yaml with `${VAR}` expansion** - Environment-specific overrides with expansion
+1. **base.yaml** - Base configuration
+2. **{environment}.yaml** - Environment-specific overrides (e.g., local.yaml, production.yaml)
 3. **APP_* environment variables** - Runtime overrides via APP_ prefixed env vars (highest priority)
 
 ### Example Flow:
@@ -521,8 +462,8 @@ Configuration values are loaded and merged in this order (later values override 
 **Step 1: base.yaml**
 ```yaml
 app:
-  port: ${PORT:-8080}
-  name: ${APP_NAME:-MyApp}
+  port: 8080
+  name: MyApp
   timeout: 30
 ```
 
@@ -530,38 +471,29 @@ app:
 ```yaml
 app:
   port: 443
-  timeout: ${TIMEOUT:-60}
+  timeout: 60
 ```
 
 **Step 3: Environment variables**
 ```bash
-export PORT=3000          # Used in ${PORT:-8080} expansion
-export APP_NAME=ProdApp   # Used in ${APP_NAME:-MyApp} expansion
-export APP_APP_PORT=9000  # APP_* override (highest priority)
+export APP_APP_NAME=ProdApp   # Overrides app.name
+export APP_APP_PORT=9000      # Overrides app.port (highest priority)
 ```
 
 **Result:**
 ```go
 cfg.GetInt("app.port")       // 9000 (from APP_APP_PORT - highest priority)
-cfg.GetString("app.name")    // "ProdApp" (from APP_NAME expansion in base.yaml)
-cfg.GetInt("app.timeout")    // 60 (from ${TIMEOUT:-60} in production.yaml, TIMEOUT not set so uses default)
+cfg.GetString("app.name")    // "ProdApp" (from APP_APP_NAME)
+cfg.GetInt("app.timeout")    // 60 (from production.yaml)
 ```
 
 ### Priority Table:
 
 | Source | Priority | Example |
 |--------|----------|---------|
-| `${VAR}` in base.yaml | 1 (lowest) | `port: ${PORT:-8080}` |
-| `${VAR}` in env.yaml | 2 | `port: ${PORT:-443}` (overrides base) |
-| Static value in env.yaml | 3 | `port: 443` (overrides expansion) |
-| APP_* env vars | 4 (highest) | `APP_APP_PORT=9000` (overrides everything) |
-    
-    Database struct {
-        Host string `koanf:"host" validate:"required"`
-        Port int    `koanf:"port" validate:"required"`
-    } `koanf:"database"`
-}
-```
+| base.yaml | 1 (lowest) | `port: 8080` |
+| env.yaml (e.g., production.yaml) | 2 | `port: 443` (overrides base) |
+| APP_* env vars | 3 (highest) | `APP_APP_PORT=9000` (overrides everything) |
 
 ## Testing
 
