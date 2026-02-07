@@ -287,8 +287,7 @@ func TestCustomLoad(t *testing.T) {
 	t.Run("should load database section with CustomLoad", func(t *testing.T) {
 		// Arrange
 		configDir := "./config"
-		os.Setenv("APP_ENV", "local")
-		defer os.Unsetenv("APP_ENV")
+		t.Setenv("APP_ENV", "local")
 
 		// Act
 		cfg, err := config.CustomLoad[DatabaseConfig](configDir, "database")
@@ -304,8 +303,7 @@ func TestCustomLoad(t *testing.T) {
 	t.Run("should load app section with CustomLoad", func(t *testing.T) {
 		// Arrange
 		configDir := "./config"
-		os.Setenv("APP_ENV", "local")
-		defer os.Unsetenv("APP_ENV")
+		t.Setenv("APP_ENV", "local")
 
 		// Act
 		cfg, err := config.CustomLoad[AppSection](configDir, "app")
@@ -356,8 +354,7 @@ func TestCustomLoad(t *testing.T) {
 	t.Run("should load successfully with MustCustomLoad", func(t *testing.T) {
 		// Arrange
 		configDir := "./config"
-		os.Setenv("APP_ENV", "local")
-		defer os.Unsetenv("APP_ENV")
+		t.Setenv("APP_ENV", "local")
 
 		// Act & Assert
 		assert.NotPanics(t, func() {

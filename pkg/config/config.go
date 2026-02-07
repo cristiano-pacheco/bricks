@@ -79,7 +79,12 @@ func CustomLoadEnv[T any](configDir, environment, keyPath string) (T, error) {
 		return result, fmt.Errorf("failed to create config (env=%s): %w", environment, err)
 	}
 	if unmarshalErr := cfg.UnmarshalKey(keyPath, &result); unmarshalErr != nil {
-		return result, fmt.Errorf("failed to unmarshal config key '%s' (env=%s): %w", keyPath, environment, unmarshalErr)
+		return result, fmt.Errorf(
+			"failed to unmarshal config key '%s' (env=%s): %w",
+			keyPath,
+			environment,
+			unmarshalErr,
+		)
 	}
 	return result, nil
 }
