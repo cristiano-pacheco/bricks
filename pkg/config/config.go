@@ -50,6 +50,40 @@ func LoadEnv[T any](configDir, environment string) (T, error) {
 	return result, nil
 }
 
+// CustomLoad loads a specific section of the configuration using a key path.
+// It automatically detects environment from APP_ENV or defaults to "local".
+//
+// The keyPath parameter specifies which section to load (e.g., "app.database", "redis").
+// This is useful when you only need a subset of the configuration.
+//
+// Example:
+//
+//	type DatabaseConfig struct {
+//	    Host string `config:"host"`
+//	    Port int    `config:"port"`
+//	    Name string `config:"name"`
+//	}
+//
+//	// Load only the database section from app.database
+//	cfg, err := config.CustomLoad[DatabaseConfig]("./config", "app.database")
+func CustomLoad[T any](configDir, keyPath string) (T, error) {
+	environment := getEnvironment()
+	return CustomLoadEnv[T](configDir, environment, keyPath)
+}
+
+// CustomLoadEnv loads a specific section of the configuration with explicit environment.
+func CustomLoadEnv[T any](configDir, environment, keyPath string) (T, error) {
+	var result T
+	cfg, err := New(configDir, environment)
+	if err != nil {
+		return result, fmt.Errorf("failed to create config (env=%s): %w", environment, err)
+	}
+	if unmarshalErr := cfg.UnmarshalKey(keyPath, &result); unmarshalErr != nil {
+		return result, fmt.Errorf("failed to unmarshal config key '%s' (env=%s): %w", keyPath, environment, unmarshalErr)
+	}
+	return result, nil
+}
+
 // MustLoad loads configuration and panics on error.
 // Use this for configuration that must be valid for the app to start.
 func MustLoad[T any](configDir string) T {
@@ -57,6 +91,17 @@ func MustLoad[T any](configDir string) T {
 	result, err := LoadEnv[T](configDir, env)
 	if err != nil {
 		panic(fmt.Sprintf("failed to load config from %s (env=%s): %v", configDir, env, err))
+	}
+	return result
+}
+
+// MustCustomLoad loads a specific section of configuration and panics on error.
+// Use this for configuration sections that must be valid for the app to start.
+func MustCustomLoad[T any](configDir, keyPath string) T {
+	env := getEnvironment()
+	result, err := CustomLoadEnv[T](configDir, env, keyPath)
+	if err != nil {
+		panic(fmt.Sprintf("failed to load config key '%s' from %s (env=%s): %v", keyPath, configDir, env, err))
 	}
 	return result
 }

@@ -268,3 +268,101 @@ func TestMultipleEnvironments(t *testing.T) {
 		})
 	}
 }
+
+func TestCustomLoad(t *testing.T) {
+	type DatabaseConfig struct {
+		Host string `config:"host"`
+		Port int    `config:"port"`
+		Name string `config:"name"`
+		User string `config:"user"`
+	}
+
+	type AppSection struct {
+		Name     string   `config:"name"`
+		Port     int      `config:"port"`
+		Debug    bool     `config:"debug"`
+		Features []string `config:"features"`
+	}
+
+	t.Run("should load database section with CustomLoad", func(t *testing.T) {
+		// Arrange
+		configDir := "./config"
+		os.Setenv("APP_ENV", "local")
+		defer os.Unsetenv("APP_ENV")
+
+		// Act
+		cfg, err := config.CustomLoad[DatabaseConfig](configDir, "database")
+
+		// Assert
+		require.NoError(t, err)
+		assert.Equal(t, "localhost", cfg.Host)
+		assert.Equal(t, 5432, cfg.Port)
+		assert.Equal(t, "myapp_db", cfg.Name)
+		assert.Equal(t, "postgres", cfg.User)
+	})
+
+	t.Run("should load app section with CustomLoad", func(t *testing.T) {
+		// Arrange
+		configDir := "./config"
+		os.Setenv("APP_ENV", "local")
+		defer os.Unsetenv("APP_ENV")
+
+		// Act
+		cfg, err := config.CustomLoad[AppSection](configDir, "app")
+
+		// Assert
+		require.NoError(t, err)
+		assert.Equal(t, "MyApp", cfg.Name)
+		assert.Equal(t, 3000, cfg.Port)
+		assert.True(t, cfg.Debug)
+		assert.Equal(t, []string{"api", "web", "admin"}, cfg.Features)
+	})
+
+	t.Run("should load database section with CustomLoadEnv", func(t *testing.T) {
+		// Arrange
+		configDir := "./config"
+
+		// Act
+		cfg, err := config.CustomLoadEnv[DatabaseConfig](configDir, "production", "database")
+
+		// Assert
+		require.NoError(t, err)
+		assert.Equal(t, "db.production.com", cfg.Host)
+		assert.Equal(t, 5432, cfg.Port)
+	})
+
+	t.Run("should return error when key path does not exist", func(t *testing.T) {
+		// Arrange
+		configDir := "./config"
+
+		// Act
+		_, err := config.CustomLoad[DatabaseConfig](configDir, "nonexistent.key")
+
+		// Assert
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "nonexistent.key")
+	})
+
+	t.Run("should panic with MustCustomLoad on invalid key", func(t *testing.T) {
+		// Arrange
+		configDir := "./config"
+
+		// Act & Assert
+		assert.Panics(t, func() {
+			config.MustCustomLoad[DatabaseConfig](configDir, "nonexistent.key")
+		})
+	})
+
+	t.Run("should load successfully with MustCustomLoad", func(t *testing.T) {
+		// Arrange
+		configDir := "./config"
+		os.Setenv("APP_ENV", "local")
+		defer os.Unsetenv("APP_ENV")
+
+		// Act & Assert
+		assert.NotPanics(t, func() {
+			cfg := config.MustCustomLoad[DatabaseConfig](configDir, "database")
+			assert.Equal(t, "localhost", cfg.Host)
+		})
+	})
+}
