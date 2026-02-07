@@ -20,15 +20,15 @@ import (
 //  2. {environment}.yaml (optional, e.g., local.yaml, production.yaml)
 //  3. Environment variables with APP_ prefix (e.g., APP_APP_PORT overrides app.port)
 //
-// The struct T should use `koanf` tags to define field mappings.
+// The struct T should use `config` tags to define field mappings.
 //
 // Example:
 //
 //	type AppConfig struct {
 //	    App struct {
-//	        Name string `koanf:"name"`
-//	        Port int    `koanf:"port"`
-//	    } `koanf:"app"`
+//	        Name string `config:"name"`
+//	        Port int    `config:"port"`
+//	    } `config:"app"`
 //	}
 //
 //	cfg, err := config.Load[AppConfig]("./config")
@@ -175,7 +175,7 @@ func (c *Config) Unmarshal(target interface{}) error {
 	if target == nil {
 		return errors.New("unmarshal target cannot be nil")
 	}
-	if err := c.k.Unmarshal("", target); err != nil {
+	if err := c.k.UnmarshalWithConf("", target, koanf.UnmarshalConf{Tag: "config"}); err != nil {
 		return fmt.Errorf("%w: %w", ErrUnmarshalFailed, err)
 	}
 	return nil
@@ -189,7 +189,7 @@ func (c *Config) UnmarshalKey(key string, target interface{}) error {
 	if !c.k.Exists(key) {
 		return fmt.Errorf("config key '%s' not found", key)
 	}
-	if err := c.k.Unmarshal(key, target); err != nil {
+	if err := c.k.UnmarshalWithConf(key, target, koanf.UnmarshalConf{Tag: "config"}); err != nil {
 		return fmt.Errorf("%w for key '%s': %w", ErrUnmarshalFailed, key, err)
 	}
 	return nil
