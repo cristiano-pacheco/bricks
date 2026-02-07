@@ -36,16 +36,25 @@ app:
 `
 	os.WriteFile(filepath.Join(configDir, "local.yaml"), []byte(localConfig), 0644)
 
-	// Load config
-	cfg, err := config.New(configDir, "local")
+	type AppConfig struct {
+		App struct {
+			Name  string `config:"name"`
+			Port  int    `config:"port"`
+			Debug bool   `config:"debug"`
+		} `config:"app"`
+	}
+
+	os.Setenv("APP_ENV", "local")
+	defer os.Unsetenv("APP_ENV")
+	cfg, err := config.New[AppConfig](configDir)
 	if err != nil {
 		exampleLogger().Error("failed to load config", "err", err)
 		return
 	}
 
-	fmt.Println(cfg.GetString("app.name"))
-	fmt.Println(cfg.GetInt("app.port"))
-	fmt.Println(cfg.GetBool("app.debug"))
+	fmt.Println(cfg.Get().App.Name)
+	fmt.Println(cfg.Get().App.Port)
+	fmt.Println(cfg.Get().App.Debug)
 
 	// Output:
 	// MyApp
@@ -53,7 +62,7 @@ app:
 	// true
 }
 
-func Example_unmarshalToStruct() {
+func Example_loadToStruct() {
 	tmpDir := os.TempDir()
 	configDir := filepath.Join(tmpDir, "example-struct")
 	os.MkdirAll(configDir, 0755)
@@ -71,35 +80,31 @@ database:
 `
 	os.WriteFile(filepath.Join(configDir, "base.yaml"), []byte(baseConfig), 0644)
 
-	cfg, err := config.New(configDir, "local")
+	type AppConfig struct {
+		App struct {
+			Name string `config:"name"`
+			Port int    `config:"port"`
+		} `config:"app"`
+		Database struct {
+			Host string `config:"host"`
+			Port int    `config:"port"`
+			User string `config:"user"`
+		} `config:"database"`
+	}
+
+	os.Setenv("APP_ENV", "local")
+	defer os.Unsetenv("APP_ENV")
+	appConfig, err := config.New[AppConfig](configDir)
 	if err != nil {
 		exampleLogger().Error("failed to load config", "err", err)
 		return
 	}
 
-	type AppConfig struct {
-		App struct {
-			Name string `koanf:"name"`
-			Port int    `koanf:"port"`
-		} `koanf:"app"`
-		Database struct {
-			Host string `koanf:"host"`
-			Port int    `koanf:"port"`
-			User string `koanf:"user"`
-		} `koanf:"database"`
-	}
-
-	var appConfig AppConfig
-	if errUnmarshal := cfg.Unmarshal(&appConfig); errUnmarshal != nil {
-		exampleLogger().Error("failed to unmarshal config", "err", errUnmarshal)
-		return
-	}
-
-	fmt.Printf("%s running on port %d\n", appConfig.App.Name, appConfig.App.Port)
+	fmt.Printf("%s running on port %d\n", appConfig.Get().App.Name, appConfig.Get().App.Port)
 	fmt.Printf("Database: %s@%s:%d\n",
-		appConfig.Database.User,
-		appConfig.Database.Host,
-		appConfig.Database.Port,
+		appConfig.Get().Database.User,
+		appConfig.Get().Database.Host,
+		appConfig.Get().Database.Port,
 	)
 
 	// Output:
@@ -130,17 +135,27 @@ app:
 `
 	os.WriteFile(filepath.Join(configDir, "production.yaml"), []byte(prodConfig), 0644)
 
-	// Load production config
-	cfg, err := config.New(configDir, "production")
+	type AppConfig struct {
+		App struct {
+			Name           string `config:"name"`
+			Port           int    `config:"port"`
+			Debug          bool   `config:"debug"`
+			MaxConnections int    `config:"max_connections"`
+		} `config:"app"`
+	}
+
+	os.Setenv("APP_ENV", "production")
+	defer os.Unsetenv("APP_ENV")
+	cfg, err := config.New[AppConfig](configDir)
 	if err != nil {
 		exampleLogger().Error("failed to load config", "err", err)
 		return
 	}
 
-	fmt.Printf("Name: %s (from base)\n", cfg.GetString("app.name"))
-	fmt.Printf("Port: %d (overridden by production)\n", cfg.GetInt("app.port"))
-	fmt.Printf("Debug: %v (from base)\n", cfg.GetBool("app.debug"))
-	fmt.Printf("Max Connections: %d (only in production)\n", cfg.GetInt("app.max_connections"))
+	fmt.Printf("Name: %s (from base)\n", cfg.Get().App.Name)
+	fmt.Printf("Port: %d (overridden by production)\n", cfg.Get().App.Port)
+	fmt.Printf("Debug: %v (from base)\n", cfg.Get().App.Debug)
+	fmt.Printf("Max Connections: %d (only in production)\n", cfg.Get().App.MaxConnections)
 
 	// Output:
 	// Name: MyApp (from base)
@@ -174,13 +189,13 @@ app:
 
 	// Load config using generics - simple and type-safe!
 	// Environment is automatically detected from APP_ENV
-	cfg, err := config.Load[AppConfig](configDir)
+	cfg, err := config.New[AppConfig](configDir)
 	if err != nil {
 		exampleLogger().Error("failed to load config", "err", err)
 		return
 	}
 
-	fmt.Printf("%s on port %d (debug: %v)\n", cfg.App.Name, cfg.App.Port, cfg.App.Debug)
+	fmt.Printf("%s on port %d (debug: %v)\n", cfg.Get().App.Name, cfg.Get().App.Port, cfg.Get().App.Debug)
 
 	// Output:
 	// GenericApp on port 9000 (debug: true)
@@ -209,14 +224,14 @@ app:
 
 	// With Koanf, you can set defaults in your struct or use environment variables
 	// Example: APP_APP_PORT=8080 will set app.port
-	cfg, err := config.Load[AppConfig](configDir)
+	cfg, err := config.New[AppConfig](configDir)
 	if err != nil {
 		exampleLogger().Error("failed to load config", "err", err)
 		return
 	}
 
-	fmt.Printf("Name: %s\n", cfg.App.Name)
-	fmt.Printf("Port: %d\n", cfg.App.Port)
+	fmt.Printf("Name: %s\n", cfg.Get().App.Name)
+	fmt.Printf("Port: %d\n", cfg.Get().App.Port)
 
 	// Output:
 	// Name: MinimalApp
@@ -243,11 +258,13 @@ server:
 		} `koanf:"server"`
 	}
 
-	// MustLoad panics if config cannot be loaded
-	// Perfect for critical configuration at startup
-	cfg := config.MustLoad[ServerConfig](configDir)
+	cfg, err := config.New[ServerConfig](configDir)
+	if err != nil {
+		exampleLogger().Error("failed to load server config", "err", err)
+		return
+	}
 
-	fmt.Printf("Server: %s:%d\n", cfg.Server.Host, cfg.Server.Port)
+	fmt.Printf("Server: %s:%d\n", cfg.Get().Server.Host, cfg.Get().Server.Port)
 
 	// Output:
 	// Server: 0.0.0.0:8080
@@ -290,23 +307,23 @@ redis:
 		DB   int    `config:"db"`
 	}
 
-	// Load only the database section using CustomLoad
-	dbCfg, err := config.CustomLoad[DatabaseConfig](configDir, "app.database")
+	// Load only the database section using WithPath
+	dbCfg, err := config.New[DatabaseConfig](configDir, config.WithPath("app.database"))
 	if err != nil {
 		exampleLogger().Error("failed to load database config", "err", err)
 		return
 	}
 
-	fmt.Printf("Database: %s@%s:%d/%s\n", dbCfg.User, dbCfg.Host, dbCfg.Port, dbCfg.Name)
+	fmt.Printf("Database: %s@%s:%d/%s\n", dbCfg.Get().User, dbCfg.Get().Host, dbCfg.Get().Port, dbCfg.Get().Name)
 
 	// Load only the redis section
-	redisCfg, err := config.CustomLoad[RedisConfig](configDir, "redis")
+	redisCfg, err := config.New[RedisConfig](configDir, config.WithPath("redis"))
 	if err != nil {
 		exampleLogger().Error("failed to load redis config", "err", err)
 		return
 	}
 
-	fmt.Printf("Redis: %s:%d (DB %d)\n", redisCfg.Host, redisCfg.Port, redisCfg.DB)
+	fmt.Printf("Redis: %s:%d (DB %d)\n", redisCfg.Get().Host, redisCfg.Get().Port, redisCfg.Get().DB)
 
 	// Output:
 	// Database: postgres@localhost:5432/myapp_db

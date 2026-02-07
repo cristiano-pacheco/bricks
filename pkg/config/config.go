@@ -12,125 +12,64 @@ import (
 	"github.com/knadh/koanf/v2"
 )
 
-// Load loads configuration from YAML files using generics.
-// It automatically detects environment from APP_ENV or defaults to "local".
-//
-// Loading order (later sources override earlier ones):
-//  1. base.yaml (required)
-//  2. {environment}.yaml (optional, e.g., local.yaml, production.yaml)
-//  3. Environment variables with APP_ prefix (e.g., APP_APP_PORT overrides app.port)
-//
-// The struct T should use `config` tags to define field mappings.
+type Config[T any] struct {
+	value T
+}
+
+func (v Config[T]) Get() T {
+	return v.value
+}
+
+// Option customizes config loading behavior.
+type Option func(*loadOptions)
+
+// WithPath unmarshals only a YAML subtree into T (example: "app", "app.database").
+func WithPath(path string) Option {
+	return func(opts *loadOptions) {
+		opts.keyPath = strings.TrimSpace(path)
+	}
+}
+
+type loadOptions struct {
+	keyPath string
+}
+
+// New loads and unmarshals configuration into T.
+// Environment is always resolved automatically using APP_ENV (default: local).
 //
 // Example:
 //
-//	type AppConfig struct {
-//	    App struct {
-//	        Name string `config:"name"`
-//	        Port int    `config:"port"`
-//	    } `config:"app"`
-//	}
-//
-//	cfg, err := config.Load[AppConfig]("./config")
-func Load[T any](configDir string) (T, error) {
-	environment := getEnvironment()
-	return LoadEnv[T](configDir, environment)
-}
-
-// LoadEnv loads configuration with explicit environment.
-func LoadEnv[T any](configDir, environment string) (T, error) {
+//	cfg, err := config.New[DatabaseConfig]("./config", config.WithPath("app.database"))
+func New[T any](configDir string, options ...Option) (Config[T], error) {
 	var result T
-	cfg, err := New(configDir, environment)
-	if err != nil {
-		return result, fmt.Errorf("failed to create config (env=%s): %w", environment, err)
-	}
-	if unmarshalErr := cfg.Unmarshal(&result); unmarshalErr != nil {
-		return result, fmt.Errorf("failed to unmarshal config (env=%s): %w", environment, unmarshalErr)
-	}
-	return result, nil
-}
-
-// CustomLoad loads a specific section of the configuration using a key path.
-// It automatically detects environment from APP_ENV or defaults to "local".
-//
-// The keyPath parameter specifies which section to load (e.g., "app.database", "redis").
-// This is useful when you only need a subset of the configuration.
-//
-// Example:
-//
-//	type DatabaseConfig struct {
-//	    Host string `config:"host"`
-//	    Port int    `config:"port"`
-//	    Name string `config:"name"`
-//	}
-//
-//	// Load only the database section from app.database
-//	cfg, err := config.CustomLoad[DatabaseConfig]("./config", "app.database")
-func CustomLoad[T any](configDir, keyPath string) (T, error) {
+	opts := resolveOptions(options)
 	environment := getEnvironment()
-	return CustomLoadEnv[T](configDir, environment, keyPath)
-}
-
-// CustomLoadEnv loads a specific section of the configuration with explicit environment.
-func CustomLoadEnv[T any](configDir, environment, keyPath string) (T, error) {
-	var result T
-	cfg, err := New(configDir, environment)
+	k, err := loadKoanf(configDir, environment)
 	if err != nil {
-		return result, fmt.Errorf("failed to create config (env=%s): %w", environment, err)
+		return Config[T]{}, fmt.Errorf("failed to create config (env=%s): %w", environment, err)
 	}
-	if unmarshalErr := cfg.UnmarshalKey(keyPath, &result); unmarshalErr != nil {
-		return result, fmt.Errorf(
-			"failed to unmarshal config key '%s' (env=%s): %w",
-			keyPath,
-			environment,
-			unmarshalErr,
-		)
+	if opts.keyPath != "" {
+		if !k.Exists(opts.keyPath) {
+			return Config[T]{}, fmt.Errorf("config key '%s' not found", opts.keyPath)
+		}
+		if unmarshalErr := unmarshalKey(k, opts.keyPath, &result); unmarshalErr != nil {
+			return Config[T]{}, fmt.Errorf(
+				"failed to unmarshal config key '%s' (env=%s): %w",
+				opts.keyPath,
+				environment,
+				unmarshalErr,
+			)
+		}
+		return Config[T]{value: result}, nil
 	}
-	return result, nil
+	if unmarshalErr := unmarshalKey(k, "", &result); unmarshalErr != nil {
+		return Config[T]{}, fmt.Errorf("failed to unmarshal config (env=%s): %w", environment, unmarshalErr)
+	}
+	return Config[T]{value: result}, nil
 }
 
-// MustLoad loads configuration and panics on error.
-// Use this for configuration that must be valid for the app to start.
-func MustLoad[T any](configDir string) T {
-	env := getEnvironment()
-	result, err := LoadEnv[T](configDir, env)
-	if err != nil {
-		panic(fmt.Sprintf("failed to load config from %s (env=%s): %v", configDir, env, err))
-	}
-	return result
-}
-
-// MustCustomLoad loads a specific section of configuration and panics on error.
-// Use this for configuration sections that must be valid for the app to start.
-func MustCustomLoad[T any](configDir, keyPath string) T {
-	env := getEnvironment()
-	result, err := CustomLoadEnv[T](configDir, env, keyPath)
-	if err != nil {
-		panic(fmt.Sprintf("failed to load config key '%s' from %s (env=%s): %v", keyPath, configDir, env, err))
-	}
-	return result
-}
-
-// getEnvironment returns the environment from APP_ENV or defaults to "local"
-func getEnvironment() string {
-	if env := os.Getenv("APP_ENV"); env != "" {
-		return strings.ToLower(strings.TrimSpace(env))
-	}
-	return "local"
-}
-
-// Config holds the configuration manager
-type Config struct {
-	k           *koanf.Koanf
-	environment string
-	configDir   string
-}
-
-// New creates a new configuration manager
-// It loads base.yaml first, then merges environment-specific config (e.g., local.yaml)
-// configDir: directory containing config files (e.g., "./config")
-// environment: environment name (e.g., "local", "staging", "production")
-func New(configDir, environment string) (*Config, error) {
+// Internal helpers.
+func loadKoanf(configDir, environment string) (*koanf.Koanf, error) {
 	configDir = strings.TrimSpace(configDir)
 	if configDir == "" {
 		return nil, ErrMissingConfigDir
@@ -148,167 +87,94 @@ func New(configDir, environment string) (*Config, error) {
 		return nil, fmt.Errorf("failed to access config directory %s: %w", configDir, err)
 	}
 
-	cfg := &Config{
-		k:           koanf.New("."),
-		environment: environment,
-		configDir:   configDir,
-	}
+	k := koanf.New(".")
 
 	// Load base configuration first
-	if err := cfg.loadConfigFile("base"); err != nil {
+	if err := loadConfigFile(k, configDir, "base"); err != nil {
 		return nil, fmt.Errorf("failed to load base config: %w", err)
 	}
 
 	// Load environment-specific configuration (optional)
-	if err := cfg.loadConfigFile(cfg.environment); err != nil && !os.IsNotExist(err) {
-		return nil, fmt.Errorf("failed to load %s.yaml config: %w", cfg.environment, err)
+	if err := loadConfigFile(k, configDir, environment); err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("failed to load %s.yaml config: %w", environment, err)
 	}
 
 	// Load environment variables with APP_ prefix
 	// Example: APP_DATABASE_HOST=localhost overrides database.host
 	// The transformation converts: APP_DATABASE_HOST -> database.host
-	if err := cfg.k.Load(env.Provider("APP_", ".", func(s string) string {
+	if err := k.Load(env.Provider("APP_", ".", func(s string) string {
 		return strings.ReplaceAll(strings.ToLower(
 			strings.TrimPrefix(s, "APP_")), "_", ".")
 	}), nil); err != nil {
 		return nil, fmt.Errorf("failed to load environment variables: %w", err)
 	}
 
-	return cfg, nil
+	return k, nil
 }
 
-// loadConfigFile loads a specific config file and merges with existing config
-func (c *Config) loadConfigFile(name string) error {
-	configPath := filepath.Join(c.configDir, name+".yaml")
+func loadConfigFile(k *koanf.Koanf, configDir, name string) error {
+	configPath := filepath.Join(configDir, name+".yaml")
 
 	// Check if file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return err
 	}
 
-	// Read file content
 	content, err := os.ReadFile(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to read config file %s: %w", configPath, err)
 	}
 
-	// Parse YAML
-	parser := yaml.Parser()
-	data, err := parser.Unmarshal(content)
+	data, err := yaml.Parser().Unmarshal(content)
 	if err != nil {
 		return fmt.Errorf("failed to parse config file %s: %w", configPath, err)
 	}
 
-	// Merge into koanf
-	if loadErr := c.k.Load(&mapProvider{data: data}, nil); loadErr != nil {
+	if loadErr := k.Load(&yamlProvider{data: data}, nil); loadErr != nil {
 		return fmt.Errorf("failed to load config file %s: %w", configPath, loadErr)
 	}
 
 	return nil
 }
 
-// mapProvider is a simple provider that returns a map
-type mapProvider struct {
-	data map[string]interface{}
-}
-
-func (m *mapProvider) ReadBytes() ([]byte, error) {
-	return nil, nil
-}
-
-func (m *mapProvider) Read() (map[string]interface{}, error) {
-	return m.data, nil
-}
-
-// Unmarshal unmarshals the config into a struct
-func (c *Config) Unmarshal(target interface{}) error {
+func unmarshalKey(k *koanf.Koanf, key string, target interface{}) error {
 	if target == nil {
 		return errors.New("unmarshal target cannot be nil")
 	}
-	if err := c.k.UnmarshalWithConf("", target, koanf.UnmarshalConf{Tag: "config"}); err != nil {
-		return fmt.Errorf("%w: %w", ErrUnmarshalFailed, err)
-	}
-	return nil
-}
-
-// UnmarshalKey unmarshals a specific key into a struct
-func (c *Config) UnmarshalKey(key string, target interface{}) error {
-	if target == nil {
-		return errors.New("unmarshal target cannot be nil")
-	}
-	if !c.k.Exists(key) {
-		return fmt.Errorf("config key '%s' not found", key)
-	}
-	if err := c.k.UnmarshalWithConf(key, target, koanf.UnmarshalConf{Tag: "config"}); err != nil {
+	if err := k.UnmarshalWithConf(key, target, koanf.UnmarshalConf{Tag: "config"}); err != nil {
+		if key == "" {
+			return fmt.Errorf("%w: %w", ErrUnmarshalFailed, err)
+		}
 		return fmt.Errorf("%w for key '%s': %w", ErrUnmarshalFailed, key, err)
 	}
 	return nil
 }
 
-// Get returns a value for the given key
-func (c *Config) Get(key string) interface{} {
-	return c.k.Get(key)
-}
-
-// GetString returns a string value for the given key
-func (c *Config) GetString(key string) string {
-	return c.k.String(key)
-}
-
-// GetInt returns an int value for the given key
-func (c *Config) GetInt(key string) int {
-	return c.k.Int(key)
-}
-
-// GetBool returns a bool value for the given key
-func (c *Config) GetBool(key string) bool {
-	return c.k.Bool(key)
-}
-
-// GetFloat64 returns a float64 value for the given key
-func (c *Config) GetFloat64(key string) float64 {
-	return c.k.Float64(key)
-}
-
-// GetStringSlice returns a string slice for the given key
-func (c *Config) GetStringSlice(key string) []string {
-	return c.k.Strings(key)
-}
-
-// GetStringMap returns a map[string]interface{} for the given key
-func (c *Config) GetStringMap(key string) map[string]interface{} {
-	if !c.k.Exists(key) {
-		return make(map[string]interface{})
+func resolveOptions(options []Option) loadOptions {
+	opts := loadOptions{}
+	for _, option := range options {
+		if option != nil {
+			option(&opts)
+		}
 	}
-	// Cut returns a new Koanf instance with the given key as root
-	sub := c.k.Cut(key)
-	if sub == nil {
-		return make(map[string]interface{})
+	return opts
+}
+
+func getEnvironment() string {
+	if env := os.Getenv("APP_ENV"); env != "" {
+		return strings.ToLower(strings.TrimSpace(env))
 	}
-	return sub.All()
+	return "local"
 }
 
-// IsSet checks if a key is set in the config
-func (c *Config) IsSet(key string) bool {
-	return c.k.Exists(key)
+type yamlProvider struct {
+	data map[string]interface{}
 }
 
-// Set sets a value for the given key at runtime
-func (c *Config) Set(key string, value interface{}) error {
-	return c.k.Set(key, value)
+func (p *yamlProvider) Read() (map[string]interface{}, error) {
+	return p.data, nil
 }
 
-// All returns all settings as a map
-func (c *Config) All() map[string]interface{} {
-	return c.k.All()
-}
-
-// Environment returns the current environment name
-func (c *Config) Environment() string {
-	return c.environment
-}
-
-// ConfigDir returns the configuration directory
-func (c *Config) ConfigDir() string {
-	return c.configDir
+func (p *yamlProvider) ReadBytes() ([]byte, error) {
+	return nil, nil
 }

@@ -251,7 +251,7 @@ func main() {
 ### Basic Usage
 ## Manual Configuration Access
 
-If you prefer not to use generics, you can access config values directly:
+If you prefer not to use generics, you can access config values directly using the `Get` method:
 
 ```go
 // Create config instance
@@ -260,25 +260,18 @@ if err != nil {
     log.Fatal(err)
 }
 
-// Access individual values
-appName := cfg.GetString("app.name")
-port := cfg.GetInt("app.port")
-debug := cfg.GetBool("app.debug")
+// Access individual values with type assertions
+appName := cfg.Get("app.name").(string)
+port := cfg.Get("app.port").(int)
+debug := cfg.Get("app.debug").(bool)
 
-// Or unmarshal to struct manually
-type AppConfig struct {
-    App struct {
-        Name  string `koanf:"name"`
-        Port  int    `koanf:"port"`
-        Debug bool   `koanf:"debug"`
-    } `koanf:"app"`
-}
-
-var appConfig AppConfig
-if err := cfg.Unmarshal(&appConfig); err != nil {
-    log.Fatal(err)
+// For safer access, use type assertion with ok check
+if name, ok := cfg.Get("app.name").(string); ok {
+    fmt.Println("App name:", name)
 }
 ```
+
+**Note**: For struct unmarshaling, use the generic `Load[T]` or `LoadEnv[T]` functions instead of manual access.
 
 ## Uber FX Integration
 
@@ -372,13 +365,15 @@ fx.New(
     config.Module,
     
     fx.Invoke(func(cfg *config.Config) {
-        // Access config directly
-        appName := cfg.GetString("app.name")
-        port := cfg.GetInt("app.port")
+        // Access config directly with type assertions
+        appName := cfg.Get("app.name").(string)
+        port := cfg.Get("app.port").(int)
         log.Printf("Starting %s on port %d", appName, port)
     }),
 ).Run()
 ```
+
+**Recommendation**: Use `ProvideConfig[T]()` with generics for type-safe configuration injection instead of manual access.
 
 ## Environment Detection
 
@@ -452,56 +447,13 @@ cfg.Database.User    // "postgres" (from base.yaml)
 cfg.Database.Password // "secret123" (overridden)
 ```
 
-### Runtime Value Modification
-
-```go
-cfg, _ := config.New("./config", "local")
-
-// Set values at runtime
-cfg.Set("app.maintenance_mode", true)
-cfg.Set("app.debug_level", "verbose")
-
-// Get the values
-maintenanceMode := cfg.GetBool("app.maintenance_mode") // true
-```
-
-### Unmarshal Specific Keys
-
-```go
-cfg, _ := config.New("./config", "local")
-
-// Set values at runtime
-cfg.Set("app.maintenance_mode", true)
-cfg.Set("app.debug_level", "verbose")
-
-// Get the values
-maintenanceMode := cfg.GetBool("app.maintenance_mode") // true
-```
-
-### Unmarshal Specific Keys
-
-```go
-type DatabaseConfig struct {
-    Host     string `koanf:"host"`
-    Port     int    `koanf:"port"`
-    User     string `koanf:"user"`
-    Password string `koanf:"password"`
-}
-
-cfg, _ := config.New("./config", "local")
-
-var dbConfig DatabaseConfig
-if err := cfg.UnmarshalKey("database", &dbConfig); err != nil {
-    log.Fatal(err)
-}
-```
-
 ### Check if Key Exists
 
 ```go
 cfg, _ := config.New("./config", "local")
 
-if cfg.IsSet("feature.experimental_mode") {
+// Check if key exists by checking if Get returns nil
+if cfg.Get("feature.experimental_mode") != nil {
     // Feature flag is defined
     enabled := cfg.GetBool("feature.experimental_mode")
 }
@@ -635,15 +587,17 @@ if err != nil {
 
 - `Load[T](configDir) (T, error)` - Load config with auto-detected environment
 - `LoadEnv[T](configDir, environment) (T, error)` - Load config with explicit environment
+- `CustomLoad[T](configDir, keyPath) (T, error)` - Load specific section with auto-detected environment
+- `CustomLoadEnv[T](configDir, environment, keyPath) (T, error)` - Load specific section with explicit environment
 - `MustLoad[T](configDir) T` - Load config or panic
+- `MustCustomLoad[T](configDir, keyPath) T` - Load specific section or panic
 
 ### Config Methods
 
 - `New(configDir, environment) (*Config, error)` - Create new config instance
-- `Unmarshal(target) error` - Unmarshal entire config to struct
-- `UnmarshalKey(key, target) error` - Unmarshal specific key to struct
-- `GetString(key) string` - Get string value
-- `GetInt(key) int` - Get int value types:
+- `Get(key) any` - Get value for given key (returns any type, requires type assertion)
+
+### Error Types
 
 - `ErrMissingConfigDir` - Config directory not provided
 - `ErrConfigDirNotFound` - Config directory doesn't exist
@@ -658,14 +612,17 @@ if err != nil {
     case errors.Is(err, config.ErrConfigDirNotFound):
         log.Fatal("Config directory does not exist")
     case errors.Is(err, config.ErrUnmarshalFailed):
-        log.Fatal("Failed to parse configstance
+        log.Fatal("Failed to parse config")
+    }
+}
+```
 
 ### FX Options
 
 - `Module` - FX module for config
 - `ProvideConfig[T]() fx.Option` - Provide typed config with generics
 - `ProvideConfigDir(dir) fx.Option` - Provide custom config directory
-- `ProvideEnvironment(env) fx.Option` - Provide custom environment "github.com/cristiano-pacheco/bricks/pkg/config"
+- `ProvideEnvironment(env) fx.Option` - Provide custom environment
     "go.uber.org/fx"
 )context"
     "log"
