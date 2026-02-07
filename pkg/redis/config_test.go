@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/cristiano-pacheco/bricks/pkg/redis"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestConfigValidation tests configuration validation
@@ -50,10 +52,17 @@ func TestConfigValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
 			tt.config.SetDefaults()
+
+			// Act
 			err := tt.config.Validate()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Config.Validate() error = %v, wantErr %v", err, tt.wantErr)
+
+			// Assert
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -61,22 +70,17 @@ func TestConfigValidation(t *testing.T) {
 
 // TestConfigDefaults tests default values
 func TestConfigDefaults(t *testing.T) {
+	// Arrange
 	cfg := redis.Config{
 		URL:  "redis://localhost:6379",
 		Type: redis.ClientTypeSingleNode,
 	}
 
+	// Act
 	cfg.SetDefaults()
 
-	if cfg.DialTimeout != 5*time.Second {
-		t.Errorf("Expected DialTimeout to be 5s, got %v", cfg.DialTimeout)
-	}
-
-	if cfg.PoolSize != 10 {
-		t.Errorf("Expected PoolSize to be 10, got %d", cfg.PoolSize)
-	}
-
-	if cfg.MaxRetries != 3 {
-		t.Errorf("Expected MaxRetries to be 3, got %d", cfg.MaxRetries)
-	}
+	// Assert
+	assert.Equal(t, 5*time.Second, cfg.DialTimeout)
+	assert.Equal(t, 10, cfg.PoolSize)
+	assert.Equal(t, 3, cfg.MaxRetries)
 }

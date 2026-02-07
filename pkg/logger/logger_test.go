@@ -5,14 +5,20 @@ import (
 	"testing"
 
 	"github.com/cristiano-pacheco/bricks/pkg/logger"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLogger_BasicUsage(t *testing.T) {
-	// Test with default config
-	log, err := logger.New(logger.DefaultConfig())
-	if err != nil {
-		t.Fatalf("Failed to create logger: %v", err)
-	}
+	// Arrange
+	config := logger.DefaultConfig()
+
+	// Act
+	log, err := logger.New(config)
+
+	// Assert
+	require.NoError(t, err)
+	assert.NotNil(t, log)
 	defer log.Sync()
 
 	log.Info("Test message")
@@ -20,18 +26,29 @@ func TestLogger_BasicUsage(t *testing.T) {
 }
 
 func TestLogger_WithOptions(t *testing.T) {
+	// Arrange & Act
 	log := logger.MustNewWithOptions(
 		logger.WithLevel("debug"),
 		logger.WithEncoding("console"),
 		logger.WithDevelopment(true),
 	)
+
+	// Assert
+	assert.NotNil(t, log)
 	defer log.Sync()
 
 	log.Info("Test with options")
 }
 
 func TestLogger_StructuredLogging(t *testing.T) {
-	log := logger.MustNew(logger.DevelopmentConfig())
+	// Arrange
+	config := logger.DevelopmentConfig()
+
+	// Act
+	log := logger.MustNew(config)
+
+	// Assert
+	assert.NotNil(t, log)
 	defer log.Sync()
 
 	log.Info("Structured log",
@@ -42,25 +59,38 @@ func TestLogger_StructuredLogging(t *testing.T) {
 }
 
 func TestLogger_WithContext(t *testing.T) {
-	log := logger.MustNew(logger.DevelopmentConfig())
+	// Arrange
+	config := logger.DevelopmentConfig()
+	log := logger.MustNew(config)
 	defer log.Sync()
 
-	// Create child logger with context
+	// Act
 	contextLog := log.With(
 		logger.String("request_id", "abc-123"),
 		logger.String("user_id", "user-456"),
 	)
+
+	// Assert
+	assert.NotNil(t, contextLog)
 
 	contextLog.Info("Processing request")
 	contextLog.Info("Request completed")
 }
 
 func TestLogger_WithError(t *testing.T) {
-	log := logger.MustNew(logger.DevelopmentConfig())
+	// Arrange
+	config := logger.DevelopmentConfig()
+	log := logger.MustNew(config)
 	defer log.Sync()
-
 	err := errors.New("something went wrong")
-	log.WithError(err).Error("Operation failed",
+
+	// Act
+	logWithError := log.WithError(err)
+
+	// Assert
+	assert.NotNil(t, logWithError)
+
+	logWithError.Error("Operation failed",
 		logger.String("operation", "save_user"),
 	)
 }

@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/cristiano-pacheco/bricks/pkg/config"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type TestConfig struct {
@@ -22,241 +24,168 @@ type TestConfig struct {
 }
 
 func TestNew(t *testing.T) {
-	// Use real config files from pkg/config/config directory
+	// Arrange
 	configDir := "./config"
 
-	// Test loading config with local environment
+	// Act
 	cfg, err := config.New(configDir, "local")
-	if err != nil {
-		t.Fatalf("Failed to create config: %v", err)
-	}
 
-	// Verify base values are loaded
-	if name := cfg.GetString("app.name"); name != "MyApp" {
-		t.Errorf("Expected app.name to be 'MyApp', got '%s'", name)
-	}
-
-	// Verify local override works
-	if debug := cfg.GetBool("app.debug"); !debug {
-		t.Error("Expected app.debug to be true (overridden by local.yaml)")
-	}
-
-	if port := cfg.GetInt("app.port"); port != 3000 {
-		t.Errorf("Expected app.port to be 3000 (overridden by local.yaml), got %d", port)
-	}
-
-	// Verify base value not overridden
-	if dbHost := cfg.GetString("database.host"); dbHost != "localhost" {
-		t.Errorf("Expected database.host to be 'localhost', got '%s'", dbHost)
-	}
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, "MyApp", cfg.GetString("app.name"))
+	assert.True(t, cfg.GetBool("app.debug"))
+	assert.Equal(t, 3000, cfg.GetInt("app.port"))
+	assert.Equal(t, "localhost", cfg.GetString("database.host"))
 }
 
 func TestUnmarshal(t *testing.T) {
-	// Use real config files from pkg/config/config directory
+	// Arrange
 	configDir := "./config"
-
 	cfg, err := config.New(configDir, "local")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	var appConfig TestConfig
-	if unmarshalErr := cfg.Unmarshal(&appConfig); unmarshalErr != nil {
-		t.Fatalf("Failed to unmarshal config: %v", unmarshalErr)
-	}
 
-	if appConfig.App.Name != "MyApp" {
-		t.Errorf("Expected name to be 'MyApp', got '%s'", appConfig.App.Name)
-	}
+	// Act
+	unmarshalErr := cfg.Unmarshal(&appConfig)
 
-	// Port is overridden by local.yaml (3000)
-	if appConfig.App.Port != 3000 {
-		t.Errorf("Expected port to be 3000, got %d", appConfig.App.Port)
-	}
-
-	if len(appConfig.App.Features) != 3 {
-		t.Errorf("Expected 3 features, got %d", len(appConfig.App.Features))
-	}
+	// Assert
+	require.NoError(t, unmarshalErr)
+	assert.Equal(t, "MyApp", appConfig.App.Name)
+	assert.Equal(t, 3000, appConfig.App.Port)
+	assert.Len(t, appConfig.App.Features, 3)
 }
 
 func TestLoad_Generics(t *testing.T) {
-	// Use real config files from pkg/config/config directory
+	// Arrange
 	configDir := "./config"
-
-	// Set environment to test auto-detection
 	t.Setenv("APP_ENV", "local")
 
-	// Test Load with generics - automatically detects environment
+	// Act
 	cfg, err := config.Load[TestConfig](configDir)
-	if err != nil {
-		t.Fatalf("Failed to load config with generics: %v", err)
-	}
 
-	if cfg.App.Name != "MyApp" {
-		t.Errorf("Expected app.name to be 'MyApp', got '%s'", cfg.App.Name)
-	}
-
-	// Port is overridden by local.yaml (3000)
-	if cfg.App.Port != 3000 {
-		t.Errorf("Expected app.port to be 3000, got %d", cfg.App.Port)
-	}
-
-	if !cfg.App.Debug {
-		t.Error("Expected app.debug to be true")
-	}
-
-	if cfg.Database.Host != "localhost" {
-		t.Errorf("Expected database.host to be 'localhost', got '%s'", cfg.Database.Host)
-	}
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, "MyApp", cfg.App.Name)
+	assert.Equal(t, 3000, cfg.App.Port)
+	assert.True(t, cfg.App.Debug)
+	assert.Equal(t, "localhost", cfg.Database.Host)
 }
 
 func TestLoadEnv_Explicit(t *testing.T) {
-	// Use real config files from pkg/config/config directory
+	// Arrange
 	configDir := "./config"
 
-	// Test LoadEnv with explicit production environment
+	// Act
 	cfg, err := config.LoadEnv[TestConfig](configDir, "production")
-	if err != nil {
-		t.Fatalf("Failed to load config: %v", err)
-	}
 
-	// Name should come from production.yaml
-	if cfg.App.Name != "ProductionApp" {
-		t.Errorf("Expected app.name to be 'ProductionApp', got '%s'", cfg.App.Name)
-	}
-
-	// Port should be overridden by production.yaml
-	if cfg.App.Port != 443 {
-		t.Errorf("Expected app.port to be 443, got %d", cfg.App.Port)
-	}
-
-	// Debug should be false in production
-	if cfg.App.Debug {
-		t.Error("Expected app.debug to be false in production")
-	}
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, "ProductionApp", cfg.App.Name)
+	assert.Equal(t, 443, cfg.App.Port)
+	assert.False(t, cfg.App.Debug)
 }
 
 func TestMustLoad_Generics(t *testing.T) {
-	// Use real config files from pkg/config/config directory
+	// Arrange
 	configDir := "./config"
 
-	// Should not panic with valid config
+	// Act
 	cfg := config.MustLoad[TestConfig](configDir)
 
-	if cfg.App.Name != "MyApp" {
-		t.Errorf("Expected app.name to be 'MyApp', got '%s'", cfg.App.Name)
-	}
+	// Assert
+	assert.Equal(t, "MyApp", cfg.App.Name)
 }
 
 func TestMustLoad_Panic(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("Expected MustLoad to panic with invalid config")
-		}
-	}()
-
-	// This should panic because directory doesn't exist
-	_ = config.MustLoad[TestConfig]("/nonexistent/path")
+	// Arrange & Act & Assert
+	assert.Panics(t, func() {
+		_ = config.MustLoad[TestConfig]("/nonexistent/path")
+	})
 }
 
 func TestEnvironmentVariables(t *testing.T) {
+	// Arrange
 	tmpDir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(tmpDir, "config"), 0755); err != nil {
-		t.Fatal(err)
-	}
+	err := os.MkdirAll(filepath.Join(tmpDir, "config"), 0755)
+	require.NoError(t, err)
 
 	baseConfig := `
 app:
   name: "EnvTest"
   port: 8080
 `
-	if err := os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(baseConfig), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	// Set environment variable to override config
+	err = os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(baseConfig), 0644)
+	require.NoError(t, err)
 	t.Setenv("APP_APP_PORT", "9999")
 
+	// Act
 	cfg, err := config.LoadEnv[TestConfig](tmpDir, "local")
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	// Port should be overridden by environment variable
-	if cfg.App.Port != 9999 {
-		t.Errorf("Expected app.port to be 9999 (from env var), got %d", cfg.App.Port)
-	}
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, 9999, cfg.App.Port)
 }
 
 func TestMissingBaseConfig(t *testing.T) {
+	// Arrange
 	tmpDir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(tmpDir, "config"), 0755); err != nil {
-		t.Fatal(err)
-	}
-	// Only create local.yaml, no base.yaml
+	err := os.MkdirAll(filepath.Join(tmpDir, "config"), 0755)
+	require.NoError(t, err)
+
 	localConfig := `
 app:
   name: "TestApp"
 `
-	if err := os.WriteFile(filepath.Join(tmpDir, "local.yaml"), []byte(localConfig), 0644); err != nil {
-		t.Fatal(err)
-	}
+	err = os.WriteFile(filepath.Join(tmpDir, "local.yaml"), []byte(localConfig), 0644)
+	require.NoError(t, err)
 
-	_, err := config.New(tmpDir, "local")
-	if err == nil {
-		t.Error("Expected error when base.yaml is missing")
-	}
+	// Act
+	_, err = config.New(tmpDir, "local")
+
+	// Assert
+	require.Error(t, err)
 }
 
 func TestMissingConfigDir(t *testing.T) {
+	// Arrange & Act
 	_, err := config.New("", "local")
-	if err == nil {
-		t.Error("Expected error when config dir is empty")
-	}
+
+	// Assert
+	require.Error(t, err)
 }
 
 func TestConfigDirNotFound(t *testing.T) {
+	// Arrange & Act
 	_, err := config.New("/nonexistent/path", "local")
-	if err == nil {
-		t.Error("Expected error when config directory doesn't exist")
-	}
+
+	// Assert
+	require.Error(t, err)
 }
 
 func TestSetAndGet(t *testing.T) {
-	// Use real config files from pkg/config/config directory
+	// Arrange
 	configDir := "./config"
-
 	cfg, err := config.New(configDir, "local")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	// Set runtime value
-	if setErr := cfg.Set("runtime.value", "test123"); setErr != nil {
-		t.Fatalf("Failed to set runtime value: %v", setErr)
-	}
+	// Act
+	setErr := cfg.Set("runtime.value", "test123")
 
-	if val := cfg.GetString("runtime.value"); val != "test123" {
-		t.Errorf("Expected runtime.value to be 'test123', got '%s'", val)
-	}
+	// Assert
+	require.NoError(t, setErr)
+	assert.Equal(t, "test123", cfg.GetString("runtime.value"))
 }
 
 func TestIsSet(t *testing.T) {
-	// Use real config files from pkg/config/config directory
+	// Arrange
 	configDir := "./config"
-
 	cfg, err := config.New(configDir, "local")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	if !cfg.IsSet("app.name") {
-		t.Error("Expected app.name to be set")
-	}
-
-	if cfg.IsSet("app.nonexistent") {
-		t.Error("Expected app.nonexistent to not be set")
-	}
+	// Act & Assert
+	assert.True(t, cfg.IsSet("app.name"))
+	assert.False(t, cfg.IsSet("app.nonexistent"))
 }
 
 func TestMultipleEnvironments(t *testing.T) {
@@ -288,22 +217,14 @@ func TestMultipleEnvironments(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Arrange & Act
 			cfg, err := config.LoadEnv[TestConfig](configDir, tt.environment)
-			if err != nil {
-				t.Fatalf("Failed to load config for %s: %v", tt.environment, err)
-			}
 
-			if cfg.App.Name != tt.expectedApp {
-				t.Errorf("Expected app.name to be '%s', got '%s'", tt.expectedApp, cfg.App.Name)
-			}
-
-			if cfg.App.Port != tt.expectedPort {
-				t.Errorf("Expected app.port to be %d, got %d", tt.expectedPort, cfg.App.Port)
-			}
-
-			if cfg.App.Debug != tt.expectedDebug {
-				t.Errorf("Expected app.debug to be %v, got %v", tt.expectedDebug, cfg.App.Debug)
-			}
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedApp, cfg.App.Name)
+			assert.Equal(t, tt.expectedPort, cfg.App.Port)
+			assert.Equal(t, tt.expectedDebug, cfg.App.Debug)
 		})
 	}
 }
