@@ -2,6 +2,7 @@ package request_test
 
 import (
 	"bytes"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -20,7 +21,7 @@ func TestReadJSON(t *testing.T) {
 		var dst Payload
 
 		body := bytes.NewBufferString(`{"name":"alice"}`)
-		r := httptest.NewRequest("POST", "/", body)
+		r := httptest.NewRequest(http.MethodPost, "/", body)
 		r.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -41,7 +42,7 @@ func TestReadJSON(t *testing.T) {
 
 		var dst Payload
 		body := bytes.NewBufferString(`{"name":"bob"}`)
-		r := httptest.NewRequest("POST", "/", body)
+		r := httptest.NewRequest(http.MethodPost, "/", body)
 		r.Header.Set("Content-Type", "text/plain")
 		w := httptest.NewRecorder()
 
@@ -62,7 +63,7 @@ func TestReadJSON(t *testing.T) {
 
 		var dst Payload
 		body := bytes.NewBufferString(`{"name":}`)
-		r := httptest.NewRequest("POST", "/", body)
+		r := httptest.NewRequest(http.MethodPost, "/", body)
 		r.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -83,7 +84,7 @@ func TestReadJSON(t *testing.T) {
 
 		var dst Payload
 		body := bytes.NewBufferString("")
-		r := httptest.NewRequest("POST", "/", body)
+		r := httptest.NewRequest(http.MethodPost, "/", body)
 		r.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -104,7 +105,7 @@ func TestReadJSON(t *testing.T) {
 
 		var dst Payload
 		body := bytes.NewBufferString(`{"unknown":1}`)
-		r := httptest.NewRequest("POST", "/", body)
+		r := httptest.NewRequest(http.MethodPost, "/", body)
 		r.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -130,7 +131,7 @@ func TestReadJSON(t *testing.T) {
 		jsonBuf.Write(longVal)
 		jsonBuf.WriteString("\"}")
 
-		r := httptest.NewRequest("POST", "/", jsonBuf)
+		r := httptest.NewRequest(http.MethodPost, "/", jsonBuf)
 		r.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -151,7 +152,7 @@ func TestReadJSON(t *testing.T) {
 
 		var dst Payload
 		body := bytes.NewBufferString(`{} {}`)
-		r := httptest.NewRequest("POST", "/", body)
+		r := httptest.NewRequest(http.MethodPost, "/", body)
 		r.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 

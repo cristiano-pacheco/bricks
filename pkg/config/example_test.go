@@ -252,3 +252,63 @@ server:
 	// Output:
 	// Server: 0.0.0.0:8080
 }
+
+func Example_customLoad() {
+	tmpDir := os.TempDir()
+	configDir := filepath.Join(tmpDir, "example-custom-load")
+	os.MkdirAll(configDir, 0755)
+	defer os.RemoveAll(configDir)
+
+	baseConfig := `
+app:
+  name: "MyApp"
+  port: 8080
+  database:
+    host: "localhost"
+    port: 5432
+    name: "myapp_db"
+    user: "postgres"
+redis:
+  host: "localhost"
+  port: 6379
+  db: 0
+`
+	os.WriteFile(filepath.Join(configDir, "base.yaml"), []byte(baseConfig), 0644)
+
+	// Define a struct for only the database section
+	type DatabaseConfig struct {
+		Host string `config:"host"`
+		Port int    `config:"port"`
+		Name string `config:"name"`
+		User string `config:"user"`
+	}
+
+	// Define a struct for only the redis section
+	type RedisConfig struct {
+		Host string `config:"host"`
+		Port int    `config:"port"`
+		DB   int    `config:"db"`
+	}
+
+	// Load only the database section using CustomLoad
+	dbCfg, err := config.CustomLoad[DatabaseConfig](configDir, "app.database")
+	if err != nil {
+		exampleLogger().Error("failed to load database config", "err", err)
+		return
+	}
+
+	fmt.Printf("Database: %s@%s:%d/%s\n", dbCfg.User, dbCfg.Host, dbCfg.Port, dbCfg.Name)
+
+	// Load only the redis section
+	redisCfg, err := config.CustomLoad[RedisConfig](configDir, "redis")
+	if err != nil {
+		exampleLogger().Error("failed to load redis config", "err", err)
+		return
+	}
+
+	fmt.Printf("Redis: %s:%d (DB %d)\n", redisCfg.Host, redisCfg.Port, redisCfg.DB)
+
+	// Output:
+	// Database: postgres@localhost:5432/myapp_db
+	// Redis: localhost:6379 (DB 0)
+}

@@ -167,6 +167,74 @@ func main() {
 }
 ```
 
+### Load Specific Config Sections with CustomLoad
+
+Sometimes you only need a specific section of your configuration. Use `CustomLoad` to load and unmarshal a specific key path:
+
+```go
+package main
+
+import (
+    "log"
+    
+    "github.com/cristiano-pacheco/bricks/pkg/config"
+)
+
+// Define struct for only the database section
+type DatabaseConfig struct {
+    Host     string `config:"host"`
+    Port     int    `config:"port"`
+    Name     string `config:"name"`
+    User     string `config:"user"`
+    Password string `config:"password"`
+}
+
+// Define struct for only the redis section
+type RedisConfig struct {
+    Host string `config:"host"`
+    Port int    `config:"port"`
+    DB   int    `config:"db"`
+}
+
+func main() {
+    // Load only the database section from app.database key path
+    dbCfg, err := config.CustomLoad[DatabaseConfig]("./config", "app.database")
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    log.Printf("Database: %s@%s:%d/%s", dbCfg.User, dbCfg.Host, dbCfg.Port, dbCfg.Name)
+    
+    // Load only the redis section
+    redisCfg, err := config.CustomLoad[RedisConfig]("./config", "redis")
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    log.Printf("Redis: %s:%d (DB %d)", redisCfg.Host, redisCfg.Port, redisCfg.DB)
+}
+```
+
+**With explicit environment:**
+
+```go
+// Load specific section with explicit environment
+dbCfg, err := config.CustomLoadEnv[DatabaseConfig]("./config", "production", "app.database")
+```
+
+**Must variant:**
+
+```go
+// Panics if the section cannot be loaded
+dbCfg := config.MustCustomLoad[DatabaseConfig]("./config", "app.database")
+```
+
+**Benefits:**
+- Load only what you need for better memory efficiency
+- Create focused configuration structs for specific components
+- Easier testing by mocking specific sections
+- Clean separation of concerns
+
 ## Manual Configuration Access
 
 If you prefer not to use generics, you can access config values directly:
