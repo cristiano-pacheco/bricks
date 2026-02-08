@@ -19,10 +19,11 @@ go get github.com/cristiano-pacheco/bricks
 
 ## How It Works
 
-1. **Loading order**: `base.yaml` is loaded first, then the environment-specific file (e.g., `local.yaml`) merges on top
-2. **Environment detection**: Reads `APP_ENV` environment variable (defaults to `local` if not set)
-3. **Environment variable overrides**: Any `APP_` prefixed env var overrides config values after files are loaded
-4. **Unmarshal**: Final merged config is unmarshaled into your struct using the `config` struct tag
+1. **Config directory**: Reads `APP_CONFIG_DIR` (defaults to `./config` if not set)
+2. **Loading order**: `base.yaml` is loaded first, then the environment-specific file (e.g., `local.yaml`) merges on top
+3. **Environment detection**: Reads `APP_ENV` environment variable (defaults to `local` if not set)
+4. **Environment variable overrides**: Any `APP_` prefixed env var overrides config values after files are loaded
+5. **Unmarshal**: Final merged config is unmarshaled into your struct using the `config` struct tag
 
 ## Basic Usage
 
@@ -41,8 +42,8 @@ type AppConfig struct {
     } `config:"app"`  // maps to YAML top-level key "app"
 }
 
-// Load configuration from ./config directory
-cfg, err := config.New[AppConfig]("./config")
+// Load configuration from default config directory (./config)
+cfg, err := config.New[AppConfig]()
 if err != nil {
     log.Fatal(err)
 }
@@ -56,7 +57,8 @@ appPort := cfg.Get().App.Port
 
 ## File Structure
 
-Configuration files must be placed in a directory with this structure:
+Configuration files must be placed in a directory with this structure.
+By default, the directory is `./config` (relative to the process root) and can be overridden with `APP_CONFIG_DIR`.
 
 ```
 config/
@@ -99,6 +101,15 @@ export APP_ENV=staging     # loads base.yaml + staging.yaml
 ```
 
 If `APP_ENV` is not set, it defaults to `local`.
+
+## Config Directory Selection
+
+The config directory is resolved via `APP_CONFIG_DIR` and defaults to `./config` when not set.
+The resolved path is checked under the process root and must exist:
+
+```bash
+export APP_CONFIG_DIR=./config
+```
 
 ## Environment Variable Overrides
 
@@ -170,7 +181,6 @@ type DatabaseConfig struct {
 }
 
 cfg, err := config.New[DatabaseConfig](
-    "./config",
     config.WithPath("app.database"),  // path to subtree
 )
 // cfg.Get() now contains only the database config
@@ -182,7 +192,6 @@ type RedisConfig struct {
 }
 
 redisCfg, err := config.New[RedisConfig](
-    "./config",
     config.WithPath("redis"),  // path to subtree
 )
 ```
@@ -239,7 +248,7 @@ func main() {
     // Set environment (or use APP_ENV env var)
     // os.Setenv("APP_ENV", "production")
     
-    cfg, err := config.New[AppConfig]("./config")
+    cfg, err := config.New[AppConfig]()
     if err != nil {
         log.Fatal(err)
     }
