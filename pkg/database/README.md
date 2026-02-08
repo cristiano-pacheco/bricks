@@ -36,16 +36,12 @@ import "github.com/cristiano-pacheco/bricks/pkg/database"
 package main
 
 import (
-    "context"
     "log"
-    "time"
 
     "github.com/cristiano-pacheco/bricks/pkg/database"
 )
 
 func main() {
-    ctx := context.Background()
-    
     cfg := database.Config{
         Host:               "localhost",
         User:               "myuser",
@@ -59,80 +55,23 @@ func main() {
         EnableLogs:         true,
     }
 
-    client, err := database.NewClient(ctx, cfg)
+    db, err := database.New(cfg)
     if err != nil {
         log.Fatal(err)
     }
-    defer client.Close()
+    defer func() {
+        if sqlDB, err := db.DB(); err == nil {
+            sqlDB.Close()
+        }
+    }()
 
-    // Get GORM DB instance
-    db := client.DB()
-
-    // Use database
+    // Use database directly with GORM
     var users []User
     db.Find(&users)
 }
 ```
 
-### With Functional Options
-
-```go
-package main
-
-import (
-    "context"
-    "log"
-    "time"
-
-    "github.com/cristiano-pacheco/bricks/pkg/database"
-)
-
-func main() {
-    ctx := context.Background()
-    
-    cfg := database.Config{
-        Host:               "localhost",
-        User:               "myuser",
-        Password:           "mypassword",
-        Name:               "mydb",
-        Port:               5432,
-        MaxOpenConnections: 25,
-        MaxIdleConnections: 5,
-    }
-
-    client, err := database.NewClient(ctx, cfg,
-        database.WithConnectTimeout(10*time.Second),
-        database.WithMaxRetries(5),
-        database.WithRetryDelay(2*time.Second),
-        database.WithConnMaxLifetime(1*time.Hour),
-        database.WithConnMaxIdleTime(10*time.Minute),
-        database.WithRetryCallback(func(attempt int, err error) {
-            log.Printf("Retry attempt %d: %v", attempt, err)
-        }),
-    )
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer client.Close()
-
-    // Check connection health
-    if err := client.Ping(ctx); err != nil {
-        log.Fatal("Database health check failed:", err)
-    }
-
-    // Get connection statistics
-    stats, err := client.Stats()
-    if err != nil {
-        log.Fatal(err)
-    }
-    log.Printf("Open connections: %d/%d", stats.OpenConnections, stats.MaxOpenConnections)
-
-    db := client.DB()
-    // Use database...
-}
-```
-
-### With Uber Fx (GORM DB)
+### With Uber Fx
 
 ```go
 package main
@@ -146,24 +85,26 @@ import (
 
 func main() {
     fx.New(
-        database.Module,
-        fx.Provide(func() database.Config {
-            return database.Config{
-                Host:               "localhost",
-                User:               "myuser",
-                Password:           "mypassword",
-                Name:               "mydb",
-                Port:               5432,
-                MaxOpenConnections: 25,
-                MaxIdleConnections: 5,
-                SSLMode:            false,
-                PrepareSTMT:        true,
-                EnableLogs:         true,
-                Logger:             logger.Default.LogMode(logger.Info),
-            }
-        }),
+        fx.Provide(
+            func() database.Config {
+                return database.Config{
+                    Host:               "localhost",
+                    User:               "myuser",
+                    Password:           "mypassword",
+                    Name:               "mydb",
+                    Port:               5432,
+                    MaxOpenConnections: 25,
+                    MaxIdleConnections: 5,
+                    SSLMode:            false,
+                    PrepareSTMT:        true,
+                    EnableLogs:         true,
+                    Logger:             logger.Default.LogMode(logger.Info),
+                }
+            },
+            database.NewWithLifecycle,
+        ),
         fx.Invoke(func(db *gorm.DB) {
-            // Use database
+            // Use database - connection is automatically closed on shutdown
             var users []User
             db.Find(&users)
         }),
@@ -171,49 +112,6 @@ func main() {
 }
 ```
 
-### With Uber Fx (Full Client)
-
-```go
-package main
-
-import (
-    "context"
-
-    "github.com/cristiano-pacheco/bricks/pkg/database"
-    "go.uber.org/fx"
-)
-
-func main() {
-    fx.New(
-        database.ClientModule,
-        fx.Provide(func() database.Config {
-            return database.Config{
-                Host:     "localhost",
-                User:     "myuser",
-                Password: "mypassword",
-                Name:     "mydb",
-                Port:     5432,
-            }
-        }),
-        fx.Invoke(func(client *database.Client) {
-            ctx := context.Background()
-            
-            // Health check
-            if err := client.Ping(ctx); err != nil {
-                panic(err)
-            }
-            
-            // Get statistics
-            stats, _ := client.Stats()
-            log.Printf("Connections: %d in use, %d idle", stats.InUse, stats.Idle)
-            
-            // Use GORM DB
-            db := client.DB()
-            db.AutoMigrate(&User{})
-        }),
-    ).Run()
-}
-```
 
 ## Configuration
 
@@ -253,74 +151,75 @@ func main() {
 | ConnectTimeout | int | Connection timeout (seconds) | - |
 | PreferSimpleProtol | bool | Prefer simple protocol | false |
 
-### Functional Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| WithConnectTimeout(duration) | Sets the connection timeout | 10s |
-| WithMaxRetries(int) | Sets maximum connection retry attempts | 3 |
-| WithRetryDelay(duration) | Sets base delay between retries | 1s |
-| WithConnMaxLifetime(duration) | Sets maximum connection lifetime | 1h |
-| WithConnMaxIdleTime(duration) | Sets maximum connection idle time | 10m |
-| WithRetryCallback(func) | Sets callback for retry attempts | - |
-
 ## API Reference
 
-### Client
+### Core Functions
+
+#### New
 
 ```go
-type Client struct {
-    // contains filtered or unexported fields
+func New(cfg Config) (*gorm.DB, error)
+```
+
+Creates a new database connection with automatic retry and connection pool configuration.
+Returns a `*gorm.DB` instance ready to use. The caller is responsible for closing the connection.
+
+**Example:**
+```go
+db, err := database.New(cfg)
+if err != nil {
+    return err
 }
+defer func() {
+    if sqlDB, err := db.DB(); err == nil {
+        sqlDB.Close()
+    }
+}()
 ```
 
-#### NewClient
+#### NewWithLifecycle
 
 ```go
-func NewClient(ctx context.Context, cfg Config, opts ...Option) (*Client, error)
+func NewWithLifecycle(cfg Config, lc fx.Lifecycle) (*gorm.DB, error)
 ```
 
-Creates a new database client with context support and functional options.
+Creates a new database connection with fx.Lifecycle management.
+The connection is automatically closed when the application stops via OnStop hook.
 
-#### Methods
-
+**Example with Fx:**
 ```go
-func (c *Client) DB() *gorm.DB
+fx.New(
+    fx.Provide(
+        func() database.Config { return cfg },
+        database.NewWithLifecycle,
+    ),
+    fx.Invoke(func(db *gorm.DB) {
+        // use db
+    }),
+)
 ```
 
-Returns the underlying GORM database instance.
+### Working with GORM
+
+Once you have a `*gorm.DB` instance, you can use all GORM features directly:
 
 ```go
-func (c *Client) Close() error
-```
-
-Closes the database connection.
-
-```go
-func (c *Client) Ping(ctx context.Context) error
-```
-
-Checks if the database connection is alive.
-
-```go
-func (c *Client) Stats() (ConnectionStats, error)
-```
-
-Returns database connection statistics.
-
-### ConnectionStats
-
-```go
-type ConnectionStats struct {
-    MaxOpenConnections int           // Maximum number of open connections
-    OpenConnections    int           // Number of established connections
-    InUse              int           // Number of connections in use
-    Idle               int           // Number of idle connections
-    WaitCount          int64         // Total connections waited for
-    WaitDuration       time.Duration // Total time blocked waiting
-    MaxIdleClosed      int64         // Connections closed due to max idle
-    MaxLifetimeClosed  int64         // Connections closed due to max lifetime
+// Health check
+sqlDB, err := db.DB()
+if err != nil {
+    return err
 }
+if err := sqlDB.PingContext(ctx); err != nil {
+    return err
+}
+
+// Connection statistics
+stats := sqlDB.Stats()
+log.Printf("Open: %d, InUse: %d, Idle: %d", 
+    stats.OpenConnections, stats.InUse, stats.Idle)
+
+// Close connection
+sqlDB.Close()
 ```
 
 ### DSN Generation
@@ -374,7 +273,7 @@ The module provides predefined errors:
 Example error handling:
 
 ```go
-client, err := database.NewClient(ctx, cfg)
+db, err := database.New(cfg)
 if err != nil {
     if errors.Is(err, database.ErrConnectionFailed) {
         log.Fatal("Cannot connect to database:", err)
@@ -394,39 +293,37 @@ The module implements automatic retry with exponential backoff:
 - Default base delay: 1 second
 - Exponential backoff formula: baseDelay * 2^(attempt-1)
 - Maximum backoff: 30 seconds
-- Context cancellation support
+- Context cancellation support (10 second timeout)
 
-Customize retry behavior:
+The retry mechanism is built-in and requires no configuration.
+
+## Fx Integration
+
+Use `database.NewWithLifecycle` for seamless Fx integration:
 
 ```go
-client, err := database.NewClient(ctx, cfg,
-    database.WithMaxRetries(5),
-    database.WithRetryDelay(2*time.Second),
-    database.WithRetryCallback(func(attempt int, err error) {
-        log.Printf("Connection attempt %d failed: %v", attempt, err)
+fx.New(
+    fx.Provide(
+        func() database.Config {
+            return database.Config{
+                Host: "localhost",
+                Port: 5432,
+                Name: "mydb",
+                User: "user",
+            }
+        },
+        database.NewWithLifecycle,
+    ),
+    fx.Invoke(func(db *gorm.DB) {
+        // Use db - automatically closed on shutdown
     }),
 )
 ```
 
-## Fx Integration
-
-The module provides two Fx modules:
-
-### database.Module
-
-Provides `*gorm.DB` with automatic lifecycle management:
-- Connection pool configuration on start
-- Health check via Ping on start
-- Automatic connection cleanup on shutdown
-
-### database.ClientModule
-
-Provides `*database.Client` with full API access:
-- All features of Module
-- Access to Client methods (Ping, Stats, Close)
-- Enhanced control over the connection
-
-Both modules require a `database.Config` provider and optionally accept `[]database.Option` for advanced configuration.
+Features:
+- Automatic connection cleanup on shutdown via OnStop hook
+- Connection pool configuration
+- No need for manual Close() calls
 
 ## Connection Pool Management
 
@@ -437,14 +334,15 @@ The module automatically configures connection pooling with sensible defaults:
 - **Max Open Connections**: Set via `Config.MaxOpenConnections`
 - **Max Idle Connections**: Set via `Config.MaxIdleConnections`
 
-Monitor pool health using `Client.Stats()`:
+Monitor pool health using the underlying `sql.DB`:
 
 ```go
-stats, err := client.Stats()
+sqlDB, err := db.DB()
 if err != nil {
     log.Fatal(err)
 }
 
+stats := sqlDB.Stats()
 log.Printf("Connection Pool Stats:")
 log.Printf("  Open: %d/%d", stats.OpenConnections, stats.MaxOpenConnections)
 log.Printf("  In Use: %d", stats.InUse)
@@ -526,13 +424,24 @@ cfg := database.Config{
 
 ## Best Practices
 
-1. **Always use context**: Pass appropriate context to `NewClient` and `Ping` for timeout control
-2. **Close connections**: Always defer `client.Close()` to ensure proper cleanup
-3. **Health checks**: Use `Ping()` to verify connectivity before critical operations
-4. **Monitor statistics**: Regularly check `Stats()` to detect connection pool issues
-5. **Configure timeouts**: Set appropriate statement and lock timeouts for your use case
+1. **Use NewWithLifecycle with Fx**: When using Fx, prefer `NewWithLifecycle` for automatic lifecycle management
+2. **Close connections**: When using `New()`, always close the connection properly:
+   ```go
+   defer func() {
+       if sqlDB, err := db.DB(); err == nil {
+           sqlDB.Close()
+       }
+   }()
+   ```
+3. **Health checks**: Use the underlying sql.DB for health checks:
+   ```go
+   sqlDB, _ := db.DB()
+   sqlDB.PingContext(ctx)
+   ```
+4. **Monitor statistics**: Check connection pool stats via `sqlDB.Stats()` to detect issues
+5. **Configure timeouts**: Set appropriate statement and lock timeouts in the Config for your use case
 6. **Use connection limits**: Configure `MaxOpenConnections` and `MaxIdleConnections` based on your load
-7. **Enable retry callback**: Use `WithRetryCallback` for better observability in production
+7. **Enable logging in development**: Set `EnableLogs: true` and provide a Logger for debugging
 
 ## Testing
 
