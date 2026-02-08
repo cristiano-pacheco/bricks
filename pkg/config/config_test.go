@@ -3,6 +3,7 @@ package config_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/cristiano-pacheco/bricks/pkg/config"
@@ -23,14 +24,58 @@ type TestConfig struct {
 	} `config:"database"`
 }
 
+const testConfigDir = "config"
+
+func loadConfig[T any](configDir string, options ...config.Option) (config.Config[T], error) {
+	resolvedDir := normalizeConfigDir(configDir)
+	if resolvedDir == "" {
+		_ = os.Unsetenv("APP_CONFIG_DIR")
+		return config.New[T](options...)
+	}
+	_ = os.Setenv("APP_CONFIG_DIR", resolvedDir)
+	return config.New[T](options...)
+}
+
+func normalizeConfigDir(configDir string) string {
+	trimmedDir := strings.TrimSpace(configDir)
+	if trimmedDir == "" {
+		return ""
+	}
+	if !filepath.IsAbs(trimmedDir) {
+		return trimmedDir
+	}
+	root, err := os.Getwd()
+	if err != nil {
+		return trimmedDir
+	}
+	rel, relErr := filepath.Rel(root, trimmedDir)
+	if relErr != nil {
+		return trimmedDir
+	}
+	return rel
+}
+
+func tempConfigDir(t *testing.T) string {
+	t.Helper()
+	root, err := os.Getwd()
+	require.NoError(t, err)
+	baseDir := filepath.Base(t.TempDir())
+	dir := filepath.Join(root, baseDir)
+	require.NoError(t, os.MkdirAll(dir, 0755))
+	t.Cleanup(func() {
+		_ = os.RemoveAll(dir)
+	})
+	return dir
+}
+
 func TestNew(t *testing.T) {
 	t.Run("should load config successfully", func(t *testing.T) {
 		// Arrange
-		configDir := "./config"
+		configDir := testConfigDir
 
 		// Act
 		t.Setenv("APP_ENV", "local")
-		cfg, err := config.New[TestConfig](configDir)
+		cfg, err := loadConfig[TestConfig](configDir)
 
 		// Assert
 		require.NoError(t, err)
@@ -44,11 +89,11 @@ func TestNew(t *testing.T) {
 func TestLoad_Generics(t *testing.T) {
 	t.Run("should load config using generics", func(t *testing.T) {
 		// Arrange
-		configDir := "./config"
+		configDir := testConfigDir
 		t.Setenv("APP_ENV", "local")
 
 		// Act
-		cfg, err := config.New[TestConfig](configDir)
+		cfg, err := loadConfig[TestConfig](configDir)
 
 		// Assert
 		require.NoError(t, err)
@@ -62,11 +107,11 @@ func TestLoad_Generics(t *testing.T) {
 func TestLoad_EnvironmentFromEnvVar(t *testing.T) {
 	t.Run("should load production environment via APP_ENV", func(t *testing.T) {
 		// Arrange
-		configDir := "./config"
+		configDir := testConfigDir
 		t.Setenv("APP_ENV", "production")
 
 		// Act
-		cfg, err := config.New[TestConfig](configDir)
+		cfg, err := loadConfig[TestConfig](configDir)
 
 		// Assert
 		require.NoError(t, err)
@@ -79,10 +124,10 @@ func TestLoad_EnvironmentFromEnvVar(t *testing.T) {
 func TestNew_WithNoError(t *testing.T) {
 	t.Run("should load config without error", func(t *testing.T) {
 		// Arrange
-		configDir := "./config"
+		configDir := testConfigDir
 
 		// Act
-		cfg, err := config.New[TestConfig](configDir)
+		cfg, err := loadConfig[TestConfig](configDir)
 
 		// Assert
 		require.NoError(t, err)
@@ -93,10 +138,10 @@ func TestNew_WithNoError(t *testing.T) {
 func TestNew_InvalidPathError(t *testing.T) {
 	t.Run("should return error on invalid path", func(t *testing.T) {
 		// Arrange
-		invalidPath := "/nonexistent/path"
+		invalidPath := "missing-config-dir"
 
 		// Act & Assert
-		_, err := config.New[TestConfig](invalidPath)
+		_, err := loadConfig[TestConfig](invalidPath)
 		require.Error(t, err)
 	})
 }
@@ -104,7 +149,7 @@ func TestNew_InvalidPathError(t *testing.T) {
 func TestEnvironmentVariables(t *testing.T) {
 	t.Run("should override config with environment variables", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 		err := os.MkdirAll(filepath.Join(tmpDir, "config"), 0755)
 		require.NoError(t, err)
 
@@ -123,7 +168,7 @@ app:
 
 		// Act
 		t.Setenv("APP_ENV", "local")
-		cfg, err := config.New[TestConfig](tmpDir)
+		cfg, err := loadConfig[TestConfig](tmpDir)
 
 		// Assert
 		require.NoError(t, err)
@@ -134,7 +179,7 @@ app:
 func TestMissingBaseConfig(t *testing.T) {
 	t.Run("should return error when base.yaml is missing", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 		err := os.MkdirAll(filepath.Join(tmpDir, "config"), 0755)
 		require.NoError(t, err)
 
@@ -151,7 +196,7 @@ app:
 
 		// Act
 		t.Setenv("APP_ENV", "local")
-		_, err = config.New[TestConfig](tmpDir)
+		_, err = loadConfig[TestConfig](tmpDir)
 
 		// Assert
 		require.Error(t, err)
@@ -159,12 +204,13 @@ app:
 }
 
 func TestMissingConfigDir(t *testing.T) {
-	t.Run("should return error when config dir is empty", func(t *testing.T) {
+	t.Run("should return error when default config dir is missing", func(t *testing.T) {
 		// Arrange
-		emptyDir := ""
+		tmpRoot := t.TempDir()
+		t.Chdir(tmpRoot)
 
 		// Act
-		_, err := config.New[TestConfig](emptyDir)
+		_, err := loadConfig[TestConfig]("   ")
 
 		// Assert
 		require.Error(t, err)
@@ -174,10 +220,23 @@ func TestMissingConfigDir(t *testing.T) {
 func TestConfigDirNotFound(t *testing.T) {
 	t.Run("should return error when config dir does not exist", func(t *testing.T) {
 		// Arrange
-		nonexistentPath := "/nonexistent/path"
+		nonexistentPath := "missing-config-dir"
 
 		// Act
-		_, err := config.New[TestConfig](nonexistentPath)
+		_, err := loadConfig[TestConfig](nonexistentPath)
+
+		// Assert
+		require.Error(t, err)
+	})
+
+	t.Run("should return error when config dir is a file", func(t *testing.T) {
+		// Arrange
+		tmpDir := tempConfigDir(t)
+		filePath := filepath.Join(tmpDir, "not-a-dir.yaml")
+		require.NoError(t, os.WriteFile(filePath, []byte("app:\n  name: test\n"), 0644))
+
+		// Act
+		_, err := loadConfig[TestConfig](filePath)
 
 		// Assert
 		require.Error(t, err)
@@ -201,11 +260,11 @@ func TestNewWithPath(t *testing.T) {
 
 	t.Run("should load database section with CustomLoad", func(t *testing.T) {
 		// Arrange
-		configDir := "./config"
+		configDir := testConfigDir
 		t.Setenv("APP_ENV", "local")
 
 		// Act
-		cfg, err := config.New[DatabaseConfig](configDir, config.WithPath("database"))
+		cfg, err := loadConfig[DatabaseConfig](configDir, config.WithPath("database"))
 
 		// Assert
 		require.NoError(t, err)
@@ -217,11 +276,11 @@ func TestNewWithPath(t *testing.T) {
 
 	t.Run("should load app section with CustomLoad", func(t *testing.T) {
 		// Arrange
-		configDir := "./config"
+		configDir := testConfigDir
 		t.Setenv("APP_ENV", "local")
 
 		// Act
-		cfg, err := config.New[AppSection](configDir, config.WithPath("app"))
+		cfg, err := loadConfig[AppSection](configDir, config.WithPath("app"))
 
 		// Assert
 		require.NoError(t, err)
@@ -233,11 +292,11 @@ func TestNewWithPath(t *testing.T) {
 
 	t.Run("should load database section with APP_ENV=production", func(t *testing.T) {
 		// Arrange
-		configDir := "./config"
+		configDir := testConfigDir
 		t.Setenv("APP_ENV", "production")
 
 		// Act
-		cfg, err := config.New[DatabaseConfig](configDir, config.WithPath("database"))
+		cfg, err := loadConfig[DatabaseConfig](configDir, config.WithPath("database"))
 
 		// Assert
 		require.NoError(t, err)
@@ -247,10 +306,10 @@ func TestNewWithPath(t *testing.T) {
 
 	t.Run("should return error when key path does not exist", func(t *testing.T) {
 		// Arrange
-		configDir := "./config"
+		configDir := testConfigDir
 
 		// Act
-		_, err := config.New[DatabaseConfig](configDir, config.WithPath("nonexistent.key"))
+		_, err := loadConfig[DatabaseConfig](configDir, config.WithPath("nonexistent.key"))
 
 		// Assert
 		require.Error(t, err)
@@ -259,21 +318,21 @@ func TestNewWithPath(t *testing.T) {
 
 	t.Run("should return error on invalid key", func(t *testing.T) {
 		// Arrange
-		configDir := "./config"
+		configDir := testConfigDir
 
 		// Act & Assert
-		_, err := config.New[DatabaseConfig](configDir, config.WithPath("nonexistent.key"))
+		_, err := loadConfig[DatabaseConfig](configDir, config.WithPath("nonexistent.key"))
 		require.Error(t, err)
 	})
 
 	t.Run("should load successfully with WithPath", func(t *testing.T) {
 		// Arrange
-		configDir := "./config"
+		configDir := testConfigDir
 		t.Setenv("APP_ENV", "local")
 
 		// Act & Assert
 		assert.NotPanics(t, func() {
-			cfg, err := config.New[DatabaseConfig](configDir, config.WithPath("database"))
+			cfg, err := loadConfig[DatabaseConfig](configDir, config.WithPath("database"))
 			require.NoError(t, err)
 			assert.Equal(t, "localhost", cfg.Get().Host)
 		})
@@ -283,7 +342,7 @@ func TestNewWithPath(t *testing.T) {
 func TestInvalidYAMLParsing(t *testing.T) {
 	t.Run("should return error on invalid YAML syntax", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 		invalidYAML := `
 app:
   name: "Test
@@ -294,7 +353,7 @@ app:
 		require.NoError(t, err)
 
 		// Act
-		_, err = config.New[TestConfig](tmpDir)
+		_, err = loadConfig[TestConfig](tmpDir)
 
 		// Assert
 		require.Error(t, err)
@@ -309,7 +368,7 @@ func TestInvalidConfigStructure(t *testing.T) {
 
 	t.Run("should return error when config doesn't match struct", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 		// Create a config that has a string where int is expected
 		invalidStructure := `
 required_int: "this_is_a_string_not_an_int"
@@ -318,7 +377,7 @@ required_int: "this_is_a_string_not_an_int"
 		require.NoError(t, err)
 
 		// Act
-		_, err = config.New[StrictConfig](tmpDir)
+		_, err = loadConfig[StrictConfig](tmpDir)
 
 		// Assert
 		require.Error(t, err)
@@ -327,7 +386,7 @@ required_int: "this_is_a_string_not_an_int"
 
 	t.Run("should return error when WithPath config doesn't match struct", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 		invalidStructure := `
 database:
   port: "should_be_number"
@@ -340,7 +399,7 @@ database:
 		}
 
 		// Act
-		_, err = config.New[DBConfig](tmpDir, config.WithPath("database"))
+		_, err = loadConfig[DBConfig](tmpDir, config.WithPath("database"))
 
 		// Assert
 		require.Error(t, err)
@@ -351,7 +410,7 @@ database:
 func TestConfigFilePermissionErrors(t *testing.T) {
 	t.Run("should return error when base.yaml is not readable", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 		configPath := filepath.Join(tmpDir, "base.yaml")
 		err := os.WriteFile(configPath, []byte("app:\n  name: test\n"), 0644)
 		require.NoError(t, err)
@@ -362,7 +421,7 @@ func TestConfigFilePermissionErrors(t *testing.T) {
 		defer os.Chmod(configPath, 0644) // Restore permissions
 
 		// Act
-		_, err = config.New[TestConfig](tmpDir)
+		_, err = loadConfig[TestConfig](tmpDir)
 
 		// Assert
 		require.Error(t, err)
@@ -373,7 +432,7 @@ func TestConfigFilePermissionErrors(t *testing.T) {
 func TestEnvironmentConfigWithErrors(t *testing.T) {
 	t.Run("should return error when environment-specific config has read errors", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		// Create valid base config
 		baseConfig := `
@@ -395,7 +454,7 @@ app:
 		t.Setenv("APP_ENV", "production")
 
 		// Act
-		_, err = config.New[TestConfig](tmpDir)
+		_, err = loadConfig[TestConfig](tmpDir)
 
 		// Assert
 		require.Error(t, err)
@@ -404,7 +463,7 @@ app:
 
 	t.Run("should return error when environment-specific YAML is invalid", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		// Create valid base config
 		baseConfig := `
@@ -427,7 +486,7 @@ app:
 		t.Setenv("APP_ENV", "staging")
 
 		// Act
-		_, err = config.New[TestConfig](tmpDir)
+		_, err = loadConfig[TestConfig](tmpDir)
 
 		// Assert
 		require.Error(t, err)
@@ -438,19 +497,23 @@ app:
 func TestConfigWithSpacesAndTrimming(t *testing.T) {
 	t.Run("should handle config dir with whitespace", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
-		configDir := "  " + tmpDir + "  "
+		tmpDir := tempConfigDir(t)
+		root, err := os.Getwd()
+		require.NoError(t, err)
+		relDir, err := filepath.Rel(root, tmpDir)
+		require.NoError(t, err)
+		configDir := "  " + relDir + "  "
 
 		baseConfig := `
 app:
   name: "Test"
   port: 8080
 `
-		err := os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(baseConfig), 0644)
+		err = os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(baseConfig), 0644)
 		require.NoError(t, err)
 
 		// Act
-		cfg, err := config.New[TestConfig](configDir)
+		cfg, err := loadConfig[TestConfig](configDir)
 
 		// Assert
 		require.NoError(t, err)
@@ -459,7 +522,7 @@ app:
 
 	t.Run("should handle WithPath with whitespace", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
 database:
@@ -475,7 +538,7 @@ database:
 		}
 
 		// Act - WithPath with extra whitespace
-		cfg, err := config.New[DBConfig](tmpDir, config.WithPath("  database  "))
+		cfg, err := loadConfig[DBConfig](tmpDir, config.WithPath("  database  "))
 
 		// Assert
 		require.NoError(t, err)
@@ -486,7 +549,7 @@ database:
 func TestEnvironmentVariableEdgeCases(t *testing.T) {
 	t.Run("should handle APP_ENV with mixed case", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
 app:
@@ -504,7 +567,7 @@ app:
 
 		// Act - Set environment with mixed case
 		t.Setenv("APP_ENV", "  PrOdUcTiOn  ")
-		cfg, err := config.New[TestConfig](tmpDir)
+		cfg, err := loadConfig[TestConfig](tmpDir)
 
 		// Assert
 		require.NoError(t, err)
@@ -513,7 +576,7 @@ app:
 
 	t.Run("should use local when APP_ENV is only whitespace", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
 app:
@@ -532,7 +595,7 @@ app:
 		// Act - When APP_ENV is whitespace, TrimSpace results in empty string
 		// Since there's no ".yaml" file, it should only load base.yaml
 		t.Setenv("APP_ENV", "   ")
-		cfg, err := config.New[TestConfig](tmpDir)
+		cfg, err := loadConfig[TestConfig](tmpDir)
 
 		// Assert - Will load base.yaml since environment after trim is "" and ".yaml" doesn't exist
 		require.NoError(t, err)
@@ -541,7 +604,7 @@ app:
 
 	t.Run("should override nested config with environment variables", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
 database:
@@ -564,7 +627,7 @@ database:
 		}
 
 		// Act
-		cfg, err := config.New[DBConfig](tmpDir, config.WithPath("database"))
+		cfg, err := loadConfig[DBConfig](tmpDir, config.WithPath("database"))
 
 		// Assert
 		require.NoError(t, err)
@@ -577,7 +640,7 @@ database:
 func TestMultipleOptions(t *testing.T) {
 	t.Run("should handle nil options gracefully", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
 app:
@@ -587,7 +650,7 @@ app:
 		require.NoError(t, err)
 
 		// Act - Pass nil options
-		cfg, err := config.New[TestConfig](tmpDir, nil, config.WithPath(""), nil)
+		cfg, err := loadConfig[TestConfig](tmpDir, nil, config.WithPath(""), nil)
 
 		// Assert
 		require.NoError(t, err)
@@ -598,7 +661,7 @@ app:
 func TestConfigGet(t *testing.T) {
 	t.Run("should return same value on multiple Get calls", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
 app:
@@ -608,7 +671,7 @@ app:
 		err := os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(baseConfig), 0644)
 		require.NoError(t, err)
 
-		cfg, err := config.New[TestConfig](tmpDir)
+		cfg, err := loadConfig[TestConfig](tmpDir)
 		require.NoError(t, err)
 
 		// Act - Call Get multiple times
@@ -631,7 +694,7 @@ func TestEmptyConfigStructure(t *testing.T) {
 
 	t.Run("should handle empty struct successfully", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
 app:
@@ -641,7 +704,7 @@ app:
 		require.NoError(t, err)
 
 		// Act
-		cfg, err := config.New[EmptyConfig](tmpDir)
+		cfg, err := loadConfig[EmptyConfig](tmpDir)
 
 		// Assert
 		require.NoError(t, err)
@@ -662,7 +725,7 @@ func TestDeepNestedConfiguration(t *testing.T) {
 
 	t.Run("should load deeply nested configuration", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		deepConfig := `
 level1:
@@ -674,7 +737,7 @@ level1:
 		require.NoError(t, err)
 
 		// Act
-		cfg, err := config.New[DeepConfig](tmpDir)
+		cfg, err := loadConfig[DeepConfig](tmpDir)
 
 		// Assert
 		require.NoError(t, err)
@@ -683,7 +746,7 @@ level1:
 
 	t.Run("should load deeply nested with WithPath", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		deepConfig := `
 level1:
@@ -699,7 +762,7 @@ level1:
 		}
 
 		// Act
-		cfg, err := config.New[Level3Config](tmpDir, config.WithPath("level1.level2.level3"))
+		cfg, err := loadConfig[Level3Config](tmpDir, config.WithPath("level1.level2.level3"))
 
 		// Assert
 		require.NoError(t, err)
@@ -710,7 +773,7 @@ level1:
 func TestEnvironmentVariablesWithComplexPaths(t *testing.T) {
 	t.Run("should override deeply nested values with env vars", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
 service:
@@ -738,7 +801,7 @@ service:
 		t.Setenv("APP_SERVICE_API_ENDPOINT_PORT", "443")
 
 		// Act
-		cfg, err := config.New[ServiceConfig](tmpDir)
+		cfg, err := loadConfig[ServiceConfig](tmpDir)
 
 		// Assert
 		require.NoError(t, err)
@@ -755,7 +818,7 @@ func TestConfigDirectoryPermissionError(t *testing.T) {
 
 	t.Run("should handle directory permission errors", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 		configDir := filepath.Join(tmpDir, "config")
 		err := os.Mkdir(configDir, 0755)
 		require.NoError(t, err)
@@ -774,7 +837,7 @@ app:
 		defer os.Chmod(configDir, 0755) // Restore permissions for cleanup
 
 		// Act
-		_, err = config.New[TestConfig](configDir)
+		_, err = loadConfig[TestConfig](configDir)
 
 		// Assert - Should get permission error (either accessing dir or reading file)
 		require.Error(t, err)
@@ -792,7 +855,7 @@ func TestNilTargetUnmarshal(t *testing.T) {
 		// The unmarshalKey function has nil checks which are defensive programming
 
 		// Testing that our config works with valid pointers
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 		baseConfig := `
 app:
   name: "Test"
@@ -801,7 +864,7 @@ app:
 		require.NoError(t, err)
 
 		// This should work fine (not nil)
-		cfg, err := config.New[TestConfig](tmpDir)
+		cfg, err := loadConfig[TestConfig](tmpDir)
 		require.NoError(t, err)
 		assert.Equal(t, "Test", cfg.Get().App.Name)
 	})
@@ -811,7 +874,7 @@ func TestYAMLProviderReadBytes(t *testing.T) {
 	t.Run("yamlProvider ReadBytes returns nil", func(t *testing.T) {
 		// The ReadBytes method is not used by koanf but is part of the Provider interface
 		// We can test that the config loads successfully, which internally uses the yamlProvider
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
 app:
@@ -822,7 +885,7 @@ app:
 		require.NoError(t, err)
 
 		// If the provider works correctly, config should load
-		cfg, err := config.New[TestConfig](tmpDir)
+		cfg, err := loadConfig[TestConfig](tmpDir)
 		require.NoError(t, err)
 		assert.Equal(t, "TestProvider", cfg.Get().App.Name)
 	})
@@ -831,7 +894,7 @@ app:
 func TestEdgeCaseYAMLFiles(t *testing.T) {
 	t.Run("should handle empty base.yaml", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		// Empty YAML file
 		err := os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(""), 0644)
@@ -840,7 +903,7 @@ func TestEdgeCaseYAMLFiles(t *testing.T) {
 		type EmptyTestConfig struct{}
 
 		// Act
-		cfg, err := config.New[EmptyTestConfig](tmpDir)
+		cfg, err := loadConfig[EmptyTestConfig](tmpDir)
 
 		// Assert
 		require.NoError(t, err)
@@ -849,7 +912,7 @@ func TestEdgeCaseYAMLFiles(t *testing.T) {
 
 	t.Run("should handle YAML with comments only", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		commentsYAML := `
 # This is a comment
@@ -862,7 +925,7 @@ func TestEdgeCaseYAMLFiles(t *testing.T) {
 		type EmptyTestConfig struct{}
 
 		// Act
-		cfg, err := config.New[EmptyTestConfig](tmpDir)
+		cfg, err := loadConfig[EmptyTestConfig](tmpDir)
 
 		// Assert
 		require.NoError(t, err)
@@ -871,7 +934,7 @@ func TestEdgeCaseYAMLFiles(t *testing.T) {
 
 	t.Run("should handle base.yaml with only whitespace and newlines", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		// YAML with only spaces and newlines (tabs can cause parse errors)
 		err := os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte("   \n  \n   \n"), 0644)
@@ -880,7 +943,7 @@ func TestEdgeCaseYAMLFiles(t *testing.T) {
 		type EmptyTestConfig struct{}
 
 		// Act
-		cfg, err := config.New[EmptyTestConfig](tmpDir)
+		cfg, err := loadConfig[EmptyTestConfig](tmpDir)
 
 		// Assert
 		require.NoError(t, err)
@@ -899,7 +962,7 @@ func TestComplexDataTypes(t *testing.T) {
 
 	t.Run("should load complex data types correctly", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		complexYAML := `
 string_map:
@@ -921,7 +984,7 @@ nested_slice:
 		require.NoError(t, err)
 
 		// Act
-		cfg, err := config.New[ComplexConfig](tmpDir)
+		cfg, err := loadConfig[ComplexConfig](tmpDir)
 
 		// Assert
 		require.NoError(t, err)
@@ -938,7 +1001,7 @@ nested_slice:
 func TestEnvironmentVariableWithInvalidValues(t *testing.T) {
 	t.Run("should handle environment variable with invalid type conversion", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
 app:
@@ -957,7 +1020,7 @@ app:
 		}
 
 		// Act
-		_, err = config.New[AppConfig](tmpDir)
+		_, err = loadConfig[AppConfig](tmpDir)
 
 		// Assert
 		require.Error(t, err)
@@ -968,7 +1031,7 @@ app:
 func TestMultipleEnvironmentFiles(t *testing.T) {
 	t.Run("should correctly merge base and environment configs", func(t *testing.T) {
 		// Arrange
-		tmpDir := t.TempDir()
+		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
 app:
@@ -996,7 +1059,7 @@ database:
 		t.Setenv("APP_ENV", "production")
 
 		// Act
-		cfg, err := config.New[TestConfig](tmpDir)
+		cfg, err := loadConfig[TestConfig](tmpDir)
 
 		// Assert
 		require.NoError(t, err)

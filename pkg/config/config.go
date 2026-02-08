@@ -36,14 +36,19 @@ type loadOptions struct {
 
 // New loads and unmarshals configuration into T.
 // Environment is always resolved automatically using APP_ENV (default: local).
+// Config directory is resolved using APP_CONFIG_DIR (default: config).
 //
 // Example:
 //
-//	cfg, err := config.New[DatabaseConfig]("./config", config.WithPath("app.database"))
-func New[T any](configDir string, options ...Option) (Config[T], error) {
+//	cfg, err := config.New[DatabaseConfig](config.WithPath("app.database"))
+func New[T any](options ...Option) (Config[T], error) {
 	var result T
 	opts := resolveOptions(options)
 	environment := getEnvironment()
+	configDir, configErr := getConfigDir()
+	if configErr != nil {
+		return Config[T]{}, configErr
+	}
 	k, err := loadKoanf(configDir, environment)
 	if err != nil {
 		return Config[T]{}, fmt.Errorf("failed to create config (env=%s): %w", environment, err)
@@ -165,6 +170,36 @@ func getEnvironment() string {
 		return strings.ToLower(strings.TrimSpace(env))
 	}
 	return "local"
+}
+
+func getConfigDir() (string, error) {
+	rootDir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve root directory: %w", err)
+	}
+
+	configDir := strings.TrimSpace(os.Getenv("APP_CONFIG_DIR"))
+	if configDir == "" {
+		configDir = "config"
+	}
+	configDir = filepath.Clean(configDir)
+	if filepath.IsAbs(configDir) {
+		configDir = strings.TrimLeft(configDir, string(os.PathSeparator))
+	}
+
+	resolvedPath := filepath.Join(rootDir, configDir)
+	stat, statErr := os.Stat(resolvedPath)
+	if os.IsNotExist(statErr) {
+		return "", fmt.Errorf("%w: %s", ErrConfigDirNotFound, resolvedPath)
+	}
+	if statErr != nil {
+		return "", fmt.Errorf("failed to access config directory %s: %w", resolvedPath, statErr)
+	}
+	if !stat.IsDir() {
+		return "", fmt.Errorf("%w: %s", ErrConfigDirNotFound, resolvedPath)
+	}
+
+	return resolvedPath, nil
 }
 
 type yamlProvider struct {
