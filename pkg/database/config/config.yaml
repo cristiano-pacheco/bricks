@@ -1,0 +1,36 @@
+app:
+  database:
+    # Connection parameters
+    host: localhost                       # (required) Database host, no default
+    port: 5432                            # (required) Database port, no default
+    name: myapp_db                        # (required) Database name, no default
+    user: dbuser                          # (required) Database user, no default
+    password: ***                         # (optional) Database password, default: ""
+
+    # SSL configuration
+    sslmode: false                        # (optional) Enable SSL mode, default: false
+    sslcert: ""                           # (optional) SSL certificate path, default: ""
+    sslkey: ""                            # (optional) SSL key path, default: ""
+    sslrootcert: ""                       # (optional) SSL root certificate path, default: ""
+
+    # Connection pool settings
+    maxopenconnections: 25                # (optional) Maximum number of open connections, default: 0 (unlimited)
+    maxidleconnections: 5                 # (optional) Maximum number of idle connections, default: 0
+
+    # GORM settings
+    preparestmt: true                     # (optional) Enable prepared statement cache, default: false
+    skipdefaulttransaction: false         # (optional) Skip default transaction for single operations, default: false
+    disableforeignkeyconstraint: false    # (optional) Disable foreign key constraints, default: false
+
+    # Logging
+    enablelogs: true                      # (optional) Enable GORM logging, default: false
+
+    # Additional parameters
+    timezone: UTC                         # (optional) Database timezone, default: "UTC"
+    applicationname: myapp                # (optional) Application name in connection, default: ""
+    searchpath: public                    # (optional) PostgreSQL search path, default: ""
+    statementtimeout: 30000               # (optional) Statement timeout in milliseconds, default: 0 (no timeout)
+    locktimeout: 10000                    # (optional) Lock timeout in milliseconds, default: 0 (no timeout)
+    idleintransaction: 60000              # (optional) Idle in transaction timeout in milliseconds, default: 0 (no timeout)
+    connecttimeout: 10                    # (optional) Connection timeout in seconds, default: 0 (no timeout)
+    prefersimpleprotol: false             # (optional) Prefer simple protocol, default: false (note: typo in struct name)

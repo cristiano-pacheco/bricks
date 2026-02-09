@@ -1,0 +1,55 @@
+app:
+  redis:
+    # Client type (single_node, cluster, sentinel, failover)
+    type: single_node               # (required) Client type, default: "single_node" (via SetDefaults)
+
+    # Connection parameters
+    url: redis://localhost:6379     # (required for single_node/failover) Redis URL, no default
+    password: ""                    # (optional) Redis password, default: ""
+    db: 0                           # (optional) Database number (0-15 for single node), default: 0
+
+    # Cluster-specific parameters (for cluster mode)
+    clusteraddrs: []                # (required for cluster) Cluster node addresses, default: [] (empty)
+
+    # Sentinel-specific parameters (for sentinel/failover mode)
+    sentineladdrs: []               # (required for sentinel/failover) Sentinel addresses, default: [] (empty)
+    mastername: ""                  # (required for sentinel/failover) Master name, default: ""
+    sentinelpassword: ""            # (optional) Sentinel password, default: ""
+    sentinelusername: ""            # (optional) Sentinel username, default: ""
+    routebylatency: false           # (optional) Route read commands by latency, default: false
+    routerandomly: false            # (optional) Route read commands randomly, default: false
+    replicaonly: false              # (optional) Use replica nodes only, default: false
+
+    # Connection pool settings
+    maxretries: 3                   # (optional) Maximum number of retries, default: 3
+    minretrybackoff: 8ms            # (optional) Minimum backoff, default: 8ms
+    maxretrybackoff: 512ms          # (optional) Maximum backoff, default: 512ms
+    dialtimeout: 5s                 # (optional) Dial timeout, default: 5s
+    readtimeout: 3s                 # (optional) Read timeout, default: 3s
+    writetimeout: 3s                # (optional) Write timeout, default: 3s
+    contexttimeoutenabled: false    # (optional) Enable context timeouts, default: false
+    poolfifo: false                 # (optional) Use FIFO mode for pool, default: false
+    poolsize: 10                    # (optional) Maximum connections, default: 10
+    pooltimeout: 4s                 # (optional) Pool timeout, default: 4s
+    minidleconns: 2                 # (optional) Minimum idle connections, default: 2
+    maxidleconns: 0                 # (optional) Maximum idle connections, default: 0 (no limit)
+    connmaxidletime: 30m            # (optional) Max idle time, default: 30m
+    connmaxlifetime: 1h             # (optional) Max connection lifetime, default: 1h
+
+    # TLS configuration
+    enabletls: false                # (optional) Enable TLS, default: false
+    tlsskipverify: false            # (optional) Skip TLS verification, default: false
+    tlsservername: ""               # (optional) TLS server name, default: ""
+
+    # Advanced parameters
+    maxredirects: 3                 # (optional) Max redirects (cluster), default: 3
+    readonly: false                 # (optional) Read-only mode (cluster), default: false
+    unstablemode: false             # (optional) Allow unstable nodes, default: false
+    protocol: 3                     # (optional) Redis protocol version, default: 3
+    disableindentity: false         # (optional) Disable set-info on connect, default: false (note: typo in struct)
+    identitysuffix: ""              # (optional) Client name suffix, default: ""
+
+    # Application-level settings
+    namespace: ""                   # (optional) Key namespace prefix, default: ""
+    enablemetrics: true             # (optional) Enable metrics collection, default: false
+    commandtimeout: 5s              # (optional) Default command timeout, default: 5s

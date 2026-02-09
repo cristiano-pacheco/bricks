@@ -2,6 +2,10 @@
 
 A robust and highly configurable Redis client package for Go, built on top of [go-redis/redis](https://github.com/redis/go-redis), with support for single-node, cluster, sentinel, and failover setups.
 
+## Configuration
+
+For a complete configuration example, see [config/config.yaml](config/config.yaml).
+
 ## Features
 
 - 🔌 **Multiple Client Types**: Single-node, Cluster, Sentinel, and Failover support

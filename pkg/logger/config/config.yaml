@@ -1,0 +1,49 @@
+app:
+  logger:
+    # Level sets the logging level (debug, info, warn, error, dpanic, panic, fatal)
+    level: info                     # (optional) default: "info"
+
+    # Encoding sets the log encoding format ("json" or "console")
+    encoding: json                  # (optional) default: "json"
+
+    # Development enables development mode (stacktraces on warnings, more verbose)
+    development: false              # (optional) default: false
+
+    # DisableCaller disables automatic caller field
+    disablecaller: false            # (optional) default: false
+
+    # DisableStacktrace disables automatic stacktrace capturing
+    disablestacktrace: false        # (optional) default: false
+
+    # OutputPaths defines where logs are written
+    # Possible values:
+    # - "stdout" : Write to standard output (console)
+    # - "stderr" : Write to standard error
+    # - "/path/to/file.log" : Write to a file (absolute path)
+    # - Multiple destinations can be specified
+    # Examples:
+    #   Single destination: ["stdout"]
+    #   Multiple destinations: ["stdout", "/var/log/app.log"]
+    #   File only: ["/var/log/myapp.log"]
+    outputpaths:                    # (optional) default: ["stdout"]
+      - stdout
+
+    # ErrorOutputPaths defines where internal logger errors are written
+    # Same possible values as outputpaths
+    # Examples:
+    #   Standard error: ["stderr"]
+    #   File: ["/var/log/app-errors.log"]
+    #   Multiple: ["stderr", "/var/log/internal-errors.log"]
+    erroroutputpaths:               # (optional) default: ["stderr"]
+      - stderr
+
+    # InitialFields adds initial fields to every log entry
+    initialfields:                  # (optional) default: {} (empty map)
+      app: myapp
+      environment: production
+
+    # SamplingConfig enables sampling to reduce log volume in production
+    # Set to null or omit entirely to disable sampling
+    samplingconfig:                 # (optional) default: null (disabled)
+      initial: 100                  # Number of log entries to keep per second, no default
+      thereafter: 100               # Log 1 in N entries after initial is exceeded, no default

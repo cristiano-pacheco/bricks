@@ -2,6 +2,10 @@
 
 PostgreSQL database connection module with GORM and Uber FX integration.
 
+## Configuration
+
+For a complete configuration example, see [config/config.yaml](config/config.yaml).
+
 ## Installation
 
 Install the entire Bricks framework:

@@ -2,6 +2,10 @@
 
 A robust HTTP server implementation using the Chi router with support for CORS and Uber FX dependency injection.
 
+## Configuration
+
+For a complete configuration example, see [config/config.yaml](config/config.yaml).
+
 ## Features
 
 - 🚀 Built on top of [Chi router](https://github.com/go-chi/chi)

@@ -2,6 +2,10 @@
 
 A robust, production-ready logging package built on top of [Uber Zap](https://github.com/uber-go/zap), providing high-performance structured logging with FX integration.
 
+## Configuration
+
+For a complete configuration example, see [config/config.yaml](config/config.yaml).
+
 ## Features
 
 - 🚀 **High Performance**: Built on Zap, one of the fastest structured logging libraries in Go

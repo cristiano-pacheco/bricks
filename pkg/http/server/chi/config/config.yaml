@@ -1,0 +1,31 @@
+app:
+  http:
+    port: 9000                      # (required) Server port, default: 8080 (if using Default())
+    readtimeout: 15s                # (optional) Read timeout (e.g., 15s, 1m), default: 15s
+    writetimeout: 15s               # (optional) Write timeout (e.g., 15s, 1m), default: 15s
+    idletimeout: 60s                # (optional) Idle timeout (e.g., 60s, 5m), default: 60s
+    shutdowntimeout: 15s            # (optional) Graceful shutdown timeout (e.g., 15s, 30s), default: 10s
+    metricsport: 9090               # (optional) Metrics server port, default: 9090
+    
+    # CORS configuration (optional)
+    # Set to null or omit entirely to disable CORS
+    cors:                           # (optional) default: null (CORS disabled)
+      allowedorigins:               # (optional) Allowed origins, default: [] (empty)
+        - "*"
+      allowedmethods:               # (optional) Allowed HTTP methods, default: [] (empty)
+        - "GET"
+        - "POST"
+        - "PUT"
+        - "PATCH"
+        - "DELETE"
+        - "OPTIONS"
+      allowedheaders:               # (optional) Allowed headers, default: [] (empty)
+        - "Accept"
+        - "Content-Type"
+        - "Authorization"
+      exposedheaders:               # (optional) Headers exposed to browser, default: [] (empty)
+        - "Link"
+      allowcredentials: true        # (optional) Allow credentials, default: false
+      maxage: 300                   # (optional) Preflight cache duration in seconds, default: 300
+      optionspassthrough: false     # (optional) Pass OPTIONS requests to handlers, default: false
+      debug: false                  # (optional) Enable CORS debug logging, default: false
