@@ -31,7 +31,7 @@ type validator struct {
 }
 
 // New creates a new Validator with English translations pre-configured
-func New() (Validator, error) {
+func New() (*validator, error) {
 	// Create validator instance
 	v := lib_validator.New(lib_validator.WithRequiredStructEnabled())
 
