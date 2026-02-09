@@ -57,6 +57,14 @@ Redis client with connection pooling and Uber FX support.
 - **Import**: `github.com/cristiano-pacheco/bricks/pkg/redis`
 - **Documentation**: [pkg/redis/README.md](pkg/redis/README.md)
 
+### Validator
+
+Struct validation with go-playground/validator and Uber FX integration.
+
+- **Location**: `pkg/validator`
+- **Import**: `github.com/cristiano-pacheco/bricks/pkg/validator`
+- **Documentation**: [pkg/validator/README.md](pkg/validator/README.md)
+
 ## License
 
 MIT
