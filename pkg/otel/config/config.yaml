@@ -1,0 +1,60 @@
+app:
+  # Application identification
+  name: myapp                             # (required) Application name for tracing, no default
+
+opentelemetry:
+  # Core settings
+  enabled: true                           # (optional) Enable OpenTelemetry tracing, default: false
+  tracervendor: jaeger                    # (optional) Tracer vendor name (e.g., jaeger, tempo, datadog), default: ""
+  tracerurl: localhost:4317               # (required if enabled) OTLP endpoint URL (without http/https prefix), no default
+  exportertype: grpc                      # (optional) Exporter type: "grpc" or "http", default: "grpc"
+
+  # Batch processing settings
+  batchtimeout: 5s                        # (optional) Maximum time to wait before sending a batch, default: 5s
+  maxbatchsize: 512                       # (optional) Maximum number of spans in a batch, default: 512
+
+  # Connection settings
+  insecure: true                          # (optional) Use insecure connection (no TLS), default: false
+
+  # Sampling settings
+  samplerate: 1.0                         # (optional) Trace sampling rate (0.0 to 1.0), default: 1.0 (100%)
+                                          # Examples:
+                                          # - 1.0 = sample all traces (100%)
+                                          # - 0.5 = sample 50% of traces
+                                          # - 0.1 = sample 10% of traces
+                                          # - 0.0 = sample no traces (effectively disabled)
+
+# Configuration examples for different environments:
+
+# Development environment (local Jaeger):
+# opentelemetry:
+#   enabled: true
+#   tracervendor: jaeger
+#   tracerurl: localhost:4317
+#   exportertype: grpc
+#   insecure: true
+#   samplerate: 1.0
+
+# Production environment (secure endpoint):
+# opentelemetry:
+#   enabled: true
+#   tracervendor: tempo
+#   tracerurl: tempo.production.com:443
+#   exportertype: grpc
+#   insecure: false
+#   samplerate: 0.1
+#   batchtimeout: 10s
+#   maxbatchsize: 1024
+
+# HTTP exporter example (Jaeger HTTP):
+# opentelemetry:
+#   enabled: true
+#   tracervendor: jaeger
+#   tracerurl: localhost:4318
+#   exportertype: http
+#   insecure: true
+#   samplerate: 1.0
+
+# Disabled tracing:
+# opentelemetry:
+#   enabled: false
