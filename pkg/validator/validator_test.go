@@ -23,7 +23,10 @@ func TestNew(t *testing.T) {
 }
 
 func TestValidate(t *testing.T) {
-	v, _ := validator.New()
+	v, err := validator.New()
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 
 	tests := []struct {
 		name    string
@@ -54,16 +57,19 @@ func TestValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := v.Validate(tt.user)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
+			gotErr := v.Validate(tt.user)
+			if (gotErr != nil) != tt.wantErr {
+				t.Errorf("Validate() error = %v, wantErr %v", gotErr, tt.wantErr)
 			}
 		})
 	}
 }
 
 func TestValidateVar(t *testing.T) {
-	v, _ := validator.New()
+	v, err := validator.New()
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 
 	tests := []struct {
 		name    string
@@ -99,16 +105,19 @@ func TestValidateVar(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := v.ValidateVar(tt.value, tt.tag)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ValidateVar() error = %v, wantErr %v", err, tt.wantErr)
+			gotErr := v.ValidateVar(tt.value, tt.tag)
+			if (gotErr != nil) != tt.wantErr {
+				t.Errorf("ValidateVar() error = %v, wantErr %v", gotErr, tt.wantErr)
 			}
 		})
 	}
 }
 
 func TestEngine(t *testing.T) {
-	v, _ := validator.New()
+	v, err := validator.New()
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 	engine := v.Engine()
 	if engine == nil {
 		t.Fatal("Engine() returned nil")
@@ -116,7 +125,10 @@ func TestEngine(t *testing.T) {
 }
 
 func TestTranslator(t *testing.T) {
-	v, _ := validator.New()
+	v, err := validator.New()
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 	trans := v.Translator()
 	if trans == nil {
 		t.Fatal("Translator() returned nil")

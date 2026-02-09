@@ -8,6 +8,7 @@ import (
 const (
 	defaultPort        = 8080
 	defaultMetricsPort = 9090
+	defaultMaxAge      = 300
 	healthCheckPath    = "/healthz"
 	metricsPath        = "/metrics"
 )
@@ -68,7 +69,7 @@ func (c Config) WithDefaultCORS() Config {
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: false,
-		MaxAge:           300,
+		MaxAge:           defaultMaxAge,
 	}
 	return c
 }

@@ -7,7 +7,10 @@ import (
 )
 
 func ExampleNew() {
-	v, _ := validator.New()
+	v, err := validator.New()
+	if err != nil {
+		panic(err)
+	}
 
 	type User struct {
 		Name  string `validate:"required,min=3"`
@@ -15,13 +18,16 @@ func ExampleNew() {
 	}
 
 	user := User{Name: "John", Email: "john@example.com"}
-	err := v.Validate(user)
+	err = v.Validate(user)
 	fmt.Println(err)
 	// Output: <nil>
 }
 
 func ExampleValidator_Validate() {
-	v, _ := validator.New()
+	v, err := validator.New()
+	if err != nil {
+		panic(err)
+	}
 
 	type Product struct {
 		Name  string  `validate:"required"`
@@ -29,16 +35,19 @@ func ExampleValidator_Validate() {
 	}
 
 	product := Product{Name: "Widget", Price: 9.99}
-	err := v.Validate(product)
+	err = v.Validate(product)
 	fmt.Println(err)
 	// Output: <nil>
 }
 
 func ExampleValidator_ValidateVar() {
-	v, _ := validator.New()
+	v, err := validator.New()
+	if err != nil {
+		panic(err)
+	}
 
 	email := "test@example.com"
-	err := v.ValidateVar(email, "email")
+	err = v.ValidateVar(email, "email")
 	fmt.Println(err)
 	// Output: <nil>
 }

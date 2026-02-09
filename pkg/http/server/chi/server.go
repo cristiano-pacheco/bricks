@@ -101,9 +101,9 @@ func NewWithLifecycle(cfg Config, lc fx.Lifecycle) (*Server, error) {
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
 			go func() {
-				if err := server.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				if startErr := server.Start(); startErr != nil && !errors.Is(startErr, http.ErrServerClosed) {
 					// Log error but don't crash - fx will handle this
-					_ = err
+					_ = startErr
 				}
 			}()
 			return nil
