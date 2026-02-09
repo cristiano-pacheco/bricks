@@ -49,6 +49,8 @@ type ZapLogger struct {
 	logger *zap.Logger
 }
 
+var _ Logger = (*ZapLogger)(nil) // Ensure ZapLogger implements Logger
+
 // New creates a new logger instance from config
 func New(config Config) (*ZapLogger, error) {
 	zapConfig := zap.Config{
