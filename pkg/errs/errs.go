@@ -1,6 +1,13 @@
 package errs
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+)
+
+var (
+	ErrRecordNotFound = New("RECORD_NOT_FOUND", "Record not found", http.StatusNotFound, nil)
+)
 
 type Error struct {
 	Status        int      `json:"-"`
