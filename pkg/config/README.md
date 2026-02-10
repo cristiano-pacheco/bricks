@@ -198,6 +198,30 @@ redisCfg, err := config.New[RedisConfig](
 
 **Path format**: Use dot notation to navigate nested structures (e.g., `"app.database"`, `"features.auth"`).
 
+## Fx Integration
+
+Use `Provide` to inject config into fx modules:
+
+```go
+import (
+    "go.uber.org/fx"
+    "github.com/cristiano-pacheco/bricks/pkg/config"
+)
+
+type DatabaseConfig struct {
+    Host string `config:"host"`
+    Port int    `config:"port"`
+}
+
+var Module = fx.Module("database",
+    config.Provide[DatabaseConfig]("app.database"),
+    fx.Invoke(func(cfg config.Config[DatabaseConfig]) {
+        db := cfg.Get()
+        // use db.Host, db.Port
+    }),
+)
+```
+
 ## Complete Example
 
 **config/base.yaml**:
