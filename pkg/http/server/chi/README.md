@@ -1,353 +1,110 @@
 # Chi HTTP Server
 
-A robust HTTP server implementation using the Chi router with support for CORS and Uber FX dependency injection.
-
-## Configuration
-
-For a complete configuration example, see [config/config.yaml](config/config.yaml).
+HTTP server baseado em Chi com CORS, Prometheus e FX.
 
 ## Features
 
-- 🚀 Built on top of [Chi router](https://github.com/go-chi/chi)
-- 🌐 CORS middleware support
-- ⚡ Health check endpoint (always enabled at `/healthz`)
-- 📊 Prometheus metrics (always enabled on separate port)
-- 🔧 Simple and intuitive API
-- 📦 Uber FX integration
-- 🛡️ Default middleware stack (RequestID, RealIP, Logger, Recoverer)
-- ✅ Configuration validation
+- Chi router, CORS, middleware padrão (RequestID, RealIP, Logger, Recoverer)
+- Health `/healthz`, métricas Prometheus em porta separada
+- `Route`: interface para módulos registrarem rotas via FX group
+- Validação de config
 
-## Installation
-
-```bash
-go get github.com/cristiano-pacheco/bricks
-```
-
-## Usage
-
-There are only two ways to create a server:
-
-1. **`New(config)`** - Create a server with a configuration
-2. **`NewWithLifecycle(config, lc)`** - Create a server with automatic lifecycle management
-
-### Basic Usage
-
-```go
-package main
-
-import (
-    "net/http"
-    
-    "github.com/cristiano-pacheco/bricks/pkg/http/server/chi"
-)
-
-func main() {
-    // Start with default configuration
-    cfg := chi.Default()
-    cfg.Port = 8080
-    
-    // Or build a custom configuration
-    cfg = chi.Config{
-        Port: 8080,
-    }
-    
-    // Enable CORS if needed
-    cfg = cfg.WithDefaultCORS()
-    
-    server, err := chi.New(cfg)
-    if err != nil {
-        panic(err)
-    }
-
-    // Register routes
-    server.Router().Get("/hello", func(w http.ResponseWriter, r *http.Request) {
-        w.Write([]byte("Hello, World!"))
-    })
-
-    // Start server (blocking)
-    if err := server.Start(); err != nil {
-        panic(err)
-    }
-}
-```
-
-### With Uber FX
-
-```go
-package main
-
-import (
-    "net/http"
-    
-    "github.com/cristiano-pacheco/bricks/pkg/http/server/chi"
-    "go.uber.org/fx"
-)
-
-func main() {
-    fx.New(
-        chi.ModuleWithLifecycle,
-        fx.Provide(func() chi.Config {
-            return chi.Config{
-                Port:        3000,
-                MetricsPort: 9090,
-            }
-        }),
-        fx.Invoke(registerRoutes),
-    ).Run()
-}
-
-func registerRoutes(server *chi.Server) {
-    server.Router().Get("/api/hello", func(w http.ResponseWriter, r *http.Request) {
-        w.Write([]byte("Hello from FX!"))
-    })
-}
-```
-
-### Prometheus Metrics
-
-Prometheus metrics are always enabled on a separate HTTP server:
-
-```go
-cfg := chi.Default()
-cfg.Port = 8080
-cfg.MetricsPort = 9090 // default
-
-server, _ := chi.New(cfg)
-
-// Metrics available at http://localhost:9090/metrics
-```
-
-The metrics server runs on a separate port to:
-- Avoid exposing metrics on the public API
-- Allow different security policies
-- Enable metrics collection without affecting main server performance
-
-Metrics are exposed at `/metrics` and include:
-- Go runtime metrics (goroutines, memory, GC)
-- HTTP request metrics (duration, status codes)
-- Custom application metrics (if registered)
-
-### Custom CORS
-
-```go
-cfg := chi.Default()
-cfg.CORS = &chi.CORSConfig{
-    AllowedOrigins:   []string{"https://example.com"},
-    AllowedMethods:   []string{"GET", "POST"},
-    AllowedHeaders:   []string{"Content-Type", "Authorization"},
-    AllowCredentials: true,
-    MaxAge:           300,
-}
-
-server, _ := chi.New(cfg)
-```
-
-Or use the convenient method for default CORS:
-
-```go
-cfg := chi.Default()
-cfg = cfg.WithDefaultCORS()
-
-server, _ := chi.New(cfg)
-```
-
-## Configuration
-
-The `Config` struct contains all server settings:
+## Configuração
 
 ```go
 type Config struct {
-    Port            uint          // Server port (default: 8080)
-    ReadTimeout     time.Duration // Read timeout (default: 15s)
-    WriteTimeout    time.Duration // Write timeout (default: 15s)
-    IdleTimeout     time.Duration // Idle timeout (default: 60s)
-    ShutdownTimeout time.Duration // Graceful shutdown timeout (default: 10s)
-    MetricsPort     uint          // Metrics server port (default: 9090)
-    CORS            *CORSConfig   // CORS configuration (default: nil)
+    Port            uint          // default: 8080
+    ReadTimeout     time.Duration // default: 15s
+    WriteTimeout    time.Duration // default: 15s
+    IdleTimeout     time.Duration // default: 60s
+    ShutdownTimeout time.Duration // default: 10s
+    MetricsPort     uint          // default: 9090
+    CORS            *CORSConfig
 }
 ```
 
-**Note:** Health check is always enabled at `/healthz` and metrics are always enabled at `/metrics` on the configured metrics port.
+## Uso
 
-### Getting Default Configuration
+### Sem FX
 
 ```go
 cfg := chi.Default()
-// Modify as needed
-cfg.Port = 3000
+server, _ := chi.New(cfg)
+
+server.Router().Get("/hello", handler)
+
+// Ou: server.RegisterRoute(rota); server.SetupRoutes()
+server.Start()
 ```
 
-### Configuration Validation
+### Com FX
 
-All configurations are automatically validated before server creation:
+**1. Módulo servidor (app):**
 
 ```go
-cfg := chi.Config{
-    Port: 99999, // Invalid!
+fx.Module(
+    "httpserver",
+    config.Provide[chi.Config]("app.http"),
+    chi.Module,
+    fx.Invoke(func(*chi.Server) {}), // força construção
+)
+```
+
+**2. Router implementa `chi.Route`:**
+
+```go
+type ContactRouter struct { 
+    handler *handler.ContactHandler 
 }
 
-server, err := chi.New(cfg)
-// err: invalid server configuration: invalid port: must be between 1 and 65535: 99999
+func (r *ContactRouter) Setup(server *chi.Server) {
+    r := server.Router()
+    r.Get("/api/contacts", r.handler.List)
+}
 ```
+
+**3. Registrar no FX:**
+
+```go
+fx.Annotate(
+    router.NewContactRouter,
+    fx.As(new(chi.Route)),
+    fx.ResultTags(`group:"routes"`),
+)
+```
+
+**4. App principal:**
+
+```go
+fx.New(httpserver.Module, monitor.Module).Run()
+```
+
+Rotas do group `"routes"` são coletadas automaticamente; servidor inicia no OnStart e dá shutdown no OnStop.
 
 ## API
 
-### Functions
+| Função/Método | Descrição |
+|---------------|-----------|
+| `New(cfg)` | Cria servidor |
+| `NewWithLifecycle(params)` | Cria com lifecycle FX (config, lc, routes, logger opcional) |
+| `Default()` | Config com defaults |
+| `Router()` | Chi Mux |
+| `RegisterRoute(r)`, `RegisterRoutes(routes)` | Adiciona ao registry |
+| `SetupRoutes()` | Chama Setup em todas as rotas (antes de Start) |
+| `Start()`, `Shutdown(ctx)` | Ciclo de vida |
+| `Addr()`, `MetricsAddr()` | Endereços |
 
-#### `New(cfg Config) (*Server, error)`
-Creates a new HTTP server with the given configuration.
-
-#### `NewWithLifecycle(cfg Config, lc fx.Lifecycle) (*Server, error)`
-Creates a new HTTP server with automatic lifecycle management. The server is started when the fx app starts and gracefully shut down when the app stops.
-
-#### `Default() Config`
-Returns a configuration with sensible defaults.
-
-### Methods
-
-#### `Router() *chi.Mux`
-Returns the Chi router for registering routes.
-
-#### `Start() error`
-Starts the HTTP server (blocking call).
-
-#### `Shutdown(ctx context.Context) error`
-Gracefully shuts down the server.
-
-#### `Addr() string`
-Returns the server address.
-
-#### `MetricsAddr() string`
-Returns the metrics server address.
-
-## Health Check
-
-A health check endpoint is always available at `/healthz`:
-
-```bash
-curl http://localhost:8080/healthz
-# Response: ok
-```
-
-## Metrics
-
-Prometheus metrics are always exposed on a separate server at `/metrics`:
-
-```bash
-curl http://localhost:9090/metrics
-# Response: Prometheus metrics in text format
-```
-
-The metrics include:
-- Go runtime metrics (goroutines, memory, GC)
-- HTTP request metrics (duration, status codes)
-- Custom application metrics (if registered)
-
-## Examples
-
-### Complete Example with All Features
+## CORS
 
 ```go
-package main
-
-import (
-    "context"
-    "net/http"
-    "time"
-    
-    "github.com/cristiano-pacheco/bricks/pkg/http/server/chi"
-)
-
-func main() {
-    cfg := chi.Config{
-        Port:            8080,
-        ReadTimeout:     10 * time.Second,
-        WriteTimeout:    10 * time.Second,
-        IdleTimeout:     60 * time.Second,
-        ShutdownTimeout: 5 * time.Second,
-        MetricsPort:     9090,
-        CORS: &chi.CORSConfig{
-            AllowedOrigins:   []string{"https://example.com"},
-            AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
-            AllowedHeaders:   []string{"Content-Type", "Authorization"},
-            AllowCredentials: true,
-            MaxAge:           300,
-        },
-    }
-    
-    server, err := chi.New(cfg)
-    if err != nil {
-        panic(err)
-    }
-    
-    // Register routes
-    server.Router().Get("/api/users", getUsers)
-    server.Router().Post("/api/users", createUser)
-    
-    // Start server
-    if err := server.Start(); err != nil {
-        panic(err)
-    }
+cfg.CORS = &chi.CORSConfig{
+    AllowedOrigins: []string{"https://example.com"},
+    AllowedMethods: []string{"GET", "POST"},
 }
-
-func getUsers(w http.ResponseWriter, r *http.Request) {
-    w.Write([]byte(`{"users": []}`))
-}
-
-func createUser(w http.ResponseWriter, r *http.Request) {
-    w.WriteHeader(http.StatusCreated)
-    w.Write([]byte(`{"id": 1}`))
-}
+// ou: cfg = cfg.WithDefaultCORS()
 ```
 
-### With FX and Dependency Injection
+## Endpoints
 
-```go
-package main
-
-import (
-    "net/http"
-    
-    "github.com/cristiano-pacheco/bricks/pkg/http/server/chi"
-    "go.uber.org/fx"
-)
-
-func main() {
-    fx.New(
-        chi.ModuleWithLifecycle,
-        fx.Provide(func() chi.Config {
-            return chi.Default().WithDefaultCORS()
-        }),
-        fx.Invoke(registerRoutes),
-    ).Run()
-}
-
-func registerRoutes(server *chi.Server) {
-    server.Router().Get("/", func(w http.ResponseWriter, r *http.Request) {
-        w.Write([]byte("Hello from FX!"))
-    })
-}
-```
-
-## Error Handling
-
-The package provides clear error messages for configuration issues:
-
-```go
-// Invalid port
-cfg := chi.Config{Port: 99999}
-_, err := chi.New(cfg)
-// err: invalid server configuration: invalid port: must be between 1 and 65535: 99999
-
-// Same port for server and metrics
-cfg = chi.Config{
-    Port:        8080,
-    MetricsPort: 8080,
-}
-_, err = chi.New(cfg)
-// err: invalid server configuration: metrics port must be different from main server port
-```
-
-## License
-
-MIT
+- `/healthz` — health check
+- `/metrics` — Prometheus (porta MetricsPort)

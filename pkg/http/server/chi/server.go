@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"strings"
 
+	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -26,6 +29,8 @@ type Server struct {
 	router        *chi.Mux
 	metricsServer *http.Server
 	config        Config
+	registry      *RouteRegistry
+	logger        *slog.Logger
 }
 
 // New creates a new HTTP server with Chi router.
@@ -33,6 +38,8 @@ func New(cfg Config) (*Server, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrInvalidConfig, err)
 	}
+
+	logger := slog.Default()
 
 	router := chi.NewRouter()
 
@@ -87,19 +94,43 @@ func New(cfg Config) (*Server, error) {
 		router:        router,
 		metricsServer: metricsServer,
 		config:        cfg,
+		registry:      NewRouteRegistry(),
+		logger:        logger,
 	}, nil
+}
+
+// NewWithLifecycleParams contains dependencies for creating a server with lifecycle.
+type NewWithLifecycleParams struct {
+	fx.In
+	Config config.Config[Config]
+	LC     fx.Lifecycle
+	Routes []Route      `group:"routes"`
+	Logger *slog.Logger `               optional:"true"`
 }
 
 // NewWithLifecycle creates a new HTTP server with fx.Lifecycle management.
 // The server is automatically started on application start and gracefully shut down on stop.
-func NewWithLifecycle(cfg Config, lc fx.Lifecycle) (*Server, error) {
-	server, err := New(cfg)
+// All routes from the "routes" group are automatically registered and configured.
+func NewWithLifecycle(params NewWithLifecycleParams) (*Server, error) {
+	server, err := New(params.Config.Get())
 	if err != nil {
 		return nil, err
 	}
 
-	lc.Append(fx.Hook{
+	// Use injected logger if available, otherwise use default
+	if params.Logger != nil {
+		server.logger = params.Logger
+	}
+
+	// Register all routes from FX group
+	server.RegisterRoutes(params.Routes)
+
+	params.LC.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
+			// Setup routes before starting
+			server.SetupRoutes()
+
+			// Start server in background
 			go func() {
 				if startErr := server.Start(); startErr != nil && !errors.Is(startErr, http.ErrServerClosed) {
 					// Log error but don't crash - fx will handle this
@@ -127,9 +158,78 @@ func (s *Server) Router() *chi.Mux {
 	return s.router
 }
 
+// RegisterRoute adds a route to the server's registry.
+func (s *Server) RegisterRoute(route Route) {
+	s.registry.Add(route)
+}
+
+// RegisterRoutes adds multiple routes to the server's registry.
+func (s *Server) RegisterRoutes(routes []Route) {
+	for _, route := range routes {
+		s.registry.Add(route)
+	}
+}
+
+// SetupRoutes configures all registered routes on the server.
+// This should be called before Start().
+func (s *Server) SetupRoutes() {
+	s.registry.SetupAll(s)
+
+	// Always log routes on startup
+	s.logRoutes()
+}
+
+// logRoutes logs all registered routes to stdout.
+func (s *Server) logRoutes() {
+	s.logServerRoutes(s.router, "HTTP Server", s.server.Addr)
+}
+
+// logMetricsRoutes logs all registered metrics routes to stdout.
+func (s *Server) logMetricsRoutes() {
+	if metricsRouter, ok := s.metricsServer.Handler.(*chi.Mux); ok {
+		s.logServerRoutes(metricsRouter, "Metrics Server", s.metricsServer.Addr)
+	}
+}
+
+// logServerRoutes logs routes for a given router with a custom title and address.
+func (s *Server) logServerRoutes(router *chi.Mux, serverName, addr string) {
+	s.logger.Info(fmt.Sprintf("%s: http://%s", serverName, addr))
+	s.logger.Info(fmt.Sprintf("%s routes:", serverName))
+	s.logger.Info("==================")
+
+	walkFunc := s.createRouteWalkFunc()
+	if err := chi.Walk(router, walkFunc); err != nil {
+		s.logger.Error(fmt.Sprintf("Error walking %s routes: %v", serverName, err))
+	}
+
+	s.logger.Info("==================")
+}
+
+// createRouteWalkFunc creates a walk function for logging routes.
+func (s *Server) createRouteWalkFunc() func(method string, route string, _ http.Handler, _ ...func(http.Handler) http.Handler) error {
+	return func(method string, route string, _ http.Handler, _ ...func(http.Handler) http.Handler) error {
+		// Skip internal chi routes
+		if strings.HasPrefix(route, "/*") {
+			return nil
+		}
+
+		// Format the route for better readability
+		route = strings.ReplaceAll(route, "/*", "")
+		if route == "" {
+			route = "/"
+		}
+
+		s.logger.Info(fmt.Sprintf("  %-7s %s", method, route))
+		return nil
+	}
+}
+
 // Start begins listening and serving HTTP requests.
 // Starts the metrics server on a separate port.
 func (s *Server) Start() error {
+	// Log metrics server routes
+	s.logMetricsRoutes()
+
 	// Start metrics server
 	go func() {
 		if err := s.metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

@@ -2,24 +2,22 @@ package chi
 
 import "go.uber.org/fx"
 
-// Module provides the Chi HTTP server as an fx module.
-// Requires a Config to be provided in the fx app.
+// Module provides the Chi HTTP server with automatic lifecycle management.
+// The server automatically:
+// - Collects all routes from the "routes" FX group
+// - Configures routes on startup
+// - Starts the HTTP server
+// - Gracefully shuts down on application stop
+//
+// Usage in your application:
+//
+//	fx.Module(
+//	    "httpserver",
+//	    config.Provide[chi.Config]("app.http"),
+//	    chi.Module,
+//	    fx.Invoke(func(*chi.Server) {}), // Force server construction
+//	)
 var Module = fx.Module(
-	"httpserver-chi",
-	fx.Provide(New),
-)
-
-// ModuleWithLifecycle provides the Chi HTTP server with automatic lifecycle management.
-// Requires a Config to be provided in the fx app.
-// The server is automatically started and gracefully shut down.
-var ModuleWithLifecycle = fx.Module(
 	"httpserver-chi",
 	fx.Provide(NewWithLifecycle),
 )
-
-//     chi.ProvideOptions(
-//         chi.WithHost("0.0.0.0"),
-//         chi.WithPort(3000),
-//         chi.WithDefaultCORS(),
-//     ),
-// )
