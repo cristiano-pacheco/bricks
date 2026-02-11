@@ -6,8 +6,9 @@ Optimized JSON response helpers for Go HTTP handlers with high performance and m
 
 - ⚡ **High Performance**: Direct streaming encoding, zero-copy header handling
 - 🎯 **Flexible**: With or without envelope wrapper, custom headers support
-- 🔧 **Error Handling**: Structured error responses with HTTP status codes
+- 🔧 **Error Handling**: `ErrorHandler` interface for structured error responses (validation, errs.Error, unknown)
 - 📦 **Framework Agnostic**: Works with standard `http.ResponseWriter`
+- 🔌 **FX**: `response.Module` for Uber FX dependency injection
 
 ## Installation
 
@@ -90,29 +91,66 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 
 ```go
 import (
+    "net/http"
+    
     "github.com/cristiano-pacheco/bricks/pkg/errs"
     "github.com/cristiano-pacheco/bricks/pkg/http/response"
 )
 
+// Create at startup or inject via response.Module
+handler := response.NewErrorHandler(validator, log)
+
 func createUserHandler(w http.ResponseWriter, r *http.Request) {
-    // Structured error with status code
-    err := errs.New("invalid email format").
-        WithStatus(http.StatusBadRequest).
-        WithCode("invalid_email")
-    
-    response.Error(w, err)
+    err := errs.New("INVALID_EMAIL", "invalid email format", http.StatusBadRequest, nil)
+    handler.Error(w, err)
 }
 ```
 
-**Response:**
+**Response (errs.Error):**
 ```json
 {
   "error": {
-    "code": "invalid_email",
-    "message": "invalid email format",
-    "status": 400
+    "code": "INVALID_EMAIL",
+    "message": "invalid email format"
   }
 }
+```
+
+**Response (validation errors):**
+```json
+{
+  "error": {
+    "code": "INVALID_ARGUMENT",
+    "message": "request has invalid fields",
+    "details": [
+      {"field": "email", "message": "must be a valid email address"}
+    ]
+  }
+}
+```
+
+**Response (unknown error):**
+```json
+{
+  "error": {
+    "code": "internal_server_error",
+    "message": "Internal server error"
+  }
+}
+```
+
+### FX Module
+
+```go
+import (
+    "github.com/cristiano-pacheco/bricks/pkg/http/response"
+    "github.com/cristiano-pacheco/bricks/pkg/validator"
+    "go.uber.org/fx"
+)
+
+app := fx.New(
+    response.Module, // requires validator.Module and logger.Logger
+)
 ```
 
 ### No Content Response
@@ -133,32 +171,29 @@ func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 
 Sends a JSON response with envelope wrapper `{"data": ...}`.
 
-- **Performance**: Uses `json.NewEncoder` for direct streaming
-- **Headers**: Custom headers are added efficiently
-- **Use case**: Standard API responses with consistent structure
-
 #### `JSONRaw[T any](w http.ResponseWriter, status int, data T, headers http.Header) error`
 
 Sends a JSON response without envelope wrapper.
-
-- **Performance**: Faster than `JSON()` as it skips envelope creation
-- **Use case**: When you need maximum performance or control over response structure
-
-#### `Error(w http.ResponseWriter, err error)`
-
-Sends an error response with proper HTTP status code.
-
-- **Smart detection**: Automatically detects `errs.Error` types
-- **Fallback**: Returns 500 Internal Server Error for unknown errors
-- **Security**: Hides internal error details for non-structured errors
 
 #### `NoContent(w http.ResponseWriter)`
 
 Sends a 204 No Content response.
 
-- **Use case**: DELETE operations, successful updates without response body
+#### `NewErrorHandler(validate validator.Validator, log logger.Logger) ErrorHandler`
+
+Creates an ErrorHandler. Validator and logger may be nil. If logger is nil, `log.Default()` is used for marshal/write failures.
 
 ### Types
+
+#### `ErrorHandler`
+
+```go
+type ErrorHandler interface {
+    Error(w http.ResponseWriter, err error)
+}
+```
+
+Writes errors to HTTP responses as JSON. Handles: validation errors (422), `errs.Error` (custom status), unknown errors (500).
 
 #### `Envelope`
 
@@ -168,13 +203,19 @@ type Envelope map[string]any
 
 Wrapper for JSON responses. Created automatically by `JSON()` function.
 
+### FX
+
+#### `Module`
+
+`fx.Module` that provides `ErrorHandler`. Requires `validator.Module` and `logger.Logger` in the fx graph.
+
 ## Performance Characteristics
 
 | Operation | Allocations | Notes |
 |-----------|-------------|-------|
 | `JSON()` | ~2-3 | Envelope map + encoder |
 | `JSONRaw()` | ~1-2 | Just encoder, no envelope |
-| `Error()` | ~2-3 | Similar to JSON |
+| `ErrorHandler.Error()` | ~2-3 | Similar to JSON |
 | Header copy | 0 | Zero-copy iteration |
 
 ## Best Practices
@@ -182,26 +223,17 @@ Wrapper for JSON responses. Created automatically by `JSON()` function.
 ### 1. Choose the Right Function
 
 ```go
-// ✅ Use JSON() for consistent API structure
 response.JSON(w, http.StatusOK, users, nil)
-
-// ✅ Use JSONRaw() for high-frequency endpoints
 response.JSONRaw(w, http.StatusOK, metrics, nil)
-
-// ✅ Use Error() for all error responses
-response.Error(w, err)
-
-// ✅ Use NoContent() for operations without response body
 response.NoContent(w)
+handler.Error(w, err)
 ```
 
 ### 2. Always Pass Headers (even if nil)
 
 ```go
-// ✅ Good - explicit nil
 response.JSON(w, http.StatusOK, data, nil)
 
-// ✅ Good - with headers
 headers := http.Header{}
 headers.Set("X-Custom", "value")
 response.JSON(w, http.StatusOK, data, headers)
@@ -210,14 +242,12 @@ response.JSON(w, http.StatusOK, data, headers)
 ### 3. Use Structured Errors
 
 ```go
-// ❌ Bad - loses context
-response.Error(w, errors.New("user not found"))
+// unknown errors return 500 with generic message
+handler.Error(w, errors.New("user not found"))
 
-// ✅ Good - structured with status
-err := errs.New("user not found").
-    WithStatus(http.StatusNotFound).
-    WithCode("user_not_found")
-response.Error(w, err)
+// errs.Error preserves status and code
+err := errs.New("USER_NOT_FOUND", "user not found", http.StatusNotFound, nil)
+handler.Error(w, err)
 ```
 
 ### 4. Combine with Request Package
@@ -232,13 +262,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
     var req CreateUserRequest
     
     if err := request.ReadJSON(w, r, &req); err != nil {
-        response.Error(w, err)
+        handler.Error(w, err)
         return
     }
     
     user, err := createUser(req)
     if err != nil {
-        response.Error(w, err)
+        handler.Error(w, err)
         return
     }
     
@@ -254,9 +284,10 @@ package main
 import (
     "net/http"
     
-    "github.com/cristiano-pacheco/bricks/pkg/errs"
     "github.com/cristiano-pacheco/bricks/pkg/http/request"
     "github.com/cristiano-pacheco/bricks/pkg/http/response"
+    "github.com/cristiano-pacheco/bricks/pkg/logger"
+    "github.com/cristiano-pacheco/bricks/pkg/validator"
     "github.com/go-chi/chi/v5"
 )
 
@@ -267,39 +298,38 @@ type User struct {
 }
 
 func main() {
-    r := chi.NewRouter()
+    v, _ := validator.New()
+    log := logger.MustNewWithOptions(logger.WithLevel("info"))
+    errHandler := response.NewErrorHandler(v, log)
     
+    r := chi.NewRouter()
     r.Get("/users/{id}", getUser)
-    r.Post("/users", createUser)
+    r.Post("/users", createUser(errHandler))
     r.Delete("/users/{id}", deleteUser)
     
     http.ListenAndServe(":8080", r)
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {
-    // Simulate database query
     user := User{ID: 1, Name: "John", Email: "john@example.com"}
-    
     response.JSON(w, http.StatusOK, user, nil)
 }
 
-func createUser(w http.ResponseWriter, r *http.Request) {
-    var user User
-    
-    if err := request.ReadJSON(w, r, &user); err != nil {
-        response.Error(w, err)
-        return
+func createUser(h response.ErrorHandler) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        var user User
+        
+        if err := request.ReadJSON(w, r, &user); err != nil {
+            h.Error(w, err)
+            return
+        }
+        
+        user.ID = 1
+        response.JSON(w, http.StatusCreated, user, nil)
     }
-    
-    // Simulate save
-    user.ID = 1
-    
-    response.JSON(w, http.StatusCreated, user, nil)
 }
 
 func deleteUser(w http.ResponseWriter, r *http.Request) {
-    // Simulate delete
-    
     response.NoContent(w)
 }
 ```
