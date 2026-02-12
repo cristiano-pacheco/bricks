@@ -10,16 +10,16 @@ const (
 )
 
 type TracerConfig struct {
-	AppName      string
-	AppVersion   string
-	TracerVendor string
-	TraceURL     string
-	TraceEnabled bool
-	BatchTimeout time.Duration
-	MaxBatchSize int
-	Insecure     bool
-	SampleRate   float64      // 0.0 to 1.0
-	ExporterType ExporterType // GRPC or HTTP, default GRPC
+	AppName      string        `config:"app_name"`       // Application name
+	AppVersion   string        `config:"app_version"`    // Application version
+	TracerVendor string        `config:"tracer_vendor"`  // Tracer vendor name (e.g., jaeger, tempo, datadog)
+	TraceURL     string        `config:"trace_url"`      // OTLP endpoint URL (without http/https prefix)
+	TraceEnabled bool          `config:"trace_enabled"`  // Enable/disable tracing
+	BatchTimeout time.Duration `config:"batch_timeout"`  // Maximum time to wait before sending a batch
+	MaxBatchSize int           `config:"max_batch_size"` // Maximum number of spans in a batch
+	Insecure     bool          `config:"insecure"`       // Use insecure connection (no TLS)
+	SampleRate   float64       `config:"sample_rate"`    // 0.0 to 1.0
+	ExporterType ExporterType  `config:"exporter_type"`  // GRPC or HTTP, default GRPC
 }
 
 // Validate checks if the configuration is valid
