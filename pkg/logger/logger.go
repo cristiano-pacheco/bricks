@@ -1,6 +1,10 @@
 package logger
 
 import (
+	"context"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
+	"go.uber.org/fx"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -80,6 +84,23 @@ func New(config Config) (*ZapLogger, error) {
 	}
 
 	return &ZapLogger{logger: logger}, nil
+}
+
+func NewWithLifecycle(lc fx.Lifecycle, cfg config.Config[Config]) (*ZapLogger, error) {
+	// Create the logger
+	log, err := New(cfg.Get())
+	if err != nil {
+		return nil, err
+	}
+
+	// Register lifecycle hook to sync logger on shutdown
+	lc.Append(fx.Hook{
+		OnStop: func(_ context.Context) error {
+			return log.Sync()
+		},
+	})
+
+	return log, nil
 }
 
 // MustNew creates a new logger or panics on error

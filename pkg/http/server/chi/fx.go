@@ -1,6 +1,9 @@
 package chi
 
-import "go.uber.org/fx"
+import (
+	"github.com/cristiano-pacheco/bricks/pkg/config"
+	"go.uber.org/fx"
+)
 
 // Module provides the Chi HTTP server with automatic lifecycle management.
 // The server automatically:
@@ -19,5 +22,7 @@ import "go.uber.org/fx"
 //	)
 var Module = fx.Module(
 	"httpserver-chi",
+	config.Provide[Config]("app.http"),
 	fx.Provide(NewWithLifecycle),
+	fx.Invoke(func(*Server) {}), // Force server construction
 )
