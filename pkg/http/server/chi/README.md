@@ -2,6 +2,15 @@
 
 HTTP server baseado em Chi com CORS, Prometheus e FX.
 
+## Usage
+
+To use the module, add it to your fx app:
+
+```go
+app := fx.New(chi.Module)
+app.Run()
+```
+
 ## Features
 
 - Chi router, CORS, middleware padrão (RequestID, RealIP, Logger, Recoverer)

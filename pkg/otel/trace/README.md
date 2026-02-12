@@ -2,6 +2,15 @@
 
 Simple and powerful OpenTelemetry tracing integration for Go applications.
 
+## Usage
+
+To use the module, add it to your fx app:
+
+```go
+app := fx.New(trace.Module)
+app.Run()
+```
+
 ## Installation
 
 ```bash
