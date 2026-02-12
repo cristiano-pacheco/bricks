@@ -9,7 +9,6 @@ var Module = fx.Module(
 	"logger",
 	config.Provide[Config]("app.logger"),
 	fx.Provide(
-		NewWithLifecycle,
-		fx.Annotate(New, fx.As(new(Logger))),
+		fx.Annotate(NewWithLifecycle, fx.As(new(Logger))),
 	),
 )
