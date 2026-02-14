@@ -183,7 +183,7 @@ func (s *Server) SetupRoutes() {
 		if !lo.IsEmpty(s.config.Swagger.Path) {
 			path = s.config.Swagger.Path
 			if !strings.HasSuffix(path, "/*") {
-				path = path + "/*"
+				path += "/*"
 			}
 		}
 		s.router.Get(path, httpSwagger.WrapHandler)

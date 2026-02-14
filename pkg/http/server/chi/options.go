@@ -70,7 +70,7 @@ func WithMetricsPort(port uint) Option {
 }
 
 // WithSwagger enables swagger and sets its configuration.
-func WithSwagger(enabled bool, swaggerPath, dir string) Option {
+func WithSwagger(enabled bool, swaggerPath string) Option {
 	return func(c *Config) {
 		c.Swagger = &SwaggerConfig{
 			Enabled: enabled,
