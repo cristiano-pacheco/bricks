@@ -13,6 +13,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/samber/lo"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"go.uber.org/fx"
 )
 
@@ -174,6 +176,18 @@ func (s *Server) RegisterRoutes(routes []Route) {
 // This should be called before Start().
 func (s *Server) SetupRoutes() {
 	s.registry.SetupAll(s)
+
+	// Add swagger after module routes
+	if s.config.Swagger != nil && s.config.Swagger.Enabled {
+		path := defaultSwaggerPath
+		if !lo.IsEmpty(s.config.Swagger.Path) {
+			path = s.config.Swagger.Path
+			if !strings.HasSuffix(path, "/*") {
+				path = path + "/*"
+			}
+		}
+		s.router.Get(path, httpSwagger.WrapHandler)
+	}
 
 	// Always log routes on startup
 	s.logRoutes()

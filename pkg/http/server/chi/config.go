@@ -9,6 +9,7 @@ const (
 	defaultPort        = 8080
 	defaultMetricsPort = 9090
 	defaultMaxAge      = 300
+	defaultSwaggerPath = "/swagger/*"
 	healthCheckPath    = "/healthz"
 	metricsPath        = "/metrics"
 )
@@ -22,6 +23,17 @@ type Config struct {
 	ShutdownTimeout time.Duration
 	MetricsPort     uint
 	CORS            *CORSConfig
+	Swagger         *SwaggerConfig
+}
+
+// SwaggerConfig holds configuration for the Swagger/OpenAPI documentation endpoint.
+// When Enabled is false, the swagger route is not registered.
+// Dir is the directory containing swagger files (e.g. doc.json from swag init).
+// When Dir is empty, embedded docs from the application's docs package are used
+// (the application must import its docs package, e.g. _ "myapp/docs").
+type SwaggerConfig struct {
+	Enabled bool   // Whether to register the swagger route
+	Path    string // URL path prefix for swagger UI (e.g. /swagger), default: /swagger
 }
 
 // CORSConfig holds CORS configuration.
