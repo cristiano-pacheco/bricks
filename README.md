@@ -33,6 +33,22 @@ Structured error handling with HTTP status codes.
 - **Location**: `pkg/errs`
 - **Import**: `github.com/cristiano-pacheco/bricks/pkg/errs`
 
+### HTTP Request
+
+High-performance JSON request parser with built-in security features for Go HTTP handlers.
+
+- **Location**: `pkg/http/request`
+- **Import**: `github.com/cristiano-pacheco/bricks/pkg/http/request`
+- **Documentation**: [pkg/http/request/README.md](pkg/http/request/README.md)
+
+### HTTP Response
+
+Optimized JSON response helpers for Go HTTP handlers with high performance and minimal allocations.
+
+- **Location**: `pkg/http/response`
+- **Import**: `github.com/cristiano-pacheco/bricks/pkg/http/response`
+- **Documentation**: [pkg/http/response/README.md](pkg/http/response/README.md)
+
 ### HTTP Server - Chi
 
 Robust HTTP server implementation using Chi router with CORS and Uber FX support.
@@ -41,6 +57,14 @@ Robust HTTP server implementation using Chi router with CORS and Uber FX support
 - **Import**: `github.com/cristiano-pacheco/bricks/pkg/http/server/chi`
 - **Documentation**: [pkg/http/server/chi/README.md](pkg/http/server/chi/README.md)
 
+### Integration Test Kit
+
+Integration test infrastructure for Docker containers (PostgreSQL and Redis) with automatic cleanup.
+
+- **Location**: `pkg/itestkit`
+- **Import**: `github.com/cristiano-pacheco/bricks/pkg/itestkit`
+- **Documentation**: [pkg/itestkit/README.md](pkg/itestkit/README.md)
+
 ### Logger
 
 Structured logging with slog and Uber FX integration.
@@ -48,6 +72,14 @@ Structured logging with slog and Uber FX integration.
 - **Location**: `pkg/logger`
 - **Import**: `github.com/cristiano-pacheco/bricks/pkg/logger`
 - **Documentation**: [pkg/logger/README.md](pkg/logger/README.md)
+
+### OpenTelemetry Trace
+
+Simple and powerful OpenTelemetry tracing integration for Go applications.
+
+- **Location**: `pkg/otel/trace`
+- **Import**: `github.com/cristiano-pacheco/bricks/pkg/otel/trace`
+- **Documentation**: [pkg/otel/trace/README.md](pkg/otel/trace/README.md)
 
 ### Redis
 
