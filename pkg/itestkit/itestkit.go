@@ -11,7 +11,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -212,8 +211,12 @@ func (k *ITestKit) RunMigrations() error {
 }
 
 func getProjectRoot() string {
-	_, filename, _, _ := runtime.Caller(0)
-	dir := filepath.Dir(filename)
+	// Start from current working directory (where tests are running from)
+	// This allows external projects using itestkit to find their own project root
+	dir, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
 	for {
 		goModPath := filepath.Join(dir, "go.mod")
 		if _, err := os.Stat(goModPath); err == nil {
