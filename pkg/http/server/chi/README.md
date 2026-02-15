@@ -1,6 +1,6 @@
 # Chi HTTP Server
 
-HTTP server baseado em Chi com CORS, Prometheus e FX.
+HTTP server based on Chi with CORS, Prometheus and FX.
 
 ## Usage
 
@@ -13,12 +13,13 @@ app.Run()
 
 ## Features
 
-- Chi router, CORS, middleware padrão (RequestID, RealIP, Logger, Recoverer)
-- Health `/healthz`, métricas Prometheus em porta separada
-- `Route`: interface para módulos registrarem rotas via FX group
-- Validação de config
+- Chi router, CORS, default middleware (RequestID, RealIP, Logger, Recoverer)
+- Health `/healthz`, Prometheus metrics on a separate port
+- Swagger `/swagger/` endpoint for Swagger
+- `Route`: interface for modules to register routes via FX
+- Config validation
 
-## Configuração
+## Configuration
 
 ```go
 type Config struct {
@@ -32,9 +33,9 @@ type Config struct {
 }
 ```
 
-## Uso
+## Usage
 
-### Sem FX
+### Without FX
 
 ```go
 cfg := chi.Default()
@@ -42,24 +43,24 @@ server, _ := chi.New(cfg)
 
 server.Router().Get("/hello", handler)
 
-// Ou: server.RegisterRoute(rota); server.SetupRoutes()
+// Or: server.RegisterRoute(route); server.SetupRoutes()
 server.Start()
 ```
 
-### Com FX
+### With FX
 
-**1. Módulo servidor (app):**
+**1. Server module (app):**
 
 ```go
 fx.Module(
     "httpserver",
     config.Provide[chi.Config]("app.http"),
     chi.Module,
-    fx.Invoke(func(*chi.Server) {}), // força construção
+    fx.Invoke(func(*chi.Server) {}), // forces construction
 )
 ```
 
-**2. Router implementa `chi.Route`:**
+**2. Router implements `chi.Route`:**
 
 ```go
 type ContactRouter struct { 
@@ -72,7 +73,7 @@ func (r *ContactRouter) Setup(server *chi.Server) {
 }
 ```
 
-**3. Registrar no FX:**
+**3. Register in FX:**
 
 ```go
 fx.Annotate(
@@ -82,26 +83,26 @@ fx.Annotate(
 )
 ```
 
-**4. App principal:**
+**4. Main app:**
 
 ```go
 fx.New(httpserver.Module, monitor.Module).Run()
 ```
 
-Rotas do group `"routes"` são coletadas automaticamente; servidor inicia no OnStart e dá shutdown no OnStop.
+Routes from the `"routes"` group are collected automatically; the server starts on OnStart and shuts down on OnStop.
 
 ## API
 
-| Função/Método | Descrição |
-|---------------|-----------|
-| `New(cfg)` | Cria servidor |
-| `NewWithLifecycle(params)` | Cria com lifecycle FX (config, lc, routes, logger opcional) |
-| `Default()` | Config com defaults |
+| Function/Method | Description |
+|-----------------|-------------|
+| `New(cfg)` | Creates a server |
+| `NewWithLifecycle(params)` | Creates with FX lifecycle (config, lc, routes, optional logger) |
+| `Default()` | Config with defaults |
 | `Router()` | Chi Mux |
-| `RegisterRoute(r)`, `RegisterRoutes(routes)` | Adiciona ao registry |
-| `SetupRoutes()` | Chama Setup em todas as rotas (antes de Start) |
-| `Start()`, `Shutdown(ctx)` | Ciclo de vida |
-| `Addr()`, `MetricsAddr()` | Endereços |
+| `RegisterRoute(r)`, `RegisterRoutes(routes)` | Adds to the registry |
+| `SetupRoutes()` | Calls Setup on all routes (before Start) |
+| `Start()`, `Shutdown(ctx)` | Lifecycle |
+| `Addr()`, `MetricsAddr()` | Addresses |
 
 ## CORS
 
@@ -110,10 +111,10 @@ cfg.CORS = &chi.CORSConfig{
     AllowedOrigins: []string{"https://example.com"},
     AllowedMethods: []string{"GET", "POST"},
 }
-// ou: cfg = cfg.WithDefaultCORS()
+// or: cfg = cfg.WithDefaultCORS()
 ```
 
 ## Endpoints
 
 - `/healthz` — health check
-- `/metrics` — Prometheus (porta MetricsPort)
+- `/metrics` — Prometheus (MetricsPort)
