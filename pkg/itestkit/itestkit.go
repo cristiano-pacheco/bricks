@@ -2,7 +2,11 @@ package itestkit
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
+	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -19,11 +23,19 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres" // Register postgres driver for migrations.
+	_ "github.com/golang-migrate/migrate/v4/source/file"       // Register file source driver for migrations.
 	"github.com/stretchr/testify/require"
 	testcontainers "github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+)
+
+const (
+	containerStartupTimeout = 30 * time.Second
+	retryDelay              = 500 * time.Millisecond
+	connectionRetryAttempts = 10
+	cleanupTimeout          = 15 * time.Second
+	postgresReadyLogCount   = 2
 )
 
 // ITestKit manages integration test infrastructure.
@@ -70,7 +82,7 @@ func (k *ITestKit) StartPostgres() error {
 					"POSTGRES_PASSWORD": k.config.Password,
 				},
 				WaitingFor: wait.ForLog("database system is ready to accept connections").
-					WithOccurrence(2).WithStartupTimeout(30 * time.Second),
+					WithOccurrence(postgresReadyLogCount).WithStartupTimeout(containerStartupTimeout),
 			},
 			Started: true,
 		})
@@ -92,15 +104,22 @@ func (k *ITestKit) StartPostgres() error {
 		}
 		k.dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 			host, port.Port(), k.config.User, k.config.Password, k.config.Database)
-		k.migrateDSN = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-			k.config.User, k.config.Password, host, port.Port(), k.config.Database)
+		k.migrateDSN = (&url.URL{
+			Scheme: "postgres",
+			User:   url.UserPassword(k.config.User, k.config.Password),
+			Host:   net.JoinHostPort(host, port.Port()),
+			Path:   "/" + k.config.Database,
+			RawQuery: (&url.Values{
+				"sslmode": []string{"disable"},
+			}).Encode(),
+		}).String()
 
-		for i := 0; i < 10; i++ {
+		for range connectionRetryAttempts {
 			k.db, initErr = gorm.Open(postgres.Open(k.dsn), &gorm.Config{})
 			if initErr == nil {
 				break
 			}
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(retryDelay)
 		}
 		if initErr != nil {
 			initErr = fmt.Errorf("connect to database: %w", initErr)
@@ -142,12 +161,12 @@ func (k *ITestKit) StartRedis() error {
 		addr := fmt.Sprintf("%s:%s", host, port.Port())
 		k.redis = redis.NewClient(&redis.Options{Addr: addr})
 
-		for i := 0; i < 10; i++ {
+		for range connectionRetryAttempts {
 			_, initErr = k.redis.Ping(ctx).Result()
 			if initErr == nil {
 				break
 			}
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(retryDelay)
 		}
 		if initErr != nil {
 			initErr = fmt.Errorf("connect to redis: %w", initErr)
@@ -159,6 +178,7 @@ func (k *ITestKit) StartRedis() error {
 // RunMigrations applies migrations from the configured path.
 // Must call StartPostgres() first.
 func (k *ITestKit) RunMigrations() error {
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	var initErr error
 	k.migrateOnce.Do(func() {
 		migrationsPath := k.config.MigrationsPath
@@ -175,10 +195,18 @@ func (k *ITestKit) RunMigrations() error {
 			initErr = fmt.Errorf("create migrate instance: %w", err)
 			return
 		}
-		if err = m.Up(); err != nil && err != migrate.ErrNoChange {
+		defer func() {
+			srcErr, dbErr := m.Close()
+			if srcErr != nil {
+				logger.Warn("[itestkit] close migration source", "error", srcErr)
+			}
+			if dbErr != nil {
+				logger.Warn("[itestkit] close migration database", "error", dbErr)
+			}
+		}()
+		if err = m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 			initErr = fmt.Errorf("run migrations: %w", err)
 		}
-		m.Close()
 	})
 	return initErr
 }
@@ -227,42 +255,61 @@ func (k *ITestKit) TruncateTables(t *testing.T) {
 
 // StopPostgres stops the PostgreSQL container.
 func (k *ITestKit) StopPostgres() {
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	if k.db != nil {
 		if sqlDB, _ := k.db.DB(); sqlDB != nil {
-			sqlDB.Close()
+			if err := sqlDB.Close(); err != nil {
+				logger.Warn("[itestkit] close postgres sql db", "error", err)
+			}
 		}
 	}
 	if k.pgContainer != nil {
-		testcontainers.TerminateContainer(k.pgContainer)
+		if err := testcontainers.TerminateContainer(k.pgContainer); err != nil {
+			logger.Warn("[itestkit] terminate postgres container", "error", err)
+		}
 	}
 }
 
 // StopRedis stops the Redis container.
 func (k *ITestKit) StopRedis() {
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	if k.redis != nil {
-		k.redis.Close()
+		if err := k.redis.Close(); err != nil {
+			logger.Warn("[itestkit] close redis client", "error", err)
+		}
 	}
 	if k.redisContainer != nil {
-		testcontainers.TerminateContainer(k.redisContainer)
+		if err := testcontainers.TerminateContainer(k.redisContainer); err != nil {
+			logger.Warn("[itestkit] terminate redis container", "error", err)
+		}
 	}
 }
 
 // Cleanup stops all containers and cleans up resources.
 // This is a convenience method that calls StopPostgres and StopRedis.
 func (k *ITestKit) Cleanup() {
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	if k.db != nil {
 		if sqlDB, _ := k.db.DB(); sqlDB != nil {
-			sqlDB.Close()
+			if err := sqlDB.Close(); err != nil {
+				logger.Warn("[itestkit] close postgres sql db", "error", err)
+			}
 		}
 	}
 	if k.pgContainer != nil {
-		testcontainers.TerminateContainer(k.pgContainer)
+		if err := testcontainers.TerminateContainer(k.pgContainer); err != nil {
+			logger.Warn("[itestkit] terminate postgres container", "error", err)
+		}
 	}
 	if k.redis != nil {
-		k.redis.Close()
+		if err := k.redis.Close(); err != nil {
+			logger.Warn("[itestkit] close redis client", "error", err)
+		}
 	}
 	if k.redisContainer != nil {
-		testcontainers.TerminateContainer(k.redisContainer)
+		if err := testcontainers.TerminateContainer(k.redisContainer); err != nil {
+			logger.Warn("[itestkit] terminate redis container", "error", err)
+		}
 	}
 }
 
@@ -270,33 +317,40 @@ func (k *ITestKit) Cleanup() {
 // This should be called in TestMain as a safety net to ensure no orphaned containers remain.
 // It finds and removes any containers created by the testcontainers library.
 func CleanupAll() {
-	fmt.Println("[itestkit] Running cleanup for orphaned Docker containers...")
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	logger.Info("[itestkit] Running cleanup for orphaned Docker containers...")
+	ctx, cancel := context.WithTimeout(context.Background(), cleanupTimeout)
+	defer cancel()
 
 	// Find all testcontainers containers (both running and stopped)
-	cmd := exec.Command("docker", "ps", "-a", "-q", "--filter", "label=org.testcontainers")
+	cmd := exec.CommandContext(ctx, "docker", "ps", "-a", "-q", "--filter", "label=org.testcontainers")
 	output, err := cmd.Output()
 	if err != nil || len(output) == 0 {
-		fmt.Println("[itestkit] No testcontainers found, cleanup complete")
+		logger.Info("[itestkit] No testcontainers found, cleanup complete")
 		return
 	}
 
 	containerIDs := strings.TrimSpace(string(output))
 	if containerIDs == "" {
-		fmt.Println("[itestkit] No testcontainers found, cleanup complete")
+		logger.Info("[itestkit] No testcontainers found, cleanup complete")
 		return
 	}
 
+	ids := strings.Fields(containerIDs)
+
 	// Stop containers
-	fmt.Printf("[itestkit] Stopping %d testcontainer(s)...\n", len(strings.Fields(containerIDs)))
-	stopCmd := exec.Command("docker", "stop", containerIDs)
+	logger.Info("[itestkit] Stopping testcontainers", "count", len(ids))
+	stopArgs := append([]string{"stop"}, ids...)
+	stopCmd := exec.CommandContext(ctx, "docker", stopArgs...)
 	_ = stopCmd.Run()
 
 	// Remove containers
-	fmt.Printf("[itestkit] Removing %d testcontainer(s)...\n", len(strings.Fields(containerIDs)))
-	rmCmd := exec.Command("docker", "rm", "-f", containerIDs)
+	logger.Info("[itestkit] Removing testcontainers", "count", len(ids))
+	rmArgs := append([]string{"rm", "-f"}, ids...)
+	rmCmd := exec.CommandContext(ctx, "docker", rmArgs...)
 	_ = rmCmd.Run()
 
-	fmt.Println("[itestkit] Cleanup completed successfully")
+	logger.Info("[itestkit] Cleanup completed successfully")
 }
 
 // TestMain is a convenience wrapper for integration test TestMain functions.
@@ -308,6 +362,7 @@ func CleanupAll() {
 //	    itestkit.TestMain(m)
 //	}
 func TestMain(m *testing.M) {
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	// Set up signal handlers for cleanup
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -317,7 +372,7 @@ func TestMain(m *testing.M) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				fmt.Printf("[itestkit] Panic recovered during test execution: %v\n", r)
+				logger.Error("[itestkit] Panic recovered during test execution", "panic", r)
 				testDone <- 1
 			}
 		}()
@@ -331,12 +386,12 @@ func TestMain(m *testing.M) {
 		// Tests completed normally
 	case sig := <-sigChan:
 		// Received interrupt signal
-		fmt.Printf("[itestkit] Received signal %v, cleaning up...\n", sig)
+		logger.Info("[itestkit] Received signal, cleaning up...", "signal", sig.String())
 		code = 1
 	}
 
 	// Run cleanup BEFORE calling os.Exit
-	fmt.Println("[itestkit] Running cleanup for testcontainers...")
+	logger.Info("[itestkit] Running cleanup for testcontainers...")
 	CleanupAll()
 
 	os.Exit(code)

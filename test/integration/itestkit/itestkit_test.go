@@ -67,6 +67,44 @@ func (s *ITestKitIntegrationSuite) TestPostgresInsertAndSelect() {
 	s.Equal(insertedName, user.Name)
 }
 
+func (s *ITestKitIntegrationSuite) TestTruncateTables() {
+	// Arrange
+	kit := s.setupTestKit()
+	s.Require().NoError(kit.StartPostgres())
+	s.T().Cleanup(kit.StopPostgres)
+	s.Require().NoError(kit.RunMigrations())
+
+	s.Require().NoError(kit.DB().Exec("INSERT INTO users (name) VALUES (?), (?)", "alice", "bob").Error)
+
+	type countResult struct {
+		Total int
+	}
+	var before countResult
+	s.Require().NoError(kit.DB().Raw("SELECT COUNT(*) AS total FROM users").Scan(&before).Error)
+	s.Equal(2, before.Total)
+
+	// Act
+	kit.TruncateTables(s.T())
+
+	// Assert
+	var after countResult
+	s.Require().NoError(kit.DB().Raw("SELECT COUNT(*) AS total FROM users").Scan(&after).Error)
+	s.Equal(0, after.Total)
+
+	s.Require().NoError(kit.DB().Exec("INSERT INTO users (name) VALUES (?)", "charlie").Error)
+
+	type userRow struct {
+		ID   int
+		Name string
+	}
+	var user userRow
+	s.Require().NoError(
+		kit.DB().Raw("SELECT id, name FROM users WHERE name = ? LIMIT 1", "charlie").Scan(&user).Error,
+	)
+	s.Equal(1, user.ID)
+	s.Equal("charlie", user.Name)
+}
+
 func (s *ITestKitIntegrationSuite) TestRedisSetAndGet() {
 	// Arrange
 	kit := s.setupTestKit()
