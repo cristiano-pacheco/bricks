@@ -6,6 +6,10 @@ type Config struct {
 	// When false, Wrap returns the handler unchanged regardless of other flags.
 	Enabled bool `config:"enabled"`
 
+	// DebugMode logs each decorator application when enabled.
+	// Useful for verifying that decorators are being applied correctly.
+	DebugMode bool `config:"debug_mode"`
+
 	// Logging controls whether the logging decorator is applied.
 	Logging bool `config:"logging"`
 
@@ -23,6 +27,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		Enabled:     true,
+		DebugMode:   false,
 		Logging:     true,
 		Metrics:     true,
 		Tracing:     true,

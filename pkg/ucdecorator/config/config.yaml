@@ -4,6 +4,10 @@ app:
     # When false, Wrap returns the handler unchanged regardless of other flags.
     enabled: true                   # (optional) default: false
 
+    # DebugMode logs each decorator application when enabled.
+    # Useful for verifying that decorators are being applied correctly.
+    debug_mode: true                # (optional) default: false
+
     # Logging controls whether the logging decorator is applied.
     # Logs an error message when a use case returns an error.
     logging: true                   # (optional) default: false

@@ -47,15 +47,27 @@ func Wrap[T any, R any](
 
 	if cfg.Translation {
 		result = withTranslation(result, factory.translator)
+		if cfg.DebugMode {
+			factory.logger.Debug("applying translation decorator", logger.String("use_case", useCaseName))
+		}
 	}
 	if cfg.Tracing {
 		result = withTracing(result, useCaseName)
+		if cfg.DebugMode {
+			factory.logger.Debug("applying tracing decorator", logger.String("use_case", useCaseName))
+		}
 	}
 	if cfg.Metrics {
 		result = withMetrics(result, factory.metrics, metricName)
+		if cfg.DebugMode {
+			factory.logger.Debug("applying metrics decorator", logger.String("use_case", useCaseName))
+		}
 	}
 	if cfg.Logging {
 		result = withLogging(result, factory.logger, useCaseName)
+		if cfg.DebugMode {
+			factory.logger.Debug("applying logging decorator", logger.String("use_case", useCaseName))
+		}
 	}
 
 	return result
