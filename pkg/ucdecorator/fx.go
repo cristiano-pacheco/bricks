@@ -6,5 +6,10 @@ import (
 
 var Module = fx.Module(
 	"ucdecorator",
-	fx.Provide(NewFactory),
+	fx.Provide(
+		fx.Annotate(
+			NewFactory,
+			fx.ParamTags(``, ``, `optional:"true"`),
+		),
+	),
 )

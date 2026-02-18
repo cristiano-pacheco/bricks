@@ -57,6 +57,14 @@ Robust HTTP server implementation using Chi router with CORS and Uber FX support
 - **Import**: `github.com/cristiano-pacheco/bricks/pkg/http/server/chi`
 - **Documentation**: [pkg/http/server/chi/README.md](pkg/http/server/chi/README.md)
 
+### i18n
+
+Internationalization package with locale loading, translation lookups, template interpolation, and error translation with Uber FX integration.
+
+- **Location**: `pkg/i18n`
+- **Import**: `github.com/cristiano-pacheco/bricks/pkg/i18n`
+- **Documentation**: [pkg/i18n/README.md](pkg/i18n/README.md)
+
 ### Integration Test Kit
 
 Integration test infrastructure for Docker containers (PostgreSQL and Redis) with automatic cleanup.

@@ -5,16 +5,17 @@ import (
 	"github.com/cristiano-pacheco/bricks/pkg/i18n/config"
 	"github.com/cristiano-pacheco/bricks/pkg/i18n/ports"
 	"github.com/cristiano-pacheco/bricks/pkg/i18n/service"
+	"github.com/cristiano-pacheco/bricks/pkg/ucdecorator"
 	"go.uber.org/fx"
 )
 
 var Module = fx.Module(
 	"i18n",
+	bricksconfig.Provide[config.Config]("app.i18n"),
 	fx.Provide(
-		bricksconfig.Provide[config.Config]("app.i18n"),
-		fx.Provide(func(c bricksconfig.Config[config.Config]) config.Config {
+		func(c bricksconfig.Config[config.Config]) config.Config {
 			return c.Get()
-		}),
+		},
 		fx.Annotate(
 			service.NewLocaleLoaderService,
 			fx.As(new(ports.LocaleLoaderService)),
@@ -25,7 +26,7 @@ var Module = fx.Module(
 		),
 		fx.Annotate(
 			service.NewErrorTranslatorService,
-			fx.As(new(ports.ErrorTranslatorService)),
+			fx.As(new(ports.ErrorTranslatorService), new(ucdecorator.ErrorTranslator)),
 		),
 	),
 )
