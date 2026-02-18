@@ -1,10 +1,11 @@
-package ucdecorator
+package ucdecorator_test
 
 import (
 	"context"
 	"errors"
 	"testing"
 
+	"github.com/cristiano-pacheco/bricks/pkg/ucdecorator"
 	"github.com/cristiano-pacheco/bricks/test/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -12,7 +13,7 @@ import (
 
 type LoggingDecoratorTestSuite struct {
 	suite.Suite
-	sut        UseCase[string, string]
+	sut        ucdecorator.UseCase[string, string]
 	baseMock   *mocks.MockUseCase[string, string]
 	loggerMock *mocks.MockLogger
 }
@@ -20,7 +21,7 @@ type LoggingDecoratorTestSuite struct {
 func (s *LoggingDecoratorTestSuite) SetupTest() {
 	s.baseMock = mocks.NewMockUseCase[string, string](s.T())
 	s.loggerMock = mocks.NewMockLogger(s.T())
-	s.sut = withLogging(s.baseMock, s.loggerMock, "TestUseCase.Execute")
+	s.sut = ucdecorator.WithLogging(s.baseMock, s.loggerMock, "TestUseCase.Execute")
 }
 
 func TestLoggingDecoratorSuite(t *testing.T) {

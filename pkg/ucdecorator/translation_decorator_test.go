@@ -1,10 +1,11 @@
-package ucdecorator
+package ucdecorator_test
 
 import (
 	"context"
 	"errors"
 	"testing"
 
+	"github.com/cristiano-pacheco/bricks/pkg/ucdecorator"
 	"github.com/cristiano-pacheco/bricks/test/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -12,7 +13,7 @@ import (
 
 type TranslationDecoratorTestSuite struct {
 	suite.Suite
-	sut            UseCase[string, string]
+	sut            ucdecorator.UseCase[string, string]
 	baseMock       *mocks.MockUseCase[string, string]
 	translatorMock *mocks.MockErrorTranslator
 }
@@ -20,7 +21,7 @@ type TranslationDecoratorTestSuite struct {
 func (s *TranslationDecoratorTestSuite) SetupTest() {
 	s.baseMock = mocks.NewMockUseCase[string, string](s.T())
 	s.translatorMock = mocks.NewMockErrorTranslator(s.T())
-	s.sut = withTranslation(s.baseMock, s.translatorMock)
+	s.sut = ucdecorator.WithTranslation(s.baseMock, s.translatorMock)
 }
 
 func TestTranslationDecoratorSuite(t *testing.T) {
@@ -32,7 +33,7 @@ func (s *TranslationDecoratorTestSuite) TestWithTranslation_NilTranslator_Return
 	baseMock := mocks.NewMockUseCase[string, string](s.T())
 
 	// Act
-	result := withTranslation(baseMock, nil)
+	result := ucdecorator.WithTranslation(baseMock, nil)
 
 	// Assert
 	s.Same(baseMock, result)
@@ -42,7 +43,7 @@ func (s *TranslationDecoratorTestSuite) TestExecute_Success_DoesNotCallTranslato
 	// Arrange
 	ctx := context.Background()
 	s.baseMock.On("Execute", mock.Anything, "input").Return("output", nil)
-	// No translatorMock.On("TranslateError", ...) — any unexpected call will fail the test.
+	// No translatorMock.On("TranslateError", ...) — any unexpected call will fail.
 
 	// Act
 	result, err := s.sut.Execute(ctx, "input")

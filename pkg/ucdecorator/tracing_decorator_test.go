@@ -1,10 +1,11 @@
-package ucdecorator
+package ucdecorator_test
 
 import (
 	"context"
 	"errors"
 	"testing"
 
+	"github.com/cristiano-pacheco/bricks/pkg/ucdecorator"
 	"github.com/cristiano-pacheco/bricks/test/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -12,13 +13,13 @@ import (
 
 type TracingDecoratorTestSuite struct {
 	suite.Suite
-	sut      UseCase[string, string]
+	sut      ucdecorator.UseCase[string, string]
 	baseMock *mocks.MockUseCase[string, string]
 }
 
 func (s *TracingDecoratorTestSuite) SetupTest() {
 	s.baseMock = mocks.NewMockUseCase[string, string](s.T())
-	s.sut = withTracing(s.baseMock, "TestUseCase.Execute")
+	s.sut = ucdecorator.WithTracing(s.baseMock, "TestUseCase.Execute")
 }
 
 func TestTracingDecoratorSuite(t *testing.T) {

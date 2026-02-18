@@ -219,7 +219,7 @@ func getProjectRoot() string {
 	}
 	for {
 		goModPath := filepath.Join(dir, "go.mod")
-		if _, err := os.Stat(goModPath); err == nil {
+		if _, statErr := os.Stat(goModPath); statErr == nil {
 			return dir
 		}
 		parent := filepath.Dir(dir)

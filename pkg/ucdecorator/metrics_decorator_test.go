@@ -1,10 +1,11 @@
-package ucdecorator
+package ucdecorator_test
 
 import (
 	"context"
 	"errors"
 	"testing"
 
+	"github.com/cristiano-pacheco/bricks/pkg/ucdecorator"
 	"github.com/cristiano-pacheco/bricks/test/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -12,7 +13,7 @@ import (
 
 type MetricsDecoratorTestSuite struct {
 	suite.Suite
-	sut         UseCase[string, string]
+	sut         ucdecorator.UseCase[string, string]
 	baseMock    *mocks.MockUseCase[string, string]
 	metricsMock *mocks.MockUseCaseMetrics
 }
@@ -20,7 +21,7 @@ type MetricsDecoratorTestSuite struct {
 func (s *MetricsDecoratorTestSuite) SetupTest() {
 	s.baseMock = mocks.NewMockUseCase[string, string](s.T())
 	s.metricsMock = mocks.NewMockUseCaseMetrics(s.T())
-	s.sut = withMetrics(s.baseMock, s.metricsMock, "create_user")
+	s.sut = ucdecorator.WithMetrics(s.baseMock, s.metricsMock, "create_user")
 }
 
 func TestMetricsDecoratorSuite(t *testing.T) {
