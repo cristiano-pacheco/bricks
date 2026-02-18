@@ -73,6 +73,14 @@ Structured logging with slog and Uber FX integration.
 - **Import**: `github.com/cristiano-pacheco/bricks/pkg/logger`
 - **Documentation**: [pkg/logger/README.md](pkg/logger/README.md)
 
+### Metrics
+
+Prometheus-based metrics collection for use case execution tracking with Uber FX integration.
+
+- **Location**: `pkg/metrics`
+- **Import**: `github.com/cristiano-pacheco/bricks/pkg/metrics`
+- **Documentation**: [pkg/metrics/README.md](pkg/metrics/README.md)
+
 ### OpenTelemetry Trace
 
 Simple and powerful OpenTelemetry tracing integration for Go applications.
@@ -81,6 +89,14 @@ Simple and powerful OpenTelemetry tracing integration for Go applications.
 - **Import**: `github.com/cristiano-pacheco/bricks/pkg/otel/trace`
 - **Documentation**: [pkg/otel/trace/README.md](pkg/otel/trace/README.md)
 
+### Paginator
+
+Pagination utilities for handling pagination parameters in HTTP requests with validation and metadata generation.
+
+- **Location**: `pkg/paginator`
+- **Import**: `github.com/cristiano-pacheco/bricks/pkg/paginator`
+- **Documentation**: [pkg/paginator/README.md](pkg/paginator/README.md)
+
 ### Redis
 
 Redis client with connection pooling and Uber FX support.
@@ -88,6 +104,14 @@ Redis client with connection pooling and Uber FX support.
 - **Location**: `pkg/redis`
 - **Import**: `github.com/cristiano-pacheco/bricks/pkg/redis`
 - **Documentation**: [pkg/redis/README.md](pkg/redis/README.md)
+
+### Use Case Decorator
+
+Decorator pattern for use cases providing automatic logging, metrics, tracing, and error translation with Uber FX integration.
+
+- **Location**: `pkg/ucdecorator`
+- **Import**: `github.com/cristiano-pacheco/bricks/pkg/ucdecorator`
+- **Documentation**: [pkg/ucdecorator/README.md](pkg/ucdecorator/README.md)
 
 ### Validator
 
