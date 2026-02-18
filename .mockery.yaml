@@ -1,0 +1,9 @@
+with-expecter: true
+filename: "mock_{{.InterfaceName}}.go"
+dir: "test/mocks"
+mockname: "Mock{{.InterfaceName}}"
+outpkg: "mocks"
+all: true
+recursive: true
+packages:
+    github.com/cristiano-pacheco/bricks:
