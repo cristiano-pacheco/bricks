@@ -1,0 +1,21 @@
+app:
+  ucdecorator:
+    # Enabled is the global kill-switch for all use case decorators.
+    # When false, Wrap returns the handler unchanged regardless of other flags.
+    enabled: true                   # (optional) default: false
+
+    # Logging controls whether the logging decorator is applied.
+    # Logs an error message when a use case returns an error.
+    logging: true                   # (optional) default: false
+
+    # Metrics controls whether the metrics decorator is applied.
+    # Observes execution duration and increments success/error counters.
+    metrics: true                   # (optional) default: false
+
+    # Tracing controls whether the tracing decorator is applied.
+    # Creates an OpenTelemetry span around the use case execution.
+    tracing: true                   # (optional) default: false
+
+    # Translation controls whether the error translation decorator is applied.
+    # Passes errors through the ErrorTranslator before returning them.
+    translation: true               # (optional) default: false

@@ -5,22 +5,26 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"github.com/cristiano-pacheco/bricks/pkg/logger"
 	"github.com/cristiano-pacheco/bricks/pkg/metrics"
 )
 
 type Factory struct {
+	cfg        Config
 	metrics    metrics.UseCaseMetrics
 	logger     logger.Logger
 	translator ErrorTranslator
 }
 
 func NewFactory(
+	cfg config.Config[Config],
 	useCaseMetrics metrics.UseCaseMetrics,
 	log logger.Logger,
 	translator ErrorTranslator,
 ) *Factory {
 	return &Factory{
+		cfg:        cfg.Get(),
 		metrics:    useCaseMetrics,
 		logger:     log,
 		translator: translator,
@@ -31,9 +35,30 @@ func Wrap[T any, R any](
 	factory *Factory,
 	handler UseCase[T, R],
 ) UseCase[T, R] {
+	cfg := factory.cfg
+	if !cfg.Enabled {
+		return handler
+	}
+
 	useCaseName := factory.inferUseCaseName(handler)
 	metricName := factory.inferMetricName(useCaseName)
-	return Chain(handler, factory.logger, factory.metrics, factory.translator, metricName, useCaseName)
+
+	result := handler
+
+	if cfg.Translation {
+		result = withTranslation(result, factory.translator)
+	}
+	if cfg.Tracing {
+		result = withTracing(result, useCaseName)
+	}
+	if cfg.Metrics {
+		result = withMetrics(result, factory.metrics, metricName)
+	}
+	if cfg.Logging {
+		result = withLogging(result, factory.logger, useCaseName)
+	}
+
+	return result
 }
 
 func (f *Factory) inferUseCaseName(handler any) string {
