@@ -164,7 +164,7 @@ app:
 			0644,
 		)
 		require.NoError(t, err)
-		t.Setenv("APP_APP_PORT", "9999")
+		t.Setenv("APP_PORT", "9999")
 
 		// Act
 		t.Setenv("APP_ENV", "local")
@@ -607,7 +607,7 @@ app:
 		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
-database:
+app:
   host: "localhost"
   port: 5432
   name: "myapp"
@@ -615,19 +615,20 @@ database:
 		err := os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(baseConfig), 0644)
 		require.NoError(t, err)
 
-		// Set multiple environment variables
-		t.Setenv("APP_DATABASE_HOST", "prod.example.com")
-		t.Setenv("APP_DATABASE_PORT", "3306")
-		t.Setenv("APP_DATABASE_NAME", "production_db")
+		// Set multiple environment variables.
+		// The transformer strips APP_ then prepends "app.", so APP_X -> app.x
+		t.Setenv("APP_HOST", "prod.example.com")
+		t.Setenv("APP_PORT", "3306")
+		t.Setenv("APP_NAME", "production_db")
 
-		type DBConfig struct {
+		type AppConfig struct {
 			Host string `config:"host"`
 			Port int    `config:"port"`
 			Name string `config:"name"`
 		}
 
 		// Act
-		cfg, err := loadConfig[DBConfig](tmpDir, config.WithPath("database"))
+		cfg, err := loadConfig[AppConfig](tmpDir, config.WithPath("app"))
 
 		// Assert
 		require.NoError(t, err)
@@ -776,7 +777,7 @@ func TestEnvironmentVariablesWithComplexPaths(t *testing.T) {
 		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
-service:
+app:
   api:
     endpoint:
       url: "http://localhost"
@@ -786,27 +787,28 @@ service:
 		require.NoError(t, err)
 
 		type ServiceConfig struct {
-			Service struct {
+			App struct {
 				API struct {
 					Endpoint struct {
 						URL  string `config:"url"`
 						Port int    `config:"port"`
 					} `config:"endpoint"`
 				} `config:"api"`
-			} `config:"service"`
+			} `config:"app"`
 		}
 
-		// Set environment variable for deeply nested value
-		t.Setenv("APP_SERVICE_API_ENDPOINT_URL", "https://production.example.com")
-		t.Setenv("APP_SERVICE_API_ENDPOINT_PORT", "443")
+		// Set environment variables for deeply nested values.
+		// Use __ as nesting delimiter: APP_API__ENDPOINT__URL -> app.api.endpoint.url
+		t.Setenv("APP_API__ENDPOINT__URL", "https://production.example.com")
+		t.Setenv("APP_API__ENDPOINT__PORT", "443")
 
 		// Act
 		cfg, err := loadConfig[ServiceConfig](tmpDir)
 
 		// Assert
 		require.NoError(t, err)
-		assert.Equal(t, "https://production.example.com", cfg.Get().Service.API.Endpoint.URL)
-		assert.Equal(t, 443, cfg.Get().Service.API.Endpoint.Port)
+		assert.Equal(t, "https://production.example.com", cfg.Get().App.API.Endpoint.URL)
+		assert.Equal(t, 443, cfg.Get().App.API.Endpoint.Port)
 	})
 }
 
@@ -1010,8 +1012,9 @@ app:
 		err := os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(baseConfig), 0644)
 		require.NoError(t, err)
 
-		// Set environment variable with invalid value for int field
-		t.Setenv("APP_APP_PORT", "not_a_number")
+		// Set environment variable with invalid value for int field.
+		// APP_PORT -> app.port (transformer strips APP_, prepends "app.")
+		t.Setenv("APP_PORT", "not_a_number")
 
 		type AppConfig struct {
 			App struct {
