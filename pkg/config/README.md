@@ -115,18 +115,26 @@ export APP_CONFIG_DIR=./config
 
 Any configuration value can be overridden using environment variables with the `APP_` prefix.
 
-**Transformation rule**: `APP_<PATH>` where path uses underscores and is case-insensitive.
+**Transformation rule**: `APP_<PATH>` where path uses double underscore (`__`) as the nesting delimiter. All keys are automatically mapped under the `app.` root.
+
+**Why double underscore?** Single underscores inside key names (e.g., `api_key`, `max_tokens`) are preserved. Only double underscores are converted to dots for nesting.
 
 Examples:
 ```bash
-# Override app.port (nested: app -> port)
-export APP_APP_PORT=9000
+# Override app.port (maps to app.port)
+export APP_PORT=9000
 
-# Override database.host (nested: database -> host)
-export APP_DATABASE_HOST=custom-db.example.com
+# Override app.database.host (nested: database -> host)
+export APP_DATABASE__HOST=custom-db.example.com
 
-# Override deeply nested values
-export APP_APP_FEATURE_ENABLED=true  # overrides app.feature.enabled
+# Override app.database.port
+export APP_DATABASE__PORT=5432
+
+# Override deeply nested values (app.ai.providers.openai.api_key)
+export APP_AI__PROVIDERS__OPENAI__API_KEY=sk-xxxx
+
+# Keys with underscores are preserved (app.database.api_key)
+export APP_DATABASE__API_KEY=secret123
 ```
 
 **Precedence order** (highest to lowest):

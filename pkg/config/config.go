@@ -104,12 +104,17 @@ func loadKoanf(configDir, environment string) (*koanf.Koanf, error) {
 		return nil, fmt.Errorf("failed to load %s.yaml config: %w", environment, err)
 	}
 
-	// Load environment variables with APP_ prefix
-	// Example: APP_DATABASE_HOST=localhost overrides database.host
-	// The transformation converts: APP_DATABASE_HOST -> database.host
+	// Load environment variables with APP_ prefix.
+	// Double underscore (__) is used as the nesting delimiter so that
+	// single underscores inside key names (e.g. api_key, max_tokens) are
+	// preserved. All keys are mapped under the "app" root automatically.
+	// Example: APP_DATABASE__HOST=localhost        ->  app.database.host
+	//          APP_AI__PROVIDERS__OPENAI__API_KEY=x ->  app.ai.providers.openai.api_key
 	if err := k.Load(env.Provider("APP_", ".", func(s string) string {
-		return strings.ReplaceAll(strings.ToLower(
-			strings.TrimPrefix(s, "APP_")), "_", ".")
+		s = strings.TrimPrefix(s, "APP_")
+		s = strings.ToLower(s)
+		s = strings.ReplaceAll(s, "__", ".")
+		return "app." + s
 	}), nil); err != nil {
 		return nil, fmt.Errorf("failed to load environment variables: %w", err)
 	}
