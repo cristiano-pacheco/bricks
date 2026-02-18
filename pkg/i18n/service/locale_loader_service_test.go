@@ -5,6 +5,7 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/cristiano-pacheco/bricks/pkg/i18n/locale"
 	"github.com/cristiano-pacheco/bricks/pkg/i18n/service"
 	"github.com/cristiano-pacheco/bricks/pkg/logger"
 	"github.com/stretchr/testify/suite"
@@ -12,8 +13,9 @@ import (
 
 type LocaleLoaderServiceTestSuite struct {
 	suite.Suite
-	sut  *service.LocaleLoaderService
-	fsys fstest.MapFS
+	sut        *service.LocaleLoaderService
+	FileSystem locale.FileSystem
+	fsys       fstest.MapFS
 }
 
 func TestLocaleLoaderServiceSuite(t *testing.T) {
@@ -38,7 +40,8 @@ func (s *LocaleLoaderServiceTestSuite) SetupTest() {
 		},
 	}
 
-	s.sut = service.NewLocaleLoaderService(logger.MustNew(logger.DefaultConfig()), s.fsys)
+	s.FileSystem = locale.FileSystem{FS: s.fsys}
+	s.sut = service.NewLocaleLoaderService(logger.MustNew(logger.DefaultConfig()), s.FileSystem)
 }
 
 func (s *LocaleLoaderServiceTestSuite) TestLoadValidLocale() {

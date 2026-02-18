@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"strings"
 
+	"github.com/cristiano-pacheco/bricks/pkg/i18n/locale"
 	"github.com/cristiano-pacheco/bricks/pkg/i18n/ports"
 	"github.com/cristiano-pacheco/bricks/pkg/logger"
 )
@@ -13,14 +14,14 @@ import (
 const defaultLocaleCode = "en"
 
 type LocaleLoaderService struct {
-	logger   logger.Logger
-	localeFS fs.FS
+	logger     logger.Logger
+	FileSystem locale.FileSystem
 }
 
 var _ ports.LocaleLoaderService = (*LocaleLoaderService)(nil)
 
-func NewLocaleLoaderService(log logger.Logger, localeFS fs.FS) *LocaleLoaderService {
-	return &LocaleLoaderService{logger: log, localeFS: localeFS}
+func NewLocaleLoaderService(log logger.Logger, localeFS locale.FileSystem) *LocaleLoaderService {
+	return &LocaleLoaderService{logger: log, FileSystem: localeFS}
 }
 
 func (s *LocaleLoaderService) Load(locale string) (map[string]map[string]string, error) {
@@ -54,7 +55,7 @@ func (s *LocaleLoaderService) Load(locale string) (map[string]map[string]string,
 }
 
 func (s *LocaleLoaderService) loadLocaleFile(locale string) (map[string]map[string]string, error) {
-	content, err := fs.ReadFile(s.localeFS, locale+".json")
+	content, err := fs.ReadFile(s.FileSystem.FS, locale+".json")
 	if err != nil {
 		return nil, fmt.Errorf("read locale %q: %w", locale, err)
 	}
