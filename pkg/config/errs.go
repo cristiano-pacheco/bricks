@@ -6,9 +6,6 @@ var (
 	// ErrMissingConfigDir indicates that the config directory is required but not provided
 	ErrMissingConfigDir = errors.New("config directory is required")
 
-	// ErrMissingEnvironment indicates that the environment is required but not provided
-	ErrMissingEnvironment = errors.New("environment is required")
-
 	// ErrConfigDirNotFound indicates that the config directory does not exist
 	ErrConfigDirNotFound = errors.New("config directory not found")
 

@@ -75,22 +75,7 @@ func New[T any](options ...Option) (Config[T], error) {
 
 // Internal helpers.
 func loadKoanf(configDir, environment string) (*koanf.Koanf, error) {
-	configDir = strings.TrimSpace(configDir)
-	if configDir == "" {
-		return nil, ErrMissingConfigDir
-	}
-
 	environment = strings.ToLower(strings.TrimSpace(environment))
-	if environment == "" {
-		environment = getEnvironment()
-	}
-
-	// Validate config directory exists
-	if _, err := os.Stat(configDir); os.IsNotExist(err) {
-		return nil, fmt.Errorf("%w: %s", ErrConfigDirNotFound, configDir)
-	} else if err != nil {
-		return nil, fmt.Errorf("failed to access config directory %s: %w", configDir, err)
-	}
 
 	k := koanf.New(".")
 
@@ -100,7 +85,7 @@ func loadKoanf(configDir, environment string) (*koanf.Koanf, error) {
 	}
 
 	// Load environment-specific configuration (optional)
-	if err := loadConfigFile(k, configDir, environment); err != nil && !os.IsNotExist(err) {
+	if err := loadConfigFile(k, configDir, environment); err != nil && !errors.Is(err, ErrConfigFileNotFound) {
 		return nil, fmt.Errorf("failed to load %s.yaml config: %w", environment, err)
 	}
 
@@ -127,7 +112,7 @@ func loadConfigFile(k *koanf.Koanf, configDir, name string) error {
 
 	// Check if file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return err
+		return fmt.Errorf("%w: %s", ErrConfigFileNotFound, configPath)
 	}
 
 	content, err := os.ReadFile(configPath)
@@ -188,11 +173,12 @@ func getConfigDir() (string, error) {
 		configDir = "config"
 	}
 	configDir = filepath.Clean(configDir)
+	var resolvedPath string
 	if filepath.IsAbs(configDir) {
-		configDir = strings.TrimLeft(configDir, string(os.PathSeparator))
+		resolvedPath = configDir
+	} else {
+		resolvedPath = filepath.Join(rootDir, configDir)
 	}
-
-	resolvedPath := filepath.Join(rootDir, configDir)
 	stat, statErr := os.Stat(resolvedPath)
 	if os.IsNotExist(statErr) {
 		return "", fmt.Errorf("%w: %s", ErrConfigDirNotFound, resolvedPath)
@@ -216,5 +202,5 @@ func (p *yamlProvider) Read() (map[string]interface{}, error) {
 }
 
 func (p *yamlProvider) ReadBytes() ([]byte, error) {
-	return nil, nil
+	return nil, errors.New("ReadBytes is not supported; use Read instead")
 }

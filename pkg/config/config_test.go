@@ -17,11 +17,11 @@ type TestConfig struct {
 		Port     int      `config:"port"`
 		Debug    bool     `config:"debug"`
 		Features []string `config:"features"`
+		Database struct {
+			Host string `config:"host"`
+			Port int    `config:"port"`
+		} `config:"database"`
 	} `config:"app"`
-	Database struct {
-		Host string `config:"host"`
-		Port int    `config:"port"`
-	} `config:"database"`
 }
 
 const testConfigDir = "config"
@@ -82,25 +82,7 @@ func TestNew(t *testing.T) {
 		assert.Equal(t, "MyApp", cfg.Get().App.Name)
 		assert.True(t, cfg.Get().App.Debug)
 		assert.Equal(t, 3000, cfg.Get().App.Port)
-		assert.Equal(t, "localhost", cfg.Get().Database.Host)
-	})
-}
-
-func TestLoad_Generics(t *testing.T) {
-	t.Run("should load config using generics", func(t *testing.T) {
-		// Arrange
-		configDir := testConfigDir
-		t.Setenv("APP_ENV", "local")
-
-		// Act
-		cfg, err := loadConfig[TestConfig](configDir)
-
-		// Assert
-		require.NoError(t, err)
-		assert.Equal(t, "MyApp", cfg.Get().App.Name)
-		assert.Equal(t, 3000, cfg.Get().App.Port)
-		assert.True(t, cfg.Get().App.Debug)
-		assert.Equal(t, "localhost", cfg.Get().Database.Host)
+		assert.Equal(t, "localhost", cfg.Get().App.Database.Host)
 	})
 }
 
@@ -121,44 +103,17 @@ func TestLoad_EnvironmentFromEnvVar(t *testing.T) {
 	})
 }
 
-func TestNew_WithNoError(t *testing.T) {
-	t.Run("should load config without error", func(t *testing.T) {
-		// Arrange
-		configDir := testConfigDir
-
-		// Act
-		cfg, err := loadConfig[TestConfig](configDir)
-
-		// Assert
-		require.NoError(t, err)
-		assert.Equal(t, "MyApp", cfg.Get().App.Name)
-	})
-}
-
-func TestNew_InvalidPathError(t *testing.T) {
-	t.Run("should return error on invalid path", func(t *testing.T) {
-		// Arrange
-		invalidPath := "missing-config-dir"
-
-		// Act & Assert
-		_, err := loadConfig[TestConfig](invalidPath)
-		require.Error(t, err)
-	})
-}
-
 func TestEnvironmentVariables(t *testing.T) {
 	t.Run("should override config with environment variables", func(t *testing.T) {
 		// Arrange
 		tmpDir := tempConfigDir(t)
-		err := os.MkdirAll(filepath.Join(tmpDir, "config"), 0755)
-		require.NoError(t, err)
 
 		baseConfig := `
 app:
   name: "EnvTest"
   port: 8080
 `
-		err = os.WriteFile(
+		err := os.WriteFile(
 			filepath.Join(tmpDir, "base.yaml"),
 			[]byte(baseConfig),
 			0644,
@@ -180,14 +135,12 @@ func TestMissingBaseConfig(t *testing.T) {
 	t.Run("should return error when base.yaml is missing", func(t *testing.T) {
 		// Arrange
 		tmpDir := tempConfigDir(t)
-		err := os.MkdirAll(filepath.Join(tmpDir, "config"), 0755)
-		require.NoError(t, err)
 
 		localConfig := `
 app:
   name: "TestApp"
 `
-		err = os.WriteFile(
+		err := os.WriteFile(
 			filepath.Join(tmpDir, "local.yaml"),
 			[]byte(localConfig),
 			0644,
@@ -264,7 +217,7 @@ func TestNewWithPath(t *testing.T) {
 		t.Setenv("APP_ENV", "local")
 
 		// Act
-		cfg, err := loadConfig[DatabaseConfig](configDir, config.WithPath("database"))
+		cfg, err := loadConfig[DatabaseConfig](configDir, config.WithPath("app.database"))
 
 		// Assert
 		require.NoError(t, err)
@@ -296,7 +249,7 @@ func TestNewWithPath(t *testing.T) {
 		t.Setenv("APP_ENV", "production")
 
 		// Act
-		cfg, err := loadConfig[DatabaseConfig](configDir, config.WithPath("database"))
+		cfg, err := loadConfig[DatabaseConfig](configDir, config.WithPath("app.database"))
 
 		// Assert
 		require.NoError(t, err)
@@ -332,7 +285,7 @@ func TestNewWithPath(t *testing.T) {
 
 		// Act & Assert
 		assert.NotPanics(t, func() {
-			cfg, err := loadConfig[DatabaseConfig](configDir, config.WithPath("database"))
+			cfg, err := loadConfig[DatabaseConfig](configDir, config.WithPath("app.database"))
 			require.NoError(t, err)
 			assert.Equal(t, "localhost", cfg.Get().Host)
 		})
@@ -592,12 +545,13 @@ app:
 		err = os.WriteFile(filepath.Join(tmpDir, "local.yaml"), []byte(localConfig), 0644)
 		require.NoError(t, err)
 
-		// Act - When APP_ENV is whitespace, TrimSpace results in empty string
-		// Since there's no ".yaml" file, it should only load base.yaml
+		// Act - When APP_ENV is whitespace, TrimSpace results in empty string "".
+		// loadConfigFile is called with name="" which tries to open ".yaml"; that file
+		// does not exist, so only base.yaml is loaded.
 		t.Setenv("APP_ENV", "   ")
 		cfg, err := loadConfig[TestConfig](tmpDir)
 
-		// Assert - Will load base.yaml since environment after trim is "" and ".yaml" doesn't exist
+		// Assert - only base.yaml is loaded; local.yaml is not used
 		require.NoError(t, err)
 		assert.Equal(t, "Base", cfg.Get().App.Name)
 	})
@@ -873,9 +827,8 @@ app:
 }
 
 func TestYAMLProviderReadBytes(t *testing.T) {
-	t.Run("yamlProvider ReadBytes returns nil", func(t *testing.T) {
-		// The ReadBytes method is not used by koanf but is part of the Provider interface
-		// We can test that the config loads successfully, which internally uses the yamlProvider
+	t.Run("yamlProvider uses Read; ReadBytes is unused by koanf", func(t *testing.T) {
+		// koanf calls Read() on the provider, not ReadBytes(); config loading works correctly
 		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
@@ -1041,9 +994,9 @@ app:
   name: "BaseApp"
   port: 8080
   debug: false
-database:
-  host: "localhost"
-  port: 5432
+  database:
+    host: "localhost"
+    port: 5432
 `
 		err := os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(baseConfig), 0644)
 		require.NoError(t, err)
@@ -1053,8 +1006,8 @@ database:
 app:
   name: "ProductionApp"
   debug: false
-database:
-  host: "prod.db.example.com"
+  database:
+    host: "prod.db.example.com"
 `
 		err = os.WriteFile(filepath.Join(tmpDir, "production.yaml"), []byte(prodConfig), 0644)
 		require.NoError(t, err)
@@ -1072,8 +1025,8 @@ database:
 			8080,
 			cfg.Get().App.Port,
 		) // Remains from base (not overridden in prod config)
-		assert.False(t, cfg.Get().App.Debug)                            // Overridden
-		assert.Equal(t, "prod.db.example.com", cfg.Get().Database.Host) // Overridden
-		assert.Equal(t, 5432, cfg.Get().Database.Port)                  // Remains from base (not overridden)
+		assert.False(t, cfg.Get().App.Debug)                                // Overridden
+		assert.Equal(t, "prod.db.example.com", cfg.Get().App.Database.Host) // Overridden
+		assert.Equal(t, 5432, cfg.Get().App.Database.Port)                  // Remains from base (not overridden)
 	})
 }

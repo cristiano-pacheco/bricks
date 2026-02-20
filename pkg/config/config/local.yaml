@@ -5,15 +5,15 @@ app:
   debug: true
   port: 3000
 
-database:
-  # In local dev, you might want to use defaults from base.yaml
-  # or override with specific values
-  password: devpassword
-  
-logger:
-  level: "debug"
-  format: "text"
+  database:
+    # In local dev, you might want to use defaults from base.yaml
+    # or override with specific values
+    password: devpassword
 
-# Enable metrics for local testing
-metrics:
-  enabled: true
+  logger:
+    level: "debug"
+    format: "text"
+
+  # Enable metrics for local testing
+  metrics:
+    enabled: true

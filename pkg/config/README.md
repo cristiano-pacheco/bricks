@@ -74,9 +74,9 @@ app:
   name: "MyApp"
   port: 8080
   debug: false
-database:
-  host: "localhost"
-  port: 5432
+  database:
+    host: "localhost"
+    port: 5432
 ```
 
 **Example production.yaml** (only overrides):
@@ -84,8 +84,8 @@ database:
 app:
   port: 443
   debug: false
-database:
-  host: "prod-db.example.com"
+  database:
+    host: "prod-db.example.com"
 ```
 
 The final config in production will merge both files, with production.yaml values taking precedence.
@@ -121,19 +121,22 @@ Any configuration value can be overridden using environment variables with the `
 
 Examples:
 ```bash
-# Override app.port (maps to app.port)
-export APP_PORT=9000
+# Override app.name
+export APP_NAME=MyServiceProd
 
-# Override app.database.host (nested: database -> host)
-export APP_DATABASE__HOST=custom-db.example.com
+# Override app.database.host
+export APP_DATABASE__HOST=prod-db.example.com
 
-# Override app.database.port
-export APP_DATABASE__PORT=5432
+# Override app.redis.password
+export APP_REDIS__PASSWORD=secret
+
+# Override app.auth.jwt_secret
+export APP_AUTH__JWT_SECRET=my-secret
 
 # Override deeply nested values (app.ai.providers.openai.api_key)
 export APP_AI__PROVIDERS__OPENAI__API_KEY=sk-xxxx
 
-# Keys with underscores are preserved (app.database.api_key)
+# Keys with single underscores in names are preserved (app.database.api_key)
 export APP_DATABASE__API_KEY=secret123
 ```
 
@@ -177,9 +180,9 @@ app:
   database:
     host: "localhost"
     port: 5432
-redis:
-  host: "localhost"
-  port: 6379
+  redis:
+    host: "localhost"
+    port: 6379
 */
 
 // Load only the database section
@@ -200,7 +203,7 @@ type RedisConfig struct {
 }
 
 redisCfg, err := config.New[RedisConfig](
-    config.WithPath("redis"),  // path to subtree
+    config.WithPath("app.redis"),  // path to subtree
 )
 ```
 
@@ -295,7 +298,7 @@ func main() {
 }
 ```
 
-With `APP_ENV=production` and `APP_APP_PORT=8443`:
+With `APP_ENV=production` and `APP_PORT=8443`:
 - Outputs: "Starting MyService on port 8443"
 - Database host will be "prod-db.example.com" (from production.yaml)
-- Port 8443 from env var overrides production.yaml's 443
+- Port 8443 from env var (`APP_PORT` → `app.port`) overrides production.yaml's 443
