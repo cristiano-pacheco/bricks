@@ -2,6 +2,8 @@ package logger
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"go.uber.org/fx"
@@ -31,6 +33,9 @@ type Logger interface {
 
 	// Fatal logs a fatal message and calls os.Exit(1)
 	Fatal(msg string, fields ...Field)
+
+	// Named creates a child logger with the given name appended
+	Named(name string) Logger
 
 	// With creates a child logger with additional fields
 	With(fields ...Field) Logger
@@ -176,6 +181,10 @@ func (l *ZapLogger) Fatal(msg string, fields ...Field) {
 	l.logger.Fatal(msg, fields...)
 }
 
+func (l *ZapLogger) Named(name string) Logger {
+	return &ZapLogger{logger: l.logger.Named(name)}
+}
+
 func (l *ZapLogger) With(fields ...Field) Logger {
 	return &ZapLogger{logger: l.logger.With(fields...)}
 }
@@ -230,11 +239,31 @@ func Any(key string, val interface{}) Field {
 }
 
 // Duration creates a duration field
-func Duration(key string, val interface{}) Field {
-	return zap.Any(key, val)
+func Duration(key string, val time.Duration) Field {
+	return zap.Duration(key, val)
 }
 
 // Time creates a time field
-func Time(key string, val interface{}) Field {
-	return zap.Any(key, val)
+func Time(key string, val time.Time) Field {
+	return zap.Time(key, val)
+}
+
+// Namespace creates a named, isolated scope within the logger's context
+func Namespace(key string) Field {
+	return zap.Namespace(key)
+}
+
+// Stringer creates a field from any value implementing fmt.Stringer
+func Stringer(key string, val fmt.Stringer) Field {
+	return zap.Stringer(key, val)
+}
+
+// Uint64 creates a uint64 field
+func Uint64(key string, val uint64) Field {
+	return zap.Uint64(key, val)
+}
+
+// Int32 creates an int32 field
+func Int32(key string, val int32) Field {
+	return zap.Int32(key, val)
 }

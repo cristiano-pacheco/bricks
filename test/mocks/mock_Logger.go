@@ -311,6 +311,54 @@ func (_c *MockLogger_Info_Call) RunAndReturn(run func(string, ...zapcore.Field))
 	return _c
 }
 
+// Named provides a mock function with given fields: name
+func (_m *MockLogger) Named(name string) logger.Logger {
+	ret := _m.Called(name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Named")
+	}
+
+	var r0 logger.Logger
+	if rf, ok := ret.Get(0).(func(string) logger.Logger); ok {
+		r0 = rf(name)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(logger.Logger)
+		}
+	}
+
+	return r0
+}
+
+// MockLogger_Named_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Named'
+type MockLogger_Named_Call struct {
+	*mock.Call
+}
+
+// Named is a helper method to define mock.On call
+//   - name string
+func (_e *MockLogger_Expecter) Named(name interface{}) *MockLogger_Named_Call {
+	return &MockLogger_Named_Call{Call: _e.mock.On("Named", name)}
+}
+
+func (_c *MockLogger_Named_Call) Run(run func(name string)) *MockLogger_Named_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string))
+	})
+	return _c
+}
+
+func (_c *MockLogger_Named_Call) Return(_a0 logger.Logger) *MockLogger_Named_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockLogger_Named_Call) RunAndReturn(run func(string) logger.Logger) *MockLogger_Named_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Panic provides a mock function with given fields: msg, fields
 func (_m *MockLogger) Panic(msg string, fields ...zapcore.Field) {
 	_va := make([]interface{}, len(fields))

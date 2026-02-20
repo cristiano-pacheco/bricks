@@ -94,7 +94,7 @@ func main() {
         }),
         
         // Use the logger module with lifecycle management
-        logger.ModuleWithLifecycle,
+        logger.Module,
         
         // Use logger in your components
         fx.Invoke(func(log logger.Logger) {

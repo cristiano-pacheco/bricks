@@ -3,10 +3,12 @@ package logger_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/cristiano-pacheco/bricks/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestLogger_BasicUsage(t *testing.T) {
@@ -93,4 +95,60 @@ func TestLogger_WithError(t *testing.T) {
 	logWithError.Error("Operation failed",
 		logger.String("operation", "save_user"),
 	)
+}
+
+func TestDuration_ReturnsProperField(t *testing.T) {
+	field := logger.Duration("elapsed", 5*time.Second)
+
+	assert.Equal(t, "elapsed", field.Key)
+	assert.Equal(t, zapcore.DurationType, field.Type)
+}
+
+func TestTime_ReturnsProperField(t *testing.T) {
+	now := time.Now()
+	field := logger.Time("ts", now)
+
+	assert.Equal(t, "ts", field.Key)
+	assert.Equal(t, zapcore.TimeType, field.Type)
+}
+
+func TestLogger_Named(t *testing.T) {
+	log := logger.MustNew(logger.DefaultConfig())
+	defer log.Sync()
+
+	named := log.Named("subsystem")
+
+	require.NotNil(t, named)
+	named.Info("message from subsystem")
+}
+
+func TestLogger_GetZapLogger(t *testing.T) {
+	log := logger.MustNew(logger.DefaultConfig())
+	defer log.Sync()
+
+	zl := log.GetZapLogger()
+
+	require.NotNil(t, zl)
+}
+
+func TestLogger_Sync(t *testing.T) {
+	log := logger.MustNew(logger.DefaultConfig())
+
+	// Sync may return "bad file descriptor" on macOS when stdout is not a
+	// regular file — this is a known OS-level limitation, not a logger bug.
+	err := log.Sync()
+	if err != nil {
+		assert.Contains(t, err.Error(), "bad file descriptor")
+	}
+}
+
+func TestNewWithOptions_FromDevelopmentConfig(t *testing.T) {
+	config := logger.DevelopmentConfig()
+	log, err := logger.New(config)
+
+	require.NoError(t, err)
+	require.NotNil(t, log)
+	defer log.Sync()
+
+	log.Debug("debug from development config")
 }
