@@ -49,8 +49,6 @@ func Wrap[T any, R any](
 		result = withTranslation(result, factory.translator)
 		if cfg.DebugMode {
 			result = withDebug(result, factory.logger, useCaseName, "translation")
-		}
-		if cfg.DebugMode {
 			factory.logger.Debug("applying translation decorator", logger.String("use_case", useCaseName))
 		}
 	}
@@ -58,8 +56,6 @@ func Wrap[T any, R any](
 		result = withTracing(result, useCaseName)
 		if cfg.DebugMode {
 			result = withDebug(result, factory.logger, useCaseName, "tracing")
-		}
-		if cfg.DebugMode {
 			factory.logger.Debug("applying tracing decorator", logger.String("use_case", useCaseName))
 		}
 	}
@@ -67,8 +63,6 @@ func Wrap[T any, R any](
 		result = withMetrics(result, factory.metrics, metricName)
 		if cfg.DebugMode {
 			result = withDebug(result, factory.logger, useCaseName, "metrics")
-		}
-		if cfg.DebugMode {
 			factory.logger.Debug("applying metrics decorator", logger.String("use_case", useCaseName))
 		}
 	}
@@ -76,8 +70,6 @@ func Wrap[T any, R any](
 		result = withLogging(result, factory.logger, useCaseName)
 		if cfg.DebugMode {
 			result = withDebug(result, factory.logger, useCaseName, "logging")
-		}
-		if cfg.DebugMode {
 			factory.logger.Debug("applying logging decorator", logger.String("use_case", useCaseName))
 		}
 	}

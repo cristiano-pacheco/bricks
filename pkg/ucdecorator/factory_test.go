@@ -124,7 +124,7 @@ func (s *FactoryTestSuite) TestWrap_OnlyLoggingEnabled_Error_LogsError() {
 	s.Empty(result)
 }
 
-func (s *FactoryTestSuite) TestWrap_OnlyLoggingEnabled_Success_DoesNotLogError() {
+func (s *FactoryTestSuite) TestWrap_OnlyLoggingEnabled_Success_LogsSuccessAndDoesNotLogError() {
 	// Arrange
 	ctx := context.Background()
 	input := "input"
@@ -136,6 +136,7 @@ func (s *FactoryTestSuite) TestWrap_OnlyLoggingEnabled_Success_DoesNotLogError()
 	)
 	handlerMock := mocks.NewMockUseCase[string, string](s.T())
 	handlerMock.On("Execute", mock.Anything, input).Return("output", nil)
+	s.loggerMock.On("Info", mock.Anything).Return()
 	// No loggerMock.On("Error", ...) setup — any unexpected Error call will fail the test.
 
 	sut := ucdecorator.Wrap(factory, handlerMock)
@@ -276,6 +277,49 @@ func (s *FactoryTestSuite) TestInferMetricName_OnlyUseCaseSuffix_ReturnsFallback
 
 	// Assert
 	s.Equal("use_case", name)
+}
+
+func (s *FactoryTestSuite) TestWrap_DebugMode_TranslationEnabled_LogsApplicationAtWiringTime() {
+	// Arrange
+	factory := ucdecorator.NewTestFactory(
+		ucdecorator.Config{Enabled: true, Translation: true, DebugMode: true},
+		nil,
+		s.loggerMock,
+		s.translatorMock,
+	)
+	handlerMock := mocks.NewMockUseCase[string, string](s.T())
+	s.loggerMock.On("Debug", "applying translation decorator", mock.Anything).Once().Return()
+
+	// Act — Wrap alone triggers the wiring-time debug log; Execute is not called.
+	_ = ucdecorator.Wrap(factory, handlerMock)
+}
+
+func (s *FactoryTestSuite) TestWrap_DebugMode_TranslationEnabled_Success_DebugDecoratorFiresOnExecute() {
+	// Arrange
+	ctx := context.Background()
+	input := "input"
+	factory := ucdecorator.NewTestFactory(
+		ucdecorator.Config{Enabled: true, Translation: true, DebugMode: true},
+		nil,
+		s.loggerMock,
+		s.translatorMock,
+	)
+	handlerMock := mocks.NewMockUseCase[string, string](s.T())
+	handlerMock.On("Execute", mock.Anything, input).Return("output", nil)
+	// Wiring-time log.
+	s.loggerMock.On("Debug", "applying translation decorator", mock.Anything).Once().Return()
+	// Runtime logs emitted by the debug decorator wrapping translation.
+	s.loggerMock.On("Debug", "decorator execute start", mock.Anything, mock.Anything).Once().Return()
+	s.loggerMock.On("Debug", "decorator execute success", mock.Anything, mock.Anything, mock.Anything).Once().Return()
+
+	sut := ucdecorator.Wrap(factory, handlerMock)
+
+	// Act
+	result, err := sut.Execute(ctx, input)
+
+	// Assert
+	s.Require().NoError(err)
+	s.Equal("output", result)
 }
 
 func TestToSnakeCase(t *testing.T) {

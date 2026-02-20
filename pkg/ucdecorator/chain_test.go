@@ -47,12 +47,13 @@ func TestChainSuite(t *testing.T) {
 	suite.Run(t, new(ChainTestSuite))
 }
 
-func (s *ChainTestSuite) TestExecute_Success_ObservesDurationAndIncrementsSuccess() {
+func (s *ChainTestSuite) TestExecute_Success_ObservesDurationIncrementsSuccessAndLogsSuccess() {
 	// Arrange
 	ctx := context.Background()
 	s.handlerMock.On("Execute", mock.Anything, chainTestInput).Return(chainTestOutput, nil)
 	s.metricsMock.On("ObserveDuration", chainTestMetricName, mock.Anything).Return()
 	s.metricsMock.On("IncSuccess", chainTestMetricName).Return()
+	s.loggerMock.On("Info", chainTestUseCaseName+" succeeded").Return()
 
 	// Act
 	result, err := s.sut.Execute(ctx, chainTestInput)

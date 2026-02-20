@@ -28,6 +28,17 @@ func TestMetricsDecoratorSuite(t *testing.T) {
 	suite.Run(t, new(MetricsDecoratorTestSuite))
 }
 
+func (s *MetricsDecoratorTestSuite) TestWithMetrics_NilMetrics_ReturnsBaseUnchanged() {
+	// Arrange
+	baseMock := mocks.NewMockUseCase[string, string](s.T())
+
+	// Act
+	result := ucdecorator.WithMetrics(baseMock, nil, "create_user")
+
+	// Assert
+	s.Same(baseMock, result)
+}
+
 func (s *MetricsDecoratorTestSuite) TestExecute_Success_ObservesDurationAndIncrementsSuccess() {
 	// Arrange
 	ctx := context.Background()

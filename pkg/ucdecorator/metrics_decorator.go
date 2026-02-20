@@ -18,6 +18,9 @@ func withMetrics[T any, R any](
 	useCaseMetrics metrics.UseCaseMetrics,
 	metricName string,
 ) UseCase[T, R] {
+	if useCaseMetrics == nil {
+		return base
+	}
 	return &metricsDecorator[T, R]{
 		base:       base,
 		metrics:    useCaseMetrics,

@@ -11,40 +11,40 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type LoggingDecoratorTestSuite struct {
+type DebugDecoratorTestSuite struct {
 	suite.Suite
 	sut        ucdecorator.UseCase[string, string]
 	baseMock   *mocks.MockUseCase[string, string]
 	loggerMock *mocks.MockLogger
 }
 
-func (s *LoggingDecoratorTestSuite) SetupTest() {
+func (s *DebugDecoratorTestSuite) SetupTest() {
 	s.baseMock = mocks.NewMockUseCase[string, string](s.T())
 	s.loggerMock = mocks.NewMockLogger(s.T())
-	s.sut = ucdecorator.WithLogging(s.baseMock, s.loggerMock, "TestUseCase.Execute")
+	s.sut = ucdecorator.WithDebug(s.baseMock, s.loggerMock, "TestUseCase.Execute", "translation")
 }
 
-func TestLoggingDecoratorSuite(t *testing.T) {
-	suite.Run(t, new(LoggingDecoratorTestSuite))
+func TestDebugDecoratorSuite(t *testing.T) {
+	suite.Run(t, new(DebugDecoratorTestSuite))
 }
 
-func (s *LoggingDecoratorTestSuite) TestWithLogging_NilLogger_ReturnsBaseUnchanged() {
+func (s *DebugDecoratorTestSuite) TestWithDebug_NilLogger_ReturnsBaseUnchanged() {
 	// Arrange
 	baseMock := mocks.NewMockUseCase[string, string](s.T())
 
 	// Act
-	result := ucdecorator.WithLogging(baseMock, nil, "TestUseCase.Execute")
+	result := ucdecorator.WithDebug(baseMock, nil, "TestUseCase.Execute", "translation")
 
 	// Assert
 	s.Same(baseMock, result)
 }
 
-func (s *LoggingDecoratorTestSuite) TestExecute_Success_LogsSuccessAndDoesNotLogError() {
+func (s *DebugDecoratorTestSuite) TestExecute_Success_LogsStartAndSuccess() {
 	// Arrange
 	ctx := context.Background()
 	s.baseMock.On("Execute", mock.Anything, "input").Return("output", nil)
-	s.loggerMock.On("Info", "TestUseCase.Execute succeeded").Return()
-	// No loggerMock.On("Error", ...) — any unexpected call will fail the test.
+	s.loggerMock.On("Debug", "decorator execute start", mock.Anything, mock.Anything).Once().Return()
+	s.loggerMock.On("Debug", "decorator execute success", mock.Anything, mock.Anything, mock.Anything).Once().Return()
 
 	// Act
 	result, err := s.sut.Execute(ctx, "input")
@@ -54,12 +54,15 @@ func (s *LoggingDecoratorTestSuite) TestExecute_Success_LogsSuccessAndDoesNotLog
 	s.Equal("output", result)
 }
 
-func (s *LoggingDecoratorTestSuite) TestExecute_Error_LogsErrorWithUseCaseName() {
+func (s *DebugDecoratorTestSuite) TestExecute_Error_LogsStartAndError() {
 	// Arrange
 	ctx := context.Background()
 	expectedErr := errors.New("use case failed")
 	s.baseMock.On("Execute", mock.Anything, "input").Return("", expectedErr)
-	s.loggerMock.On("Error", "TestUseCase.Execute failed", mock.Anything).Return()
+	s.loggerMock.On("Debug", "decorator execute start", mock.Anything, mock.Anything).Once().Return()
+	s.loggerMock.On("Debug", "decorator execute error", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Once().
+		Return()
 
 	// Act
 	result, err := s.sut.Execute(ctx, "input")

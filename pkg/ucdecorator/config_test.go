@@ -14,6 +14,7 @@ func TestDefaultConfig(t *testing.T) {
 
 		// Assert
 		require.True(t, cfg.Enabled)
+		require.False(t, cfg.DebugMode)
 		require.True(t, cfg.Logging)
 		require.True(t, cfg.Metrics)
 		require.True(t, cfg.Tracing)

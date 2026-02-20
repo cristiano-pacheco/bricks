@@ -13,6 +13,9 @@ type loggingDecorator[T any, R any] struct {
 }
 
 func withLogging[T any, R any](base UseCase[T, R], log logger.Logger, name string) UseCase[T, R] {
+	if log == nil {
+		return base
+	}
 	return &loggingDecorator[T, R]{
 		base:   base,
 		logger: log,
@@ -27,6 +30,8 @@ func (decorator *loggingDecorator[T, R]) Execute(ctx context.Context, input T) (
 	defer func() {
 		if err != nil {
 			decorator.logger.Error(decorator.name+" failed", logger.Error(err))
+		} else {
+			decorator.logger.Info(decorator.name + " succeeded")
 		}
 	}()
 

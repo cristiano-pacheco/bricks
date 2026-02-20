@@ -36,3 +36,7 @@ func WithTracing[T, R any](handler UseCase[T, R], name string) UseCase[T, R] {
 func WithTranslation[T, R any](handler UseCase[T, R], t ErrorTranslator) UseCase[T, R] {
 	return withTranslation(handler, t)
 }
+
+func WithDebug[T, R any](handler UseCase[T, R], log logger.Logger, useCaseName, decoratorName string) UseCase[T, R] {
+	return withDebug(handler, log, useCaseName, decoratorName)
+}
