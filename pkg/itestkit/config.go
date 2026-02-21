@@ -7,7 +7,7 @@ type Config struct {
 	MigrationsPath string
 	Database       string
 	User           string
-	Password       string
+	Password       string //nolint:gosec // intentional config field for test container credentials
 }
 
 // DefaultConfig returns sensible defaults.

@@ -49,7 +49,12 @@ func validateJSONContentType(contentType string) error {
 	}
 	contentType = strings.TrimSpace(contentType)
 	if contentType != "application/json" {
-		return errs.New("UNSUPPORTED_MEDIA_TYPE", "Content-Type header is not application/json", http.StatusUnsupportedMediaType, nil)
+		return errs.New(
+			"UNSUPPORTED_MEDIA_TYPE",
+			"Content-Type header is not application/json",
+			http.StatusUnsupportedMediaType,
+			nil,
+		)
 	}
 	return nil
 }
@@ -85,7 +90,12 @@ func parseJSONDecodeError(err error) error {
 
 	case errors.As(err, &unmarshalTypeError):
 		if unmarshalTypeError.Field != "" {
-			return errs.New("BAD_REQUEST", fmt.Sprintf("request body contains invalid value for field %q", unmarshalTypeError.Field), http.StatusBadRequest, nil)
+			return errs.New(
+				"BAD_REQUEST",
+				fmt.Sprintf("request body contains invalid value for field %q", unmarshalTypeError.Field),
+				http.StatusBadRequest,
+				nil,
+			)
 		}
 		return errs.New("BAD_REQUEST", "request body contains invalid JSON type", http.StatusBadRequest, nil)
 
@@ -95,10 +105,20 @@ func parseJSONDecodeError(err error) error {
 	// Performance: Use strings.Cut (Go 1.18+) which is faster than HasPrefix + TrimPrefix
 	case strings.HasPrefix(err.Error(), "json: unknown field "):
 		fieldName := strings.TrimPrefix(err.Error(), "json: unknown field ")
-		return errs.New("BAD_REQUEST", fmt.Sprintf("request body contains unknown field %s", fieldName), http.StatusBadRequest, nil)
+		return errs.New(
+			"BAD_REQUEST",
+			fmt.Sprintf("request body contains unknown field %s", fieldName),
+			http.StatusBadRequest,
+			nil,
+		)
 
 	case errors.As(err, &maxBytesError):
-		return errs.New("REQUEST_ENTITY_TOO_LARGE", fmt.Sprintf("request body must not exceed %d bytes", maxBytesError.Limit), http.StatusRequestEntityTooLarge, nil)
+		return errs.New(
+			"REQUEST_ENTITY_TOO_LARGE",
+			fmt.Sprintf("request body must not exceed %d bytes", maxBytesError.Limit),
+			http.StatusRequestEntityTooLarge,
+			nil,
+		)
 
 	case errors.As(err, &invalidUnmarshalError):
 		// This indicates a programming error, not a client error

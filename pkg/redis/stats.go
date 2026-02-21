@@ -76,9 +76,11 @@ func (m *metricsCollector) get() *Metrics {
 	averageLatency := time.Duration(0)
 	if commandsExecuted > 0 {
 		const maxInt64 = int64(^uint64(0) >> 1)
-		divisor := int64(commandsExecuted)
+		var divisor int64
 		if commandsExecuted > uint64(maxInt64) {
 			divisor = maxInt64
+		} else {
+			divisor = int64(commandsExecuted)
 		}
 		averageLatency = m.totalLatency / time.Duration(divisor)
 	}

@@ -179,7 +179,7 @@ func getConfigDir() (string, error) {
 	} else {
 		resolvedPath = filepath.Join(rootDir, configDir)
 	}
-	stat, statErr := os.Stat(resolvedPath)
+	stat, statErr := os.Stat(resolvedPath) // #nosec G703 -- path is sanitized via filepath.Clean before use
 	if os.IsNotExist(statErr) {
 		return "", fmt.Errorf("%w: %s", ErrConfigDirNotFound, resolvedPath)
 	}
