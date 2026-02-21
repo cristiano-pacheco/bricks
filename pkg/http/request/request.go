@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/cristiano-pacheco/bricks/pkg/errs"
 )
 
 const (
@@ -47,7 +49,7 @@ func validateJSONContentType(contentType string) error {
 	}
 	contentType = strings.TrimSpace(contentType)
 	if contentType != "application/json" {
-		return errors.New("Content-Type header is not application/json")
+		return errs.New("UNSUPPORTED_MEDIA_TYPE", "Content-Type header is not application/json", http.StatusUnsupportedMediaType, nil)
 	}
 	return nil
 }
@@ -61,7 +63,7 @@ func decodeJSONPayload(dec *json.Decoder, dst any) error {
 	// Security: Ensure only one JSON value to prevent processing of trailing data
 	// Performance: Use Token() instead of Decode() to avoid allocating a struct
 	if dec.More() {
-		return errors.New("request body must contain only a single JSON value")
+		return errs.New("BAD_REQUEST", "request body must contain only a single JSON value", http.StatusBadRequest, nil)
 	}
 
 	return nil
@@ -76,27 +78,27 @@ func parseJSONDecodeError(err error) error {
 	switch {
 	case errors.As(err, &syntaxError):
 		// Security: Don't expose exact position to avoid information leakage
-		return errors.New("request body contains malformed JSON")
+		return errs.New("BAD_REQUEST", "request body contains malformed JSON", http.StatusBadRequest, nil)
 
 	case errors.Is(err, io.ErrUnexpectedEOF):
-		return errors.New("request body contains malformed JSON")
+		return errs.New("BAD_REQUEST", "request body contains malformed JSON", http.StatusBadRequest, nil)
 
 	case errors.As(err, &unmarshalTypeError):
 		if unmarshalTypeError.Field != "" {
-			return fmt.Errorf("request body contains invalid value for field %q", unmarshalTypeError.Field)
+			return errs.New("BAD_REQUEST", fmt.Sprintf("request body contains invalid value for field %q", unmarshalTypeError.Field), http.StatusBadRequest, nil)
 		}
-		return errors.New("request body contains invalid JSON type")
+		return errs.New("BAD_REQUEST", "request body contains invalid JSON type", http.StatusBadRequest, nil)
 
 	case errors.Is(err, io.EOF):
-		return errors.New("request body must not be empty")
+		return errs.New("BAD_REQUEST", "request body must not be empty", http.StatusBadRequest, nil)
 
 	// Performance: Use strings.Cut (Go 1.18+) which is faster than HasPrefix + TrimPrefix
 	case strings.HasPrefix(err.Error(), "json: unknown field "):
 		fieldName := strings.TrimPrefix(err.Error(), "json: unknown field ")
-		return fmt.Errorf("request body contains unknown field %s", fieldName)
+		return errs.New("BAD_REQUEST", fmt.Sprintf("request body contains unknown field %s", fieldName), http.StatusBadRequest, nil)
 
 	case errors.As(err, &maxBytesError):
-		return fmt.Errorf("request body must not exceed %d bytes", maxBytesError.Limit)
+		return errs.New("REQUEST_ENTITY_TOO_LARGE", fmt.Sprintf("request body must not exceed %d bytes", maxBytesError.Limit), http.StatusRequestEntityTooLarge, nil)
 
 	case errors.As(err, &invalidUnmarshalError):
 		// This indicates a programming error, not a client error
@@ -104,6 +106,6 @@ func parseJSONDecodeError(err error) error {
 
 	default:
 		// Security: Don't expose internal error details
-		return errors.New("error parsing request body")
+		return errs.New("BAD_REQUEST", "error parsing request body", http.StatusBadRequest, nil)
 	}
 }

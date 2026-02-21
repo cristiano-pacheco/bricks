@@ -45,6 +45,18 @@ func TestNoContent_WritesNoContentStatus(t *testing.T) {
 	require.Equal(t, 0, rr.Body.Len())
 }
 
+func TestJSON_MarshalFailureDoesNotWriteHeaders(t *testing.T) {
+	rr := httptest.NewRecorder()
+	// chan is not JSON-serializable — json.Marshal returns an error
+	err := response.JSON(rr, http.StatusOK, make(chan int), http.Header{})
+	require.Error(t, err)
+	// Status must remain 200 (httptest default) — WriteHeader was never called
+	require.Equal(t, http.StatusOK, rr.Code)
+	// No Content-Type header should have been set
+	require.Empty(t, rr.Header().Get("Content-Type"))
+	require.Zero(t, rr.Body.Len())
+}
+
 func TestJSONRaw_WritesRawJSONAndHeaders(t *testing.T) {
 	// Arrange
 	rr := httptest.NewRecorder()

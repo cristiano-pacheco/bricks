@@ -15,6 +15,8 @@ import (
 	lib_validator "github.com/go-playground/validator/v10"
 )
 
+var camelToSnakeRe = regexp.MustCompile("([a-z0-9])([A-Z])")
+
 var genericError = Envelope{
 	"error": map[string]string{
 		"code":    "internal_server_error",
@@ -116,7 +118,6 @@ func (h *ErrorHandlerImpl) writeGenericError(w http.ResponseWriter) {
 }
 
 func camelToSnake(s string) string {
-	re := regexp.MustCompile("([a-z0-9])([A-Z])")
-	snake := re.ReplaceAllString(s, "${1}_${2}")
+	snake := camelToSnakeRe.ReplaceAllString(s, "${1}_${2}")
 	return strings.ToLower(snake)
 }

@@ -25,7 +25,9 @@ app:
         - "Authorization"
       exposedheaders:               # (optional) Headers exposed to browser, default: [] (empty)
         - "Link"
-      allowcredentials: true        # (optional) Allow credentials, default: false
+      allowcredentials: false       # (optional) Allow credentials, default: false
+                              # NOTE: Cannot combine allowedorigins: ["*"] with allowcredentials: true.
+                              # Browsers reject this per CORS spec. Use specific origins for credentials.
       maxage: 300                   # (optional) Preflight cache duration in seconds, default: 300
       optionspassthrough: false     # (optional) Pass OPTIONS requests to handlers, default: false
       debug: false                  # (optional) Enable CORS debug logging, default: false

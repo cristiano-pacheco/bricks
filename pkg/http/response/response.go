@@ -3,11 +3,17 @@ package response
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 )
 
 func JSON[T any](w http.ResponseWriter, status int, data T, headers http.Header) error {
-	w.Header().Set("Content-Type", "application/json")
+	body, err := json.Marshal(NewEnvelope(data))
+	if err != nil {
+		return err
+	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
 	for key, values := range headers {
 		for _, value := range values {
 			w.Header().Add(key, value)
@@ -15,9 +21,8 @@ func JSON[T any](w http.ResponseWriter, status int, data T, headers http.Header)
 	}
 
 	w.WriteHeader(status)
-
-	envelope := NewEnvelope(data)
-	return json.NewEncoder(w).Encode(envelope)
+	_, err = w.Write(body)
+	return err
 }
 
 func NoContent(w http.ResponseWriter) {
@@ -25,8 +30,13 @@ func NoContent(w http.ResponseWriter) {
 }
 
 func JSONRaw[T any](w http.ResponseWriter, status int, data T, headers http.Header) error {
-	w.Header().Set("Content-Type", "application/json")
+	body, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
 	for key, values := range headers {
 		for _, value := range values {
 			w.Header().Add(key, value)
@@ -34,5 +44,6 @@ func JSONRaw[T any](w http.ResponseWriter, status int, data T, headers http.Head
 	}
 
 	w.WriteHeader(status)
-	return json.NewEncoder(w).Encode(data)
+	_, err = w.Write(body)
+	return err
 }

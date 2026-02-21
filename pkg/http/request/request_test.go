@@ -2,10 +2,12 @@ package request_test
 
 import (
 	"bytes"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/cristiano-pacheco/bricks/pkg/errs"
 	"github.com/cristiano-pacheco/bricks/pkg/http/request"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,7 +53,11 @@ func TestReadJSON(t *testing.T) {
 
 		// Assert
 		require.Error(t, err)
-		assert.Equal(t, "Content-Type header is not application/json", err.Error())
+		var reqErr *errs.Error
+		require.True(t, errors.As(err, &reqErr))
+		assert.Equal(t, http.StatusUnsupportedMediaType, reqErr.Status)
+		assert.Equal(t, "UNSUPPORTED_MEDIA_TYPE", reqErr.Code)
+		assert.Equal(t, "Content-Type header is not application/json", reqErr.Message)
 		_ = w
 	})
 
@@ -72,7 +78,11 @@ func TestReadJSON(t *testing.T) {
 
 		// Assert
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "malformed JSON")
+		var reqErr *errs.Error
+		require.True(t, errors.As(err, &reqErr))
+		assert.Equal(t, http.StatusBadRequest, reqErr.Status)
+		assert.Equal(t, "BAD_REQUEST", reqErr.Code)
+		assert.Contains(t, reqErr.Message, "malformed JSON")
 		_ = w
 	})
 
@@ -93,7 +103,11 @@ func TestReadJSON(t *testing.T) {
 
 		// Assert
 		require.Error(t, err)
-		assert.Equal(t, "request body must not be empty", err.Error())
+		var reqErr *errs.Error
+		require.True(t, errors.As(err, &reqErr))
+		assert.Equal(t, http.StatusBadRequest, reqErr.Status)
+		assert.Equal(t, "BAD_REQUEST", reqErr.Code)
+		assert.Equal(t, "request body must not be empty", reqErr.Message)
 		_ = w
 	})
 
@@ -114,7 +128,11 @@ func TestReadJSON(t *testing.T) {
 
 		// Assert
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "unknown field")
+		var reqErr *errs.Error
+		require.True(t, errors.As(err, &reqErr))
+		assert.Equal(t, http.StatusBadRequest, reqErr.Status)
+		assert.Equal(t, "BAD_REQUEST", reqErr.Code)
+		assert.Contains(t, reqErr.Message, "unknown field")
 		_ = w
 	})
 
@@ -140,7 +158,11 @@ func TestReadJSON(t *testing.T) {
 
 		// Assert
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "must not exceed")
+		var reqErr *errs.Error
+		require.True(t, errors.As(err, &reqErr))
+		assert.Equal(t, http.StatusRequestEntityTooLarge, reqErr.Status)
+		assert.Equal(t, "REQUEST_ENTITY_TOO_LARGE", reqErr.Code)
+		assert.Contains(t, reqErr.Message, "must not exceed")
 		_ = w
 	})
 
@@ -161,7 +183,11 @@ func TestReadJSON(t *testing.T) {
 
 		// Assert
 		require.Error(t, err)
-		assert.Equal(t, "request body must contain only a single JSON value", err.Error())
+		var reqErr *errs.Error
+		require.True(t, errors.As(err, &reqErr))
+		assert.Equal(t, http.StatusBadRequest, reqErr.Status)
+		assert.Equal(t, "BAD_REQUEST", reqErr.Code)
+		assert.Equal(t, "request body must contain only a single JSON value", reqErr.Message)
 		_ = w
 	})
 }
