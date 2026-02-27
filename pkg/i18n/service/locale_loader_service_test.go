@@ -41,7 +41,7 @@ func (s *LocaleLoaderServiceTestSuite) SetupTest() {
 	}
 
 	s.FileSystem = locale.FileSystem{FS: s.fsys}
-	s.sut = service.NewLocaleLoaderService(logger.MustNew(logger.DefaultConfig()), s.FileSystem)
+	s.sut = service.NewLocaleLoaderService(logger.MustNew(logger.DefaultConfig()), []locale.FileSystem{s.FileSystem})
 }
 
 func (s *LocaleLoaderServiceTestSuite) TestLoadValidLocale() {
@@ -68,6 +68,32 @@ func (s *LocaleLoaderServiceTestSuite) TestParseJSONStructure() {
 	s.Require().Contains(translations, "errors")
 	s.Require().Contains(translations["errors"], "EXPORT_01")
 	s.Equal("Número de telefone é obrigatório", translations["errors"]["EXPORT_01"])
+}
+
+func (s *LocaleLoaderServiceTestSuite) TestMergeFromMultipleFileSystems() {
+	fs1 := fstest.MapFS{
+		"en.json": &fstest.MapFile{
+			Data: []byte(`{"admin": {"nav.products": "Products"}}`),
+		},
+	}
+	fs2 := fstest.MapFS{
+		"en.json": &fstest.MapFile{
+			Data: []byte(`{"errors": {"CATALOG_01": "Unsupported image content type"}}`),
+		},
+	}
+
+	sut := service.NewLocaleLoaderService(
+		logger.MustNew(logger.DefaultConfig()),
+		[]locale.FileSystem{locale.New(fs1), locale.New(fs2)},
+	)
+
+	translations, err := sut.Load("en")
+
+	s.Require().NoError(err)
+	s.Require().Contains(translations, "admin")
+	s.Equal("Products", translations["admin"]["nav.products"])
+	s.Require().Contains(translations, "errors")
+	s.Equal("Unsupported image content type", translations["errors"]["CATALOG_01"])
 }
 
 var _ fs.FS = fstest.MapFS{}

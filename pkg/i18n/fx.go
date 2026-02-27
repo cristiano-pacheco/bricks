@@ -19,6 +19,7 @@ var Module = fx.Module(
 		fx.Annotate(
 			service.NewLocaleLoaderService,
 			fx.As(new(ports.LocaleLoaderService)),
+			fx.ParamTags(``, `group:"locale_filesystems"`),
 		),
 		fx.Annotate(
 			service.NewTranslationService,
