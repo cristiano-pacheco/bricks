@@ -83,7 +83,10 @@ func mergeInto(dst, src map[string]map[string]string) {
 	}
 }
 
-func (s *LocaleLoaderService) loadLocaleFile(fileSystem locale.FileSystem, locale string) (map[string]map[string]string, error) {
+func (s *LocaleLoaderService) loadLocaleFile(
+	fileSystem locale.FileSystem,
+	locale string,
+) (map[string]map[string]string, error) {
 	content, err := fs.ReadFile(fileSystem.FS, locale+".json")
 	if err != nil {
 		return nil, fmt.Errorf("read locale %q: %w", locale, err)
