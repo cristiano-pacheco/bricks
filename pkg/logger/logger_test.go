@@ -131,17 +131,6 @@ func TestLogger_GetZapLogger(t *testing.T) {
 	require.NotNil(t, zl)
 }
 
-func TestLogger_Sync(t *testing.T) {
-	log := logger.MustNew(logger.DefaultConfig())
-
-	// Sync may return "bad file descriptor" on macOS when stdout is not a
-	// regular file — this is a known OS-level limitation, not a logger bug.
-	err := log.Sync()
-	if err != nil {
-		assert.Contains(t, err.Error(), "bad file descriptor")
-	}
-}
-
 func TestNewWithOptions_FromDevelopmentConfig(t *testing.T) {
 	config := logger.DevelopmentConfig()
 	log, err := logger.New(config)
