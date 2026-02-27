@@ -7,7 +7,7 @@ import (
 	"testing/fstest"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres" // postgres driver for migrate
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
@@ -54,7 +54,8 @@ func (r *Runner) merge() (fs.FS, error) {
 			if entry.IsDir() {
 				continue
 			}
-			data, err := fs.ReadFile(fileSystem.FS, entry.Name())
+			var data []byte
+			data, err = fs.ReadFile(fileSystem.FS, entry.Name())
 			if err != nil {
 				return nil, fmt.Errorf("read %q: %w", entry.Name(), err)
 			}
