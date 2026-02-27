@@ -43,6 +43,10 @@ nilaway:
 test:
 	CGO_ENABLED=0 go test ./...
 
+.PHONY: unit-test-coverage
+unit-test-coverage:
+	CGO_ENABLED=0 go test ./... -coverprofile=coverage.txt
+
 # ==============================================================================
 # Integration Tests
 # All integration test commands are delegated to scripts/integration-test.sh
