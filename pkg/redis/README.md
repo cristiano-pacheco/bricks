@@ -21,7 +21,7 @@ For a complete configuration example, see [config/config.yaml](config/config.yam
 ## Installation
 
 ```bash
-go get github.com/cristiano-pacheco/bricks/pkg/redis
+go get github.com/cristiano-pacheco/bricks
 ```
 
 ## Quick Start
@@ -71,28 +71,20 @@ func main() {
 
 ### With Uber FX
 
+Config is loaded automatically from `app.redis` in your config files — no manual `fx.Provide` needed.
+
 ```go
 package main
 
 import (
-    "context"
-
     "github.com/cristiano-pacheco/bricks/pkg/redis"
     "go.uber.org/fx"
 )
 
 func main() {
     app := fx.New(
-        fx.Provide(
-            func() redis.Config {
-                return redis.Config{
-                    URL:  "redis://localhost:6379",
-                    Type: redis.ClientTypeSingleNode,
-                }
-            },
-        ),
-        redis.Module,
-        fx.Invoke(func(client *redis.Client) {
+        redis.Module, // provides redis.UniversalClient, loads config from "app.redis"
+        fx.Invoke(func(client redis.UniversalClient) {
             // Use the client
         }),
     )
@@ -380,40 +372,32 @@ Available errors:
 
 ## Uber FX Integration
 
-### Using Module
+Both modules load config automatically from `app.redis` — no manual `fx.Provide` for the config is needed.
+
+### Using Module (UniversalClient)
+
+`Module` is the default. It provides the `redis.UniversalClient` interface, which works with
+single-node, cluster, sentinel, and failover clients transparently.
 
 ```go
 app := fx.New(
-    fx.Provide(
-        func() redis.Config {
-            return redis.Config{
-                URL:  "redis://localhost:6379",
-                Type: redis.ClientTypeSingleNode,
-            }
-        },
-    ),
-    redis.Module, // Provides *redis.Client
-    fx.Invoke(func(client *redis.Client) {
+    redis.Module, // provides redis.UniversalClient
+    fx.Invoke(func(client redis.UniversalClient) {
         // Use client
     }),
 )
 ```
 
-### Using UniversalClientModule
+### Using ClientModule (*Client)
+
+`ClientModule` provides the bricks `*redis.Client`, giving access to helpers like
+`WithNamespace`, `Stats`, and `GetMetrics`.
 
 ```go
 app := fx.New(
-    fx.Provide(
-        func() redis.Config {
-            return redis.Config{
-                URL:  "redis://localhost:6379",
-                Type: redis.ClientTypeSingleNode,
-            }
-        },
-    ),
-    redis.UniversalClientModule, // Provides redis.UniversalClient
-    fx.Invoke(func(client redis.UniversalClient) {
-        // Use UniversalClient interface
+    redis.ClientModule, // provides *redis.Client
+    fx.Invoke(func(client *redis.Client) {
+        // Use client
     }),
 )
 ```
@@ -422,13 +406,8 @@ app := fx.New(
 
 ```go
 app := fx.New(
+    redis.Module,
     fx.Provide(
-        func() redis.Config {
-            return redis.Config{
-                URL:  "redis://localhost:6379",
-                Type: redis.ClientTypeSingleNode,
-            }
-        },
         fx.Annotate(
             func() []redis.Option {
                 return []redis.Option{
@@ -441,7 +420,6 @@ app := fx.New(
             fx.ResultTags(`group:"redis_options"`),
         ),
     ),
-    redis.Module,
 )
 ```
 
