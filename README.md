@@ -89,6 +89,14 @@ Prometheus-based metrics collection for use case execution tracking with Uber FX
 - **Import**: `github.com/cristiano-pacheco/bricks/pkg/metrics`
 - **Documentation**: [pkg/metrics/README.md](pkg/metrics/README.md)
 
+### Migration
+
+Database migration package with co-located, per-module SQL migration support using embedded filesystems and `golang-migrate`, with Uber FX integration.
+
+- **Location**: `pkg/migration`
+- **Import**: `github.com/cristiano-pacheco/bricks/pkg/migration`
+- **Documentation**: [pkg/migration/README.md](pkg/migration/README.md)
+
 ### OpenTelemetry Trace
 
 Simple and powerful OpenTelemetry tracing integration for Go applications.
