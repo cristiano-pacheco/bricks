@@ -2,6 +2,12 @@
 
 A robust, production-ready logging package built on top of [Uber Zap](https://github.com/uber-go/zap), providing high-performance structured logging with FX integration.
 
+## Installation
+
+```bash
+go get github.com/cristiano-pacheco/bricks
+```
+
 ## Usage
 
 To use the module, add it to your fx app:

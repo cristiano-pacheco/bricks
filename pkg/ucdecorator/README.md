@@ -5,7 +5,7 @@ A decorator pattern implementation for use cases that provides automatic logging
 ## Installation
 
 ```bash
-go get github.com/cristiano-pacheco/bricks/pkg/ucdecorator
+go get github.com/cristiano-pacheco/bricks
 ```
 
 ## Usage

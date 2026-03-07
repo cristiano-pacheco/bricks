@@ -5,7 +5,7 @@ Struct validation with `go-playground/validator`.
 ## Installation
 
 ```bash
-go get github.com/cristiano-pacheco/bricks/pkg/validator
+go get github.com/cristiano-pacheco/bricks
 ```
 
 ## Usage

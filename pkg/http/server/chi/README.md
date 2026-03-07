@@ -2,6 +2,12 @@
 
 HTTP server based on Chi with CORS, Prometheus and FX.
 
+## Installation
+
+```bash
+go get github.com/cristiano-pacheco/bricks
+```
+
 ## Usage
 
 To use the module, add it to your fx app:

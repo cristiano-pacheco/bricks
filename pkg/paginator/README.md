@@ -5,7 +5,7 @@ A pagination utilities package for handling pagination parameters in HTTP reques
 ## Installation
 
 ```bash
-go get github.com/cristiano-pacheco/bricks/pkg/paginator
+go get github.com/cristiano-pacheco/bricks
 ```
 
 ## Usage

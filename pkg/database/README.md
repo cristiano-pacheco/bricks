@@ -11,7 +11,7 @@ For a complete configuration example, see [config/config.yaml](config/config.yam
 Install the entire Bricks framework:
 
 ```bash
-go get github.com/cristiano-pacheco/bricks@latest
+go get github.com/cristiano-pacheco/bricks
 ```
 
 Then import the database module:

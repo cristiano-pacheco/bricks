@@ -2,6 +2,12 @@
 
 The `itestkit` package provides integration test infrastructure for Docker containers (PostgreSQL and Redis) with automatic cleanup.
 
+## Installation
+
+```bash
+go get github.com/cristiano-pacheco/bricks
+```
+
 ## Features
 
 - **Automatic Container Management**: Start/stop PostgreSQL and Redis containers for integration tests

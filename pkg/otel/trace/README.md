@@ -2,6 +2,12 @@
 
 Simple and powerful OpenTelemetry tracing integration for Go applications.
 
+## Installation
+
+```bash
+go get github.com/cristiano-pacheco/bricks
+```
+
 ## Usage
 
 To use the module, add it to your fx app:
