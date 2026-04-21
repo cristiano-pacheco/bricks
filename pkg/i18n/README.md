@@ -52,7 +52,7 @@ app:
 
 | Field      | Type   | Description                                          |
 |------------|--------|------------------------------------------------------|
-| `language` | string | BCP 47 locale code (e.g. `en`, `pt-BR`). Defaults to `en` if empty. |
+| `language` | string | BCP 47 locale code (e.g. `en`, `pt_BR`). Defaults to `en` if empty. |
 
 ## Locale File Format
 
