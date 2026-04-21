@@ -47,7 +47,7 @@ The module reads its configuration from the `app.i18n` key:
 ```yaml
 app:
   i18n:
-    language: "pt-BR"
+    language: "pt_BR"
 ```
 
 | Field      | Type   | Description                                          |
