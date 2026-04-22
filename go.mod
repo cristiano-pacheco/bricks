@@ -1,6 +1,6 @@
 module github.com/cristiano-pacheco/bricks
 
-go 1.26.0
+go 1.26.2
 
 require (
 	github.com/go-chi/chi/v5 v5.2.5
