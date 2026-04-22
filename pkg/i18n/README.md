@@ -47,12 +47,12 @@ The module reads its configuration from the `app.i18n` key:
 ```yaml
 app:
   i18n:
-    language: "pt-BR"
+    language: "pt_BR"
 ```
 
 | Field      | Type   | Description                                          |
 |------------|--------|------------------------------------------------------|
-| `language` | string | BCP 47 locale code (e.g. `en`, `pt-BR`). Defaults to `en` if empty. |
+| `language` | string | BCP 47 locale code (e.g. `en`, `pt_BR`). Defaults to `en` if empty. |
 
 ## Locale File Format
 
