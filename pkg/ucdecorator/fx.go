@@ -11,7 +11,7 @@ var Module = fx.Module(
 	fx.Provide(
 		fx.Annotate(
 			NewFactory,
-			fx.ParamTags(``, ``, ``, `optional:"true"`),
+			fx.ParamTags(``, ``, ``, ``),
 		),
 	),
 )

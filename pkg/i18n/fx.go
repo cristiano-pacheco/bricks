@@ -27,7 +27,8 @@ var Module = fx.Module(
 		),
 		fx.Annotate(
 			service.NewErrorTranslatorService,
-			fx.As(new(ports.ErrorTranslatorService), new(ucdecorator.ErrorTranslator)),
+			fx.As(new(ports.ErrorTranslatorService)),
+			fx.As(new(ucdecorator.ErrorTranslator)),
 		),
 	),
 )
