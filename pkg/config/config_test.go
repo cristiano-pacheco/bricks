@@ -104,14 +104,19 @@ func TestLoad_EnvironmentFromEnvVar(t *testing.T) {
 }
 
 func TestEnvironmentVariables(t *testing.T) {
-	t.Run("should override config with environment variables", func(t *testing.T) {
+	t.Run("should resolve env reference values from yaml", func(t *testing.T) {
 		// Arrange
 		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
 app:
   name: "EnvTest"
-  port: 8080
+  port: env://APP_PORT
+  debug: env://APP_DEBUG
+  database:
+    host: env://DB_HOST
+    port: env://DB_PORT
+    password: env://DB_PASSWORD
 `
 		err := os.WriteFile(
 			filepath.Join(tmpDir, "base.yaml"),
@@ -120,6 +125,10 @@ app:
 		)
 		require.NoError(t, err)
 		t.Setenv("APP_PORT", "9999")
+		t.Setenv("APP_DEBUG", "true")
+		t.Setenv("DB_HOST", "postgres.internal")
+		t.Setenv("DB_PORT", "5432")
+		t.Setenv("DB_PASSWORD", "secret")
 
 		// Act
 		t.Setenv("APP_ENV", "local")
@@ -128,6 +137,9 @@ app:
 		// Assert
 		require.NoError(t, err)
 		assert.Equal(t, 9999, cfg.Get().App.Port)
+		assert.True(t, cfg.Get().App.Debug)
+		assert.Equal(t, "postgres.internal", cfg.Get().App.Database.Host)
+		assert.Equal(t, 5432, cfg.Get().App.Database.Port)
 	})
 }
 
@@ -556,7 +568,7 @@ app:
 		assert.Equal(t, "Base", cfg.Get().App.Name)
 	})
 
-	t.Run("should override nested config with environment variables", func(t *testing.T) {
+	t.Run("should ignore legacy APP-prefixed config override env vars", func(t *testing.T) {
 		// Arrange
 		tmpDir := tempConfigDir(t)
 
@@ -569,8 +581,6 @@ app:
 		err := os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(baseConfig), 0644)
 		require.NoError(t, err)
 
-		// Set multiple environment variables.
-		// The transformer strips APP_ then prepends "app.", so APP_X -> app.x
 		t.Setenv("APP_HOST", "prod.example.com")
 		t.Setenv("APP_PORT", "3306")
 		t.Setenv("APP_NAME", "production_db")
@@ -586,9 +596,9 @@ app:
 
 		// Assert
 		require.NoError(t, err)
-		assert.Equal(t, "prod.example.com", cfg.Get().Host)
-		assert.Equal(t, 3306, cfg.Get().Port)
-		assert.Equal(t, "production_db", cfg.Get().Name)
+		assert.Equal(t, "localhost", cfg.Get().Host)
+		assert.Equal(t, 5432, cfg.Get().Port)
+		assert.Equal(t, "myapp", cfg.Get().Name)
 	})
 }
 
@@ -726,43 +736,66 @@ level1:
 }
 
 func TestEnvironmentVariablesWithComplexPaths(t *testing.T) {
-	t.Run("should override deeply nested values with env vars", func(t *testing.T) {
+	t.Run("should resolve deeply nested env references and env-specific overrides", func(t *testing.T) {
 		// Arrange
 		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
 app:
-  api:
-    endpoint:
-      url: "http://localhost"
-      port: 8080
+  notification:
+    email_providers:
+      resend:
+        api_key: env://BASE_RESEND_API_KEY
+  database:
+    host: env://DB_HOST
+    port: env://DB_PORT
+    password: env://MISSING_DB_PASSWORD
+`
+		productionConfig := `
+app:
+  notification:
+    email_providers:
+      resend:
+        api_key: env://RESEND_API_KEY
 `
 		err := os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(baseConfig), 0644)
+		require.NoError(t, err)
+		err = os.WriteFile(filepath.Join(tmpDir, "production.yaml"), []byte(productionConfig), 0644)
 		require.NoError(t, err)
 
 		type ServiceConfig struct {
 			App struct {
-				API struct {
-					Endpoint struct {
-						URL  string `config:"url"`
-						Port int    `config:"port"`
-					} `config:"endpoint"`
-				} `config:"api"`
+				Notification struct {
+					EmailProviders struct {
+						Resend struct {
+							APIKey string `config:"api_key"`
+						} `config:"resend"`
+					} `config:"email_providers"`
+				} `config:"notification"`
+				Database struct {
+					Host     string `config:"host"`
+					Port     int    `config:"port"`
+					Password string `config:"password"`
+				} `config:"database"`
 			} `config:"app"`
 		}
 
-		// Set environment variables for deeply nested values.
-		// Use __ as nesting delimiter: APP_API__ENDPOINT__URL -> app.api.endpoint.url
-		t.Setenv("APP_API__ENDPOINT__URL", "https://production.example.com")
-		t.Setenv("APP_API__ENDPOINT__PORT", "443")
+		t.Setenv("APP_ENV", "production")
+		t.Setenv("RESEND_API_KEY", "re_prod_xxx")
+		t.Setenv("BASE_RESEND_API_KEY", "re_base_xxx")
+		t.Setenv("DB_HOST", "postgres.internal")
+		t.Setenv("DB_PORT", "5432")
+		t.Setenv("APP_NOTIFICATION__EMAIL_PROVIDERS__RESEND__API_KEY", "legacy-override")
 
 		// Act
 		cfg, err := loadConfig[ServiceConfig](tmpDir)
 
 		// Assert
 		require.NoError(t, err)
-		assert.Equal(t, "https://production.example.com", cfg.Get().App.API.Endpoint.URL)
-		assert.Equal(t, 443, cfg.Get().App.API.Endpoint.Port)
+		assert.Equal(t, "re_prod_xxx", cfg.Get().App.Notification.EmailProviders.Resend.APIKey)
+		assert.Equal(t, "postgres.internal", cfg.Get().App.Database.Host)
+		assert.Equal(t, 5432, cfg.Get().App.Database.Port)
+		assert.Equal(t, "", cfg.Get().App.Database.Password)
 	})
 }
 
@@ -960,13 +993,11 @@ func TestEnvironmentVariableWithInvalidValues(t *testing.T) {
 
 		baseConfig := `
 app:
-  port: 8080
+  port: env://APP_PORT
 `
 		err := os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(baseConfig), 0644)
 		require.NoError(t, err)
 
-		// Set environment variable with invalid value for int field.
-		// APP_PORT -> app.port (transformer strips APP_, prepends "app.")
 		t.Setenv("APP_PORT", "not_a_number")
 
 		type AppConfig struct {

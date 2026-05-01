@@ -47,7 +47,7 @@ All packages live under `pkg/`. Each one follows the same structure:
 
 | Package | Purpose |
 |---|---|
-| `pkg/config` | Generic config loading: `config.New[T](path)`, merges `base.yaml` + env YAML + env vars |
+| `pkg/config` | Generic config loading: `config.New[T](path)`, merges `base.yaml` + env YAML + resolves `env://` references |
 | `pkg/logger` | Uber Zap wrapper with `Logger` interface; console (dev) / JSON (prod) |
 | `pkg/errs` | Structured `Error{Status, Code, Message, Details}` with HTTP semantics |
 | `pkg/database` | GORM/PostgreSQL with pooling, retry on connect, FX lifecycle |
@@ -68,7 +68,7 @@ All packages live under `pkg/`. Each one follows the same structure:
 Config is loaded via `config.New[T]("app.nested.path")`:
 1. Reads `APP_ENV` env var (default: `local`) → picks `config/{env}.yaml`
 2. Loads `config/base.yaml` (required), merges env-specific YAML
-3. Overrides from env vars: `APP_*` prefix, `__` as nesting delimiter (e.g., `APP_DATABASE__HOST` → `app.database.host`)
+3. Resolves YAML values using `env://VAR_NAME` from the process environment (e.g., `host: env://DB_HOST`)
 
 Struct fields use `config:` tags (not `json:`/`yaml:`). FX shortcut: `config.Provide[T]("app.path")`.
 

@@ -1,7 +1,7 @@
 # Production configuration
 # This file overrides base.yaml settings for production environment
-# IMPORTANT: Set sensitive values using environment variables with APP_ prefix
-# Example: APP_DATABASE__PASSWORD=secret123
+# IMPORTANT: Set sensitive values with env://VAR_NAME placeholders in YAML
+# Example: password: env://DB_PASSWORD
 
 app:
   # Use environment variables for sensitive/environment-specific config
@@ -15,7 +15,7 @@ app:
     port: 5432
     name: production_db
     user: prod_user
-    password: ""  # Set via APP_DATABASE__PASSWORD env var
+    password: env://DB_PASSWORD
     max_connections: 100
     ssl: true
     pool:
@@ -26,7 +26,7 @@ app:
   redis:
     host: redis.production.com
     port: 6379
-    password: ""  # Set via APP_REDIS__PASSWORD env var
+    password: env://REDIS_PASSWORD
     pool_size: 50
     min_idle_conns: 10
 
@@ -47,7 +47,7 @@ app:
       - "https://api.production.com"
 
   auth:
-    jwt_secret: ""  # Set via APP_AUTH__JWT_SECRET env var
+    jwt_secret: env://JWT_SECRET
     jwt_expiration: 7200
     refresh_expiration: 2592000
 

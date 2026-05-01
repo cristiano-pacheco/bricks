@@ -8,9 +8,10 @@ import (
 	"strings"
 
 	"github.com/knadh/koanf/parsers/yaml"
-	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/v2"
 )
+
+const envValuePrefix = "env://"
 
 type Config[T any] struct {
 	value T
@@ -89,21 +90,6 @@ func loadKoanf(configDir, environment string) (*koanf.Koanf, error) {
 		return nil, fmt.Errorf("failed to load %s.yaml config: %w", environment, err)
 	}
 
-	// Load environment variables with APP_ prefix.
-	// Double underscore (__) is used as the nesting delimiter so that
-	// single underscores inside key names (e.g. api_key, max_tokens) are
-	// preserved. All keys are mapped under the "app" root automatically.
-	// Example: APP_DATABASE__HOST=localhost        ->  app.database.host
-	//          APP_AI__PROVIDERS__OPENAI__API_KEY=x ->  app.ai.providers.openai.api_key
-	if err := k.Load(env.Provider("APP_", ".", func(s string) string {
-		s = strings.TrimPrefix(s, "APP_")
-		s = strings.ToLower(s)
-		s = strings.ReplaceAll(s, "__", ".")
-		return "app." + s
-	}), nil); err != nil {
-		return nil, fmt.Errorf("failed to load environment variables: %w", err)
-	}
-
 	return k, nil
 }
 
@@ -125,11 +111,62 @@ func loadConfigFile(k *koanf.Koanf, configDir, name string) error {
 		return fmt.Errorf("failed to parse config file %s: %w", configPath, err)
 	}
 
-	if loadErr := k.Load(&yamlProvider{data: data}, nil); loadErr != nil {
+	resolvedData, err := resolveEnvValues(data)
+	if err != nil {
+		return fmt.Errorf("failed to resolve env values for config file %s: %w", configPath, err)
+	}
+
+	if loadErr := k.Load(&yamlProvider{data: resolvedData}, nil); loadErr != nil {
 		return fmt.Errorf("failed to load config file %s: %w", configPath, loadErr)
 	}
 
 	return nil
+}
+
+func resolveEnvValues(data map[string]interface{}) (map[string]interface{}, error) {
+	resolved, err := resolveEnvValue(data)
+	if err != nil {
+		return nil, err
+	}
+
+	resolvedMap, ok := resolved.(map[string]interface{})
+	if !ok {
+		return nil, errors.New("resolved config data must be a map")
+	}
+
+	return resolvedMap, nil
+}
+
+func resolveEnvValue(value interface{}) (interface{}, error) {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		resolved := make(map[string]interface{}, len(typed))
+		for key, nestedValue := range typed {
+			nextValue, err := resolveEnvValue(nestedValue)
+			if err != nil {
+				return nil, err
+			}
+			resolved[key] = nextValue
+		}
+		return resolved, nil
+	case []interface{}:
+		resolved := make([]interface{}, len(typed))
+		for idx, nestedValue := range typed {
+			nextValue, err := resolveEnvValue(nestedValue)
+			if err != nil {
+				return nil, err
+			}
+			resolved[idx] = nextValue
+		}
+		return resolved, nil
+	case string:
+		if strings.HasPrefix(typed, envValuePrefix) {
+			return os.Getenv(strings.TrimPrefix(typed, envValuePrefix)), nil
+		}
+		return typed, nil
+	default:
+		return value, nil
+	}
 }
 
 func unmarshalKey(k *koanf.Koanf, key string, target interface{}) error {
