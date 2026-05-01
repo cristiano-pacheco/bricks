@@ -18,7 +18,7 @@ type Config struct {
 	Port     uint
 	Name     string
 	User     string
-	Password string //nolint:gosec // intentional config field for database credentials
+	Password string
 
 	// SSL configuration
 	SSLMode     bool

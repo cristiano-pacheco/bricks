@@ -38,8 +38,8 @@ const (
 // Config holds the configuration for Redis connection
 type Config struct {
 	// Connection parameters
-	URL      string     // Redis URL (e.g., redis://localhost:6379)
-	Password string     //nolint:gosec // Redis password
+	URL      string // Redis URL (e.g., redis://localhost:6379)
+	Password string
 	DB       int        // Database number (0-15 for single node)
 	Type     ClientType // Client type (single_node, cluster, sentinel, failover)
 
