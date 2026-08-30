@@ -59,7 +59,7 @@ Optimized JSON response helpers for Go HTTP handlers with high performance and m
 
 ### HTTP Server - Chi
 
-Robust HTTP server implementation using Chi router with CORS and Uber FX support.
+HTTP server implementation using Chi router with CORS, configurable listeners, and Uber FX support.
 
 - **Location**: `pkg/http/server/chi`
 - **Import**: `github.com/cristiano-pacheco/bricks/pkg/http/server/chi`
