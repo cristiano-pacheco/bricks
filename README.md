@@ -26,6 +26,14 @@ PostgreSQL database connection module with GORM and Uber FX integration.
 - **Import**: `github.com/cristiano-pacheco/bricks/pkg/database`
 - **Documentation**: [pkg/database/README.md](pkg/database/README.md)
 
+### SQLite database
+
+SQLite connection construction with GORM, `mattn/go-sqlite3`, and Uber FX lifecycle support.
+
+- **Location**: `pkg/database/sqlite`
+- **Import**: `github.com/cristiano-pacheco/bricks/pkg/database/sqlite`
+- **Documentation**: [pkg/database/sqlite/README.md](pkg/database/sqlite/README.md)
+
 ### Errors
 
 Structured error handling with HTTP status codes.

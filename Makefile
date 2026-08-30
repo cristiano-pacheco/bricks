@@ -41,11 +41,11 @@ nilaway:
 
 .PHONY: test
 test:
-	CGO_ENABLED=0 go test ./...
+	CGO_ENABLED=1 go test ./...
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	CGO_ENABLED=0 go test ./... -coverprofile=coverage.txt
+	CGO_ENABLED=1 go test ./... -coverprofile=coverage.txt
 
 # ==============================================================================
 # Integration Tests
