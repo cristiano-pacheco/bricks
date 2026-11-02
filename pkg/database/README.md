@@ -329,6 +329,35 @@ Features:
 - Connection pool configuration
 - No need for manual Close() calls
 
+## GORM tracing
+
+Declare `trace.GORMModule()` and set `app.database.tracing.enabled: true` to trace
+GORM operations. Tracing is disabled by default and uses the provider managed by the
+Bricks tracing module. See [OpenTelemetry tracing](../otel/trace/README.md) for setup
+and privacy limits.
+
+## Prometheus pool metrics
+
+Declare `database.PoolMetricsModule()` and provide the application's `*gorm.DB` and
+`prometheus.Registerer` through Fx. Set `app.database.metrics.enabled: true`
+in YAML to enable the collector. It is disabled by default and independent of
+GORM tracing.
+
+```yaml
+app:
+  database:
+    tracing:
+      enabled: true
+    metrics:
+      enabled: true
+```
+
+The module registers the official Prometheus `NewDBStatsCollector` for the client's
+existing `sql.DB`. It exports `go_sql_*` metrics with `db_name="postgres"`, including
+open, in-use, idle and wait statistics. Registration failures reject startup. Fx
+unregisters the collector on stop; the application retains ownership of the client
+and registry. Provide the same registry to the metrics listener to expose the metrics.
+
 ## Connection Pool Management
 
 The module automatically configures connection pooling with sensible defaults:
