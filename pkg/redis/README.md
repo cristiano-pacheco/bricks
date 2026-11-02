@@ -447,3 +447,36 @@ The Redis client is thread-safe and can be used concurrently from multiple gorou
 ## License
 
 This package is part of the bricks library and follows the same license.
+
+## Tracing and Prometheus pool metrics
+
+Declare `trace.RedisModule()` alongside `trace.Module` or `trace.GORMModule()`.
+Provide the application's `redis.UniversalClient` through Fx. Set
+`app.redis.tracing.enabled: true` to enable tracing. The switch defaults to false
+and is independent of database tracing. Tracing supports single-node and
+Sentinel-backed clients. Cluster and Ring clients
+reject startup because redisotel cannot reliably instrument nodes created before
+the hook is installed. Install the tracing module before the
+application's lifecycle hooks so requests drain before the provider stops.
+
+Declare `redis.PoolMetricsModule()` and provide the same Redis client and a
+`prometheus.Registerer`. Set `app.redis.metrics.enabled: true` to register the
+official go-redis Prometheus pool collector. This switch also defaults to false.
+It is independent of tracing and the older `enablemetrics` client option.
+
+```yaml
+app:
+  redis:
+    tracing:
+      enabled: true
+    metrics:
+      enabled: true
+```
+
+The collector exports `redis_pool_*` metrics from the existing client. Fx rejects
+registration errors and unregisters the collector on stop. Neither module closes
+the application-owned client. Redis tracing disables command statements and caller
+capture and retains redisotel's authentication filters. It also excludes COMMAND
+and CLUSTER commands and pipelines containing them because their subcommand may
+contain sensitive data. Third-party error messages in spans may still contain
+sensitive data; these controls do not sanitize them.

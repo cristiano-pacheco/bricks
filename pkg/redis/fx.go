@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/cristiano-pacheco/bricks/pkg/config"
@@ -47,16 +48,24 @@ var ClientModule = fx.Module("redis-client",
 	fx.Provide(NewWithFx),
 )
 
+// TracingEnabled is supplied by the tracing module to validate framework-owned clients.
+type TracingEnabled struct{}
+
 // Params for dependency injection.
 type Params struct {
 	fx.In
 
 	Config  Config
-	Options []Option `optional:"true"`
+	Options []Option        `optional:"true"`
+	Tracing *TracingEnabled `optional:"true"`
 }
 
 // NewWithFx creates a new Redis *Client with fx lifecycle management.
 func NewWithFx(lc fx.Lifecycle, params Params) (*Client, error) {
+	if params.Tracing != nil && params.Config.Type == ClientTypeCluster {
+		return nil, errors.New("redis tracing: cluster clients are not supported")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), defaultFxTimeout)
 	defer cancel()
 
@@ -79,6 +88,10 @@ func NewWithFx(lc fx.Lifecycle, params Params) (*Client, error) {
 
 // NewUniversalClientWithFx creates a new Redis UniversalClient with fx lifecycle management.
 func NewUniversalClientWithFx(lc fx.Lifecycle, params Params) (UniversalClient, error) {
+	if params.Tracing != nil && params.Config.Type == ClientTypeCluster {
+		return nil, errors.New("redis tracing: cluster clients are not supported")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), defaultFxTimeout)
 	defer cancel()
 

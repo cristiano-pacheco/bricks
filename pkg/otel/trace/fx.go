@@ -9,7 +9,18 @@ import (
 )
 
 // Module loads tracing configuration and manages the tracer lifecycle.
-var Module = fx.Module("otel.trace", config.Provide[yamlConfig]("app.open-telemetry"), fx.Invoke(initializeYAML))
+var Module = fx.Module("otel.trace", config.Provide[yamlConfig]("app.open-telemetry"),
+	fx.Provide(newTraceLifecycle), fx.Invoke(func(*traceLifecycle) {}))
+
+type traceLifecycle struct{}
+
+func newTraceLifecycle(lc fx.Lifecycle, value config.Config[yamlConfig]) (*traceLifecycle, error) {
+	if err := initializeYAML(lc, value); err != nil {
+		return nil, err
+	}
+
+	return &traceLifecycle{}, nil
+}
 
 type yamlConfig struct {
 	AppName         string        `config:"app_name"`
