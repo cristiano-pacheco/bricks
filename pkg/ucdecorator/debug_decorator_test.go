@@ -13,6 +13,7 @@ import (
 
 type DebugDecoratorTestSuite struct {
 	suite.Suite
+
 	sut        ucdecorator.UseCase[string, string]
 	baseMock   *mocks.MockUseCase[string, string]
 	loggerMock *mocks.MockLogger
@@ -24,6 +25,7 @@ func (s *DebugDecoratorTestSuite) SetupTest() {
 	s.sut = ucdecorator.WithDebug(s.baseMock, s.loggerMock, "TestUseCase.Execute", "translation")
 }
 
+//nolint:paralleltest // Testify suites keep mutable state and do not support parallel tests.
 func TestDebugDecoratorSuite(t *testing.T) {
 	suite.Run(t, new(DebugDecoratorTestSuite))
 }
@@ -42,6 +44,7 @@ func (s *DebugDecoratorTestSuite) TestWithDebug_NilLogger_ReturnsBaseUnchanged()
 func (s *DebugDecoratorTestSuite) TestExecute_Success_LogsStartAndSuccess() {
 	// Arrange
 	ctx := context.Background()
+
 	s.baseMock.On("Execute", mock.Anything, "input").Return("output", nil)
 	s.loggerMock.On("Debug", "decorator execute start", mock.Anything, mock.Anything).Once().Return()
 	s.loggerMock.On("Debug", "decorator execute success", mock.Anything, mock.Anything, mock.Anything).Once().Return()

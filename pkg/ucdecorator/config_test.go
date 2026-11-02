@@ -8,7 +8,11 @@ import (
 )
 
 func TestDefaultConfig(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns config with all decorators enabled", func(t *testing.T) {
+		t.Parallel()
+
 		// Arrange & Act
 		cfg := ucdecorator.DefaultConfig()
 

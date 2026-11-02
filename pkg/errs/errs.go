@@ -22,7 +22,7 @@ type Detail struct {
 	Message string `json:"message,omitempty"`
 }
 
-// Error implements the error interface
+// Error implements the error interface.
 func (e *Error) Error() string {
 	return fmt.Sprintf("[%s] %s", e.Code, e.Message)
 }

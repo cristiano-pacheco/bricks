@@ -16,7 +16,7 @@ import (
 //
 // The connection uses foreign keys, WAL, a five-second busy timeout, immediate
 // transactions, and one open connection by default. The caller owns the
-// returned connection and must close its underlying sql.DB.
+// returned connection and must close its underlying [sql.DB].
 func New(cfg Config) (*gorm.DB, error) {
 	cfg = cfg.withDefaults()
 	if err := cfg.Validate(); err != nil {
@@ -37,6 +37,7 @@ func New(cfg Config) (*gorm.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: get underlying sql.DB: %w", ErrConnectionFailed, err)
 	}
+
 	configureConnectionPool(sqlDB, cfg)
 
 	pingErr := sqlDB.PingContext(context.Background())
@@ -67,6 +68,7 @@ func NewWithLifecycle(lc fx.Lifecycle, cfg config.Config[Config]) (*gorm.DB, err
 			if closeErr != nil {
 				return fmt.Errorf("close sqlite database: %w", closeErr)
 			}
+
 			return nil
 		},
 	})
@@ -98,6 +100,7 @@ func buildGORMConfig(cfg Config) *gorm.Config {
 	} else if !cfg.EnableLogs && (cfg.GORMConfig == nil || cfg.GORMConfig.Logger == nil) {
 		gormConfig.Logger = gormlogger.Discard
 	}
+
 	if cfg.NamingStrategy != nil {
 		gormConfig.NamingStrategy = cfg.NamingStrategy
 	}

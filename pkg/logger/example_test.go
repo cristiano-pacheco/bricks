@@ -9,6 +9,7 @@ func Example_basicUsage() {
 	config := logger.DefaultConfig()
 	config.OutputPaths = []string{"/dev/null"}
 	config.ErrorOutputPaths = []string{"/dev/null"}
+
 	log := logger.MustNew(config)
 	defer log.Sync()
 
@@ -22,6 +23,7 @@ func Example_developmentConfig() {
 	config := logger.DevelopmentConfig()
 	config.OutputPaths = []string{"/dev/null"}
 	config.ErrorOutputPaths = []string{"/dev/null"}
+
 	log := logger.MustNew(config)
 	defer log.Sync()
 
@@ -56,6 +58,7 @@ func Example_contextLogger() {
 	config := logger.DevelopmentConfig()
 	config.OutputPaths = []string{"/dev/null"}
 	config.ErrorOutputPaths = []string{"/dev/null"}
+
 	log := logger.MustNew(config)
 	defer log.Sync()
 

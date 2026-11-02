@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// options holds internal configuration options
+// options holds internal configuration options.
 type options struct {
 	ConnectTimeout time.Duration
 	MaxRetries     int
@@ -15,16 +15,16 @@ type options struct {
 	OnDisconnect   func(client *Client) error
 }
 
-// Option is a functional option for configuring the Redis client
+// Option is a functional option for configuring the Redis client.
 type Option func(*options)
 
-// Default values
+// Default values.
 const (
 	defaultConnectTimeout = 30 * time.Second
 	defaultRetryDelay     = 1 * time.Second
 )
 
-// defaultOptions returns the default options
+// defaultOptions returns the default options.
 func defaultOptions() options {
 	return options{
 		ConnectTimeout: defaultConnectTimeout,
@@ -33,7 +33,7 @@ func defaultOptions() options {
 	}
 }
 
-// WithConnectTimeout sets the connection timeout
+// WithConnectTimeout sets the connection timeout.
 func WithConnectTimeout(timeout time.Duration) Option {
 	return func(o *options) {
 		if timeout > 0 {
@@ -42,7 +42,7 @@ func WithConnectTimeout(timeout time.Duration) Option {
 	}
 }
 
-// WithMaxRetries sets the maximum number of connection retry attempts
+// WithMaxRetries sets the maximum number of connection retry attempts.
 func WithMaxRetries(maxRetries int) Option {
 	return func(o *options) {
 		if maxRetries > 0 {
@@ -51,7 +51,7 @@ func WithMaxRetries(maxRetries int) Option {
 	}
 }
 
-// WithRetryDelay sets the base delay between retry attempts
+// WithRetryDelay sets the base delay between retry attempts.
 func WithRetryDelay(delay time.Duration) Option {
 	return func(o *options) {
 		if delay > 0 {
@@ -60,21 +60,21 @@ func WithRetryDelay(delay time.Duration) Option {
 	}
 }
 
-// WithRetryCallback sets a callback function to be called on each retry attempt
+// WithRetryCallback sets a callback function to be called on each retry attempt.
 func WithRetryCallback(callback func(attempt int, err error)) Option {
 	return func(o *options) {
 		o.OnRetry = callback
 	}
 }
 
-// WithOnConnect sets a callback function to be called after successful connection
+// WithOnConnect sets a callback function to be called after successful connection.
 func WithOnConnect(callback func(ctx context.Context, client *Client) error) Option {
 	return func(o *options) {
 		o.OnConnect = callback
 	}
 }
 
-// WithOnDisconnect sets a callback function to be called before disconnection
+// WithOnDisconnect sets a callback function to be called before disconnection.
 func WithOnDisconnect(callback func(client *Client) error) Option {
 	return func(o *options) {
 		o.OnDisconnect = callback

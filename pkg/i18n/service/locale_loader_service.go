@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"maps"
 	"strings"
 
 	"github.com/cristiano-pacheco/bricks/pkg/i18n/locale"
@@ -56,6 +57,7 @@ func (s *LocaleLoaderService) Load(locale string) (map[string]map[string]string,
 func (s *LocaleLoaderService) loadAndMergeAll(locale string) (map[string]map[string]string, bool) {
 	merged := make(map[string]map[string]string)
 	found := false
+
 	for _, fileSystem := range s.FileSystems {
 		translations, err := s.loadLocaleFile(fileSystem, locale)
 		if err != nil {
@@ -64,11 +66,15 @@ func (s *LocaleLoaderService) loadAndMergeAll(locale string) (map[string]map[str
 				logger.String("locale", locale),
 				logger.Error(err),
 			)
+
 			continue
 		}
+
 		mergeInto(merged, translations)
+
 		found = true
 	}
+
 	return merged, found
 }
 
@@ -77,9 +83,8 @@ func mergeInto(dst, src map[string]map[string]string) {
 		if dst[domain] == nil {
 			dst[domain] = make(map[string]string)
 		}
-		for k, v := range keys {
-			dst[domain][k] = v
-		}
+
+		maps.Copy(dst[domain], keys)
 	}
 }
 

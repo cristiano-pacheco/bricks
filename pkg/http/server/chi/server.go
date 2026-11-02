@@ -44,6 +44,7 @@ type Server struct {
 // New creates a new HTTP server with Chi router.
 func New(cfg Config) (*Server, error) {
 	cfg.Address = strings.TrimSpace(cfg.Address)
+
 	cfg.MetricsAddress = strings.TrimSpace(cfg.MetricsAddress)
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrInvalidConfig, err)
@@ -53,10 +54,11 @@ func New(cfg Config) (*Server, error) {
 	router := chi.NewRouter()
 
 	router.Use(middleware.RequestID)
-	router.Use(middleware.RealIP)
+
 	if cfg.EnableRequestLogging {
 		router.Use(middleware.Logger)
 	}
+
 	router.Use(middleware.Recoverer)
 
 	if cfg.CORS != nil {
@@ -86,6 +88,7 @@ func New(cfg Config) (*Server, error) {
 	}
 
 	var metricsServer *http.Server
+
 	if cfg.EnableMetrics {
 		metricsRouter := chi.NewRouter()
 		metricsRouter.Handle(metricsPath, promhttp.Handler())
@@ -111,6 +114,7 @@ func New(cfg Config) (*Server, error) {
 // NewWithLifecycleParams contains dependencies for creating a server with lifecycle.
 type NewWithLifecycleParams struct {
 	fx.In
+
 	Config config.Config[Config]
 	LC     fx.Lifecycle
 	Routes []Route      `group:"routes"`
@@ -139,11 +143,14 @@ func NewWithLifecycle(params NewWithLifecycleParams) (*Server, error) {
 		},
 		OnStop: func(ctx context.Context) error {
 			shutdownCtx := ctx
+
 			if server.config.ShutdownTimeout > 0 {
 				var cancel context.CancelFunc
+
 				shutdownCtx, cancel = context.WithTimeout(ctx, server.config.ShutdownTimeout)
 				defer cancel()
 			}
+
 			return server.Shutdown(shutdownCtx)
 		},
 	})
@@ -181,6 +188,7 @@ func (s *Server) SetupRoutes() {
 				path += "/*"
 			}
 		}
+
 		s.router.Get(path, httpSwagger.WrapHandler)
 	}
 }
@@ -196,32 +204,40 @@ func (s *Server) Start() error {
 	if metricsListener != nil {
 		go s.serve(s.metricsServer, metricsListener)
 	}
+
 	return s.server.Serve(listener)
 }
 
 // Shutdown gracefully shuts down every enabled listener.
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.mu.RLock()
+
 	if !s.started {
 		s.mu.RUnlock()
 		return nil
 	}
+
 	servers := []*http.Server{s.server, s.metricsServer}
 	listeners := []net.Listener{s.listener, s.metricsListener}
 	s.mu.RUnlock()
 
 	shutdownErrors := make(chan error, len(servers))
+
 	var waitGroup sync.WaitGroup
+
 	for _, server := range servers {
 		if server == nil {
 			continue
 		}
+
 		waitGroup.Add(1)
 		go func(server *http.Server) {
 			defer waitGroup.Done()
+
 			shutdownErrors <- server.Shutdown(ctx)
 		}(server)
 	}
+
 	waitGroup.Wait()
 	close(shutdownErrors)
 
@@ -237,11 +253,13 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	s.mu.Unlock()
 
 	var errs []error
+
 	for err := range shutdownErrors {
 		if err != nil {
 			errs = append(errs, err)
 		}
 	}
+
 	return errors.Join(errs...)
 }
 
@@ -249,9 +267,11 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func (s *Server) Addr() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
 	if s.listener != nil {
 		return s.listener.Addr().String()
 	}
+
 	return s.server.Addr
 }
 
@@ -260,12 +280,15 @@ func (s *Server) Addr() string {
 func (s *Server) MetricsAddr() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
 	if s.metricsListener != nil {
 		return s.metricsListener.Addr().String()
 	}
+
 	if s.metricsServer == nil {
 		return ""
 	}
+
 	return s.metricsServer.Addr
 }
 
@@ -278,7 +301,9 @@ func (s *Server) startAsync(ctx context.Context) error {
 	if metricsListener != nil {
 		go s.serve(s.metricsServer, metricsListener)
 	}
+
 	go s.serve(s.server, listener)
+
 	return nil
 }
 
@@ -291,6 +316,7 @@ func (s *Server) bind(ctx context.Context) (net.Listener, net.Listener, error) {
 	}
 
 	listenConfig := net.ListenConfig{}
+
 	listener, err := listenConfig.Listen(ctx, "tcp", s.server.Addr)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w: %s: %w", ErrListen, s.server.Addr, err)
@@ -308,6 +334,7 @@ func (s *Server) bind(ctx context.Context) (net.Listener, net.Listener, error) {
 	s.listener = listener
 	s.metricsListener = metricsListener
 	s.started = true
+
 	s.server.Addr = listener.Addr().String()
 	if metricsListener != nil {
 		s.metricsServer.Addr = metricsListener.Addr().String()
@@ -315,6 +342,7 @@ func (s *Server) bind(ctx context.Context) (net.Listener, net.Listener, error) {
 
 	if s.config.EnableRouteLogging {
 		s.logServerRoutes(s.router, "HTTP Server", s.server.Addr)
+
 		if metricsListener != nil {
 			if metricsRouter, ok := s.metricsServer.Handler.(*chi.Mux); ok {
 				s.logServerRoutes(metricsRouter, "Metrics Server", s.metricsServer.Addr)
@@ -353,6 +381,7 @@ func (s *Server) createRouteWalkFunc() func(method string, route string, _ http.
 		}
 
 		s.logger.Info(fmt.Sprintf("  %-7s %s", method, route))
+
 		return nil
 	}
 }

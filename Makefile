@@ -16,28 +16,33 @@ all: install-libs lint test cover
 
 .PHONY: install-libs
 install-libs:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	go install golang.org/x/vuln/cmd/govulncheck@latest
-	go install github.com/vektra/mockery/v2@latest
-	go install go.uber.org/nilaway/cmd/nilaway@latest
+	./scripts/install-tools.sh
 
 # ==============================================================================
 # Running tests within the local computer
+
+GO_BIN := $(shell go env GOBIN)
+ifeq ($(GO_BIN),)
+GO_BIN := $(shell go env GOPATH)/bin
+endif
 
 .PHONY: static
 static: lint vuln-check nilaway
 
 .PHONY: lint
 lint:
-	golangci-lint run ./... --allow-parallel-runners
+	./scripts/install-tools.sh golangci-lint
+	$(GO_BIN)/golangci-lint run ./... --allow-parallel-runners
 
 .PHONY: vuln-check
 vuln-check:
-	govulncheck -show verbose ./... 
+	./scripts/install-tools.sh govulncheck
+	$(GO_BIN)/govulncheck -show verbose ./...
 
 .PHONY: nilaway
 nilaway:
-	nilaway --include-pkgs="github.com/cristiano-pacheco/bricks" ./...
+	./scripts/install-tools.sh nilaway
+	$(GO_BIN)/nilaway --include-pkgs="github.com/cristiano-pacheco/bricks" ./...
 
 .PHONY: test
 test:

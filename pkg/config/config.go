@@ -44,20 +44,25 @@ type loadOptions struct {
 //	cfg, err := config.New[DatabaseConfig](config.WithPath("app.database"))
 func New[T any](options ...Option) (Config[T], error) {
 	var result T
+
 	opts := resolveOptions(options)
 	environment := getEnvironment()
+
 	configDir, configErr := getConfigDir()
 	if configErr != nil {
 		return Config[T]{}, configErr
 	}
+
 	k, err := loadKoanf(configDir, environment)
 	if err != nil {
 		return Config[T]{}, fmt.Errorf("failed to create config (env=%s): %w", environment, err)
 	}
+
 	if opts.keyPath != "" {
 		if !k.Exists(opts.keyPath) {
 			return Config[T]{}, fmt.Errorf("config key '%s' not found", opts.keyPath)
 		}
+
 		if unmarshalErr := unmarshalKey(k, opts.keyPath, &result); unmarshalErr != nil {
 			return Config[T]{}, fmt.Errorf(
 				"failed to unmarshal config key '%s' (env=%s): %w",
@@ -66,11 +71,14 @@ func New[T any](options ...Option) (Config[T], error) {
 				unmarshalErr,
 			)
 		}
+
 		return Config[T]{value: result}, nil
 	}
+
 	if unmarshalErr := unmarshalKey(k, "", &result); unmarshalErr != nil {
 		return Config[T]{}, fmt.Errorf("failed to unmarshal config (env=%s): %w", environment, unmarshalErr)
 	}
+
 	return Config[T]{value: result}, nil
 }
 
@@ -123,13 +131,13 @@ func loadConfigFile(k *koanf.Koanf, configDir, name string) error {
 	return nil
 }
 
-func resolveEnvValues(data map[string]interface{}) (map[string]interface{}, error) {
+func resolveEnvValues(data map[string]any) (map[string]any, error) {
 	resolved, err := resolveEnvValue(data)
 	if err != nil {
 		return nil, err
 	}
 
-	resolvedMap, ok := resolved.(map[string]interface{})
+	resolvedMap, ok := resolved.(map[string]any)
 	if !ok {
 		return nil, errors.New("resolved config data must be a map")
 	}
@@ -137,58 +145,72 @@ func resolveEnvValues(data map[string]interface{}) (map[string]interface{}, erro
 	return resolvedMap, nil
 }
 
-func resolveEnvValue(value interface{}) (interface{}, error) {
+func resolveEnvValue(value any) (any, error) {
 	switch typed := value.(type) {
-	case map[string]interface{}:
-		resolved := make(map[string]interface{}, len(typed))
+	case map[string]any:
+		resolved := make(map[string]any, len(typed))
 		for key, nestedValue := range typed {
 			nextValue, err := resolveEnvValue(nestedValue)
 			if err != nil {
 				return nil, err
 			}
+
 			resolved[key] = nextValue
 		}
+
 		return resolved, nil
-	case []interface{}:
-		resolved := make([]interface{}, len(typed))
-		for idx, nestedValue := range typed {
-			nextValue, err := resolveEnvValue(nestedValue)
-			if err != nil {
-				return nil, err
-			}
-			resolved[idx] = nextValue
-		}
-		return resolved, nil
+	case []any:
+		return resolveEnvSlice(typed)
 	case string:
-		if strings.HasPrefix(typed, envValuePrefix) {
-			return os.Getenv(strings.TrimPrefix(typed, envValuePrefix)), nil
+		if after, ok := strings.CutPrefix(typed, envValuePrefix); ok {
+			return os.Getenv(after), nil
 		}
+
 		return typed, nil
 	default:
 		return value, nil
 	}
 }
 
-func unmarshalKey(k *koanf.Koanf, key string, target interface{}) error {
+func resolveEnvSlice(values []any) ([]any, error) {
+	resolved := make([]any, len(values))
+	for idx, value := range values {
+		nextValue, err := resolveEnvValue(value)
+		if err != nil {
+			return nil, err
+		}
+
+		resolved[idx] = nextValue
+	}
+
+	return resolved, nil
+}
+
+func unmarshalKey(k *koanf.Koanf, key string, target any) error {
 	if target == nil {
 		return errors.New("unmarshal target cannot be nil")
 	}
+
 	if err := k.UnmarshalWithConf(key, target, koanf.UnmarshalConf{Tag: "config"}); err != nil {
 		if key == "" {
 			return fmt.Errorf("%w: %w", ErrUnmarshalFailed, err)
 		}
+
 		return fmt.Errorf("%w for key '%s': %w", ErrUnmarshalFailed, key, err)
 	}
+
 	return nil
 }
 
 func resolveOptions(options []Option) loadOptions {
 	opts := loadOptions{}
+
 	for _, option := range options {
 		if option != nil {
 			option(&opts)
 		}
 	}
+
 	return opts
 }
 
@@ -196,6 +218,7 @@ func getEnvironment() string {
 	if env := os.Getenv("APP_ENV"); env != "" {
 		return strings.ToLower(strings.TrimSpace(env))
 	}
+
 	return "local"
 }
 
@@ -209,20 +232,25 @@ func getConfigDir() (string, error) {
 	if configDir == "" {
 		configDir = "config"
 	}
+
 	configDir = filepath.Clean(configDir)
+
 	var resolvedPath string
 	if filepath.IsAbs(configDir) {
 		resolvedPath = configDir
 	} else {
 		resolvedPath = filepath.Join(rootDir, configDir)
 	}
+
 	stat, statErr := os.Stat(resolvedPath) // #nosec G703 -- path is sanitized via filepath.Clean before use
 	if os.IsNotExist(statErr) {
 		return "", fmt.Errorf("%w: %s", ErrConfigDirNotFound, resolvedPath)
 	}
+
 	if statErr != nil {
 		return "", fmt.Errorf("failed to access config directory %s: %w", resolvedPath, statErr)
 	}
+
 	if !stat.IsDir() {
 		return "", fmt.Errorf("%w: %s", ErrConfigDirNotFound, resolvedPath)
 	}
@@ -231,10 +259,10 @@ func getConfigDir() (string, error) {
 }
 
 type yamlProvider struct {
-	data map[string]interface{}
+	data map[string]any
 }
 
-func (p *yamlProvider) Read() (map[string]interface{}, error) {
+func (p *yamlProvider) Read() (map[string]any, error) {
 	return p.data, nil
 }
 

@@ -16,6 +16,9 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
+// The package-level API shares one tracer lifecycle across callers.
+//
+//nolint:gochecknoglobals // Global state is required by Initialize, Span, and Shutdown.
 var (
 	globalTracer         oteltrace.Tracer
 	globalTracerProvider *sdktrace.TracerProvider
@@ -64,7 +67,7 @@ func MustInitialize(config TracerConfig) {
 	}
 }
 
-// createResource creates and configures the OpenTelemetry resource
+// createResource creates and configures the OpenTelemetry resource.
 func createResource(config TracerConfig) *resource.Resource {
 	return resource.NewWithAttributes(
 		semconv.SchemaURL,
@@ -73,13 +76,13 @@ func createResource(config TracerConfig) *resource.Resource {
 	)
 }
 
-// setupGlobalTracing configures global OpenTelemetry settings
+// setupGlobalTracing configures global OpenTelemetry settings.
 func setupGlobalTracing(tp *sdktrace.TracerProvider) {
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(newPropagator())
 }
 
-// newPropagator creates a composite text map propagator
+// newPropagator creates a composite text map propagator.
 func newPropagator() propagation.TextMapPropagator {
 	return propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
@@ -87,7 +90,7 @@ func newPropagator() propagation.TextMapPropagator {
 	)
 }
 
-// newTracerProvider creates a new tracer provider with the given configuration
+// newTracerProvider creates a new tracer provider with the given configuration.
 func newTracerProvider(
 	config TracerConfig,
 	res *resource.Resource,
@@ -97,6 +100,7 @@ func newTracerProvider(
 			sdktrace.WithResource(res),
 			sdktrace.WithSampler(sdktrace.NeverSample()),
 		)
+
 		return tp, nil, nil
 	}
 
@@ -126,7 +130,7 @@ func newTracerProvider(
 	return tp, exp, nil
 }
 
-// newExporter creates a new OTLP exporter (gRPC or HTTP based on config)
+// newExporter creates a new OTLP exporter (gRPC or HTTP based on config).
 func newExporter(config TracerConfig) (sdktrace.SpanExporter, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultBatchTimeout)
 	defer cancel()
@@ -142,7 +146,7 @@ func newExporter(config TracerConfig) (sdktrace.SpanExporter, error) {
 	return nil, fmt.Errorf("%w: %s", ErrInvalidExporterType, config.ExporterType.String())
 }
 
-// newGRPCExporter creates a new OTLP gRPC exporter
+// newGRPCExporter creates a new OTLP gRPC exporter.
 func newGRPCExporter(ctx context.Context, config TracerConfig) (sdktrace.SpanExporter, error) {
 	options := []otlptracegrpc.Option{
 		otlptracegrpc.WithEndpoint(config.TraceURL),
@@ -160,7 +164,7 @@ func newGRPCExporter(ctx context.Context, config TracerConfig) (sdktrace.SpanExp
 	return exporter, nil
 }
 
-// newHTTPExporter creates a new OTLP HTTP exporter
+// newHTTPExporter creates a new OTLP HTTP exporter.
 func newHTTPExporter(ctx context.Context, config TracerConfig) (sdktrace.SpanExporter, error) {
 	options := []otlptracehttp.Option{
 		otlptracehttp.WithEndpoint(config.TraceURL),
@@ -207,6 +211,7 @@ func Shutdown(ctx context.Context) error {
 	}
 
 	logger := slog.Default()
+
 	var shutdownErr error
 
 	if globalTracerProvider != nil {
@@ -221,11 +226,14 @@ func Shutdown(ctx context.Context) error {
 	if globalExporter != nil {
 		if err := globalExporter.Shutdown(ctx); err != nil {
 			logger.ErrorContext(ctx, "Failed to shutdown exporter", "error", err)
+
 			if shutdownErr != nil {
 				return fmt.Errorf("%w - tracer: %w, exporter: %w", ErrMultipleShutdown, shutdownErr, err)
 			}
+
 			return fmt.Errorf("%w: %w", ErrExporterShutdown, err)
 		}
+
 		logger.InfoContext(ctx, "Exporter shutdown successfully...")
 	}
 
@@ -242,5 +250,6 @@ func Shutdown(ctx context.Context) error {
 func IsInitialized() bool {
 	globalMutex.RLock()
 	defer globalMutex.RUnlock()
+
 	return initialized
 }

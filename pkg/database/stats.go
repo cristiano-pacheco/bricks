@@ -2,7 +2,7 @@ package database
 
 import "time"
 
-// ConnectionStats represents database connection statistics
+// ConnectionStats represents database connection statistics.
 type ConnectionStats struct {
 	MaxOpenConnections int           // Maximum number of open connections to the database
 	OpenConnections    int           // The number of established connections both in use and idle

@@ -47,14 +47,15 @@ var ClientModule = fx.Module("redis-client",
 	fx.Provide(NewWithFx),
 )
 
-// Params for dependency injection
+// Params for dependency injection.
 type Params struct {
 	fx.In
+
 	Config  Config
 	Options []Option `optional:"true"`
 }
 
-// NewWithFx creates a new Redis *Client with fx lifecycle management
+// NewWithFx creates a new Redis *Client with fx lifecycle management.
 func NewWithFx(lc fx.Lifecycle, params Params) (*Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultFxTimeout)
 	defer cancel()
@@ -76,7 +77,7 @@ func NewWithFx(lc fx.Lifecycle, params Params) (*Client, error) {
 	return client, nil
 }
 
-// NewUniversalClientWithFx creates a new Redis UniversalClient with fx lifecycle management
+// NewUniversalClientWithFx creates a new Redis UniversalClient with fx lifecycle management.
 func NewUniversalClientWithFx(lc fx.Lifecycle, params Params) (UniversalClient, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultFxTimeout)
 	defer cancel()

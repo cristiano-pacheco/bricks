@@ -4,7 +4,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// Config holds the logger configuration
+// Config holds the logger configuration.
 type Config struct {
 	// Level sets the logging level (debug, info, warn, error, dpanic, panic, fatal)
 	Level string
@@ -28,13 +28,13 @@ type Config struct {
 	ErrorOutputPaths []string
 
 	// InitialFields adds initial fields to every log entry
-	InitialFields map[string]interface{}
+	InitialFields map[string]any
 
 	// SamplingConfig enables sampling to reduce log volume in production
 	SamplingConfig *SamplingConfig
 }
 
-// SamplingConfig configures log sampling
+// SamplingConfig configures log sampling.
 type SamplingConfig struct {
 	// Initial sets the number of log entries to keep per second
 	Initial int
@@ -43,7 +43,7 @@ type SamplingConfig struct {
 	Thereafter int
 }
 
-// DefaultConfig returns a production-ready configuration
+// DefaultConfig returns a production-ready configuration.
 func DefaultConfig() Config {
 	return Config{
 		Level:             "info",
@@ -53,11 +53,11 @@ func DefaultConfig() Config {
 		DisableStacktrace: false,
 		OutputPaths:       []string{"stdout"},
 		ErrorOutputPaths:  []string{"stderr"},
-		InitialFields:     make(map[string]interface{}),
+		InitialFields:     make(map[string]any),
 	}
 }
 
-// DevelopmentConfig returns a development-friendly configuration
+// DevelopmentConfig returns a development-friendly configuration.
 func DevelopmentConfig() Config {
 	return Config{
 		Level:             "debug",
@@ -67,11 +67,11 @@ func DevelopmentConfig() Config {
 		DisableStacktrace: false,
 		OutputPaths:       []string{"stdout"},
 		ErrorOutputPaths:  []string{"stderr"},
-		InitialFields:     make(map[string]interface{}),
+		InitialFields:     make(map[string]any),
 	}
 }
 
-// parseLevel converts string level to zapcore.Level
+// parseLevel converts string level to zapcore.Level.
 func parseLevel(level string) zapcore.Level {
 	switch level {
 	case "debug":

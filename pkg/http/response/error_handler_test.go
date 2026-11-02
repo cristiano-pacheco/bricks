@@ -16,6 +16,7 @@ import (
 
 type ErrorHandlerTestSuite struct {
 	suite.Suite
+
 	sut response.ErrorHandler
 	v   validator.Validator
 	log logger.Logger
@@ -23,12 +24,14 @@ type ErrorHandlerTestSuite struct {
 
 func (s *ErrorHandlerTestSuite) SetupTest() {
 	var err error
+
 	s.v, err = validator.New()
 	s.Require().NoError(err)
 	s.log = logger.MustNewWithOptions(logger.WithLevel("fatal"))
 	s.sut = response.NewErrorHandler(s.v, s.log)
 }
 
+//nolint:paralleltest // Testify suites keep mutable state and do not support parallel tests.
 func TestErrorHandlerSuite(t *testing.T) {
 	suite.Run(t, new(ErrorHandlerTestSuite))
 }
@@ -63,7 +66,7 @@ func (s *ErrorHandlerTestSuite) TestError_TypedError_WithStatusZero_SetsInternal
 	s.Equal(http.StatusInternalServerError, rr.Code)
 	s.Equal("application/json", rr.Header().Get("Content-Type"))
 
-	var body map[string]map[string]interface{}
+	var body map[string]map[string]any
 	s.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &body))
 	s.Equal("bad_request", body["error"]["code"])
 	s.Equal("bad", body["error"]["message"])
@@ -81,7 +84,7 @@ func (s *ErrorHandlerTestSuite) TestError_TypedError_WithStatus_ReturnsGivenStat
 	s.Equal(http.StatusBadRequest, rr.Code)
 	s.Equal("application/json", rr.Header().Get("Content-Type"))
 
-	var body map[string]map[string]interface{}
+	var body map[string]map[string]any
 	s.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &body))
 	s.Equal("validation_error", body["error"]["code"])
 	s.Equal("invalid", body["error"]["message"])
@@ -93,6 +96,7 @@ func (s *ErrorHandlerTestSuite) TestError_ValidationErrors_ReturnsUnprocessableE
 		Email string `validate:"required,email"`
 		Name  string `validate:"required"`
 	}
+
 	valErr := s.v.Validate(&invalidStruct{})
 	s.Require().Error(valErr)
 
@@ -105,17 +109,17 @@ func (s *ErrorHandlerTestSuite) TestError_ValidationErrors_ReturnsUnprocessableE
 	s.Equal(http.StatusUnprocessableEntity, rr.Code)
 	s.Equal("application/json", rr.Header().Get("Content-Type"))
 
-	var body map[string]interface{}
+	var body map[string]any
 	s.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &body))
-	errorObj := body["error"].(map[string]interface{})
+	errorObj := body["error"].(map[string]any)
 	s.Equal("INVALID_ARGUMENT", errorObj["code"])
 	s.Equal("request has invalid fields", errorObj["message"])
 
-	details, ok := errorObj["details"].([]interface{})
+	details, ok := errorObj["details"].([]any)
 	s.True(ok)
 	s.GreaterOrEqual(len(details), 1)
 
-	firstDetail := details[0].(map[string]interface{})
+	firstDetail := details[0].(map[string]any)
 	s.Contains([]string{"email", "name"}, firstDetail["field"])
 	s.NotEmpty(firstDetail["message"])
 }
@@ -132,9 +136,10 @@ func (s *ErrorHandlerTestSuite) TestError_WithNilLogger_DoesNotPanic() {
 	s.Equal("internal_server_error", s.parseError(rr)["code"])
 }
 
-func (s *ErrorHandlerTestSuite) parseError(rr *httptest.ResponseRecorder) map[string]interface{} {
-	var body map[string]map[string]interface{}
+func (s *ErrorHandlerTestSuite) parseError(rr *httptest.ResponseRecorder) map[string]any {
+	var body map[string]map[string]any
 	s.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &body))
+
 	return body["error"]
 }
 
@@ -143,6 +148,7 @@ func (s *ErrorHandlerTestSuite) TestError_ValidationErrors_WithNilValidator_Retu
 	type invalidStruct struct {
 		Email string `validate:"required"`
 	}
+
 	valErr := s.v.Validate(&invalidStruct{})
 	s.Require().Error(valErr)
 
@@ -156,16 +162,16 @@ func (s *ErrorHandlerTestSuite) TestError_ValidationErrors_WithNilValidator_Retu
 	s.Equal(http.StatusUnprocessableEntity, rr.Code)
 	s.Equal("application/json", rr.Header().Get("Content-Type"))
 
-	var body map[string]interface{}
+	var body map[string]any
 	s.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &body))
-	errorObj := body["error"].(map[string]interface{})
+	errorObj := body["error"].(map[string]any)
 	s.Equal("INVALID_ARGUMENT", errorObj["code"])
 	s.Equal("request has invalid fields", errorObj["message"])
 
-	details, ok := errorObj["details"].([]interface{})
+	details, ok := errorObj["details"].([]any)
 	s.True(ok)
 	s.Len(details, 1)
-	firstDetail := details[0].(map[string]interface{})
+	firstDetail := details[0].(map[string]any)
 	s.Equal("email", firstDetail["field"])
 	s.Contains(firstDetail["message"], "email")
 }

@@ -80,6 +80,7 @@ func (c Config) Validate() error {
 	if err != nil {
 		return err
 	}
+
 	if !c.EnableMetrics {
 		return nil
 	}
@@ -88,9 +89,11 @@ func (c Config) Validate() error {
 	if err != nil {
 		return err
 	}
+
 	if mainPort != 0 && mainPort == metricsPort {
 		return ErrPortsEqual
 	}
+
 	return nil
 }
 
@@ -103,6 +106,7 @@ func (c Config) WithDefaultCORS() Config {
 		AllowCredentials: false,
 		MaxAge:           defaultMaxAge,
 	}
+
 	return c
 }
 
@@ -110,6 +114,7 @@ func (c Config) listenAddress() string {
 	if address := strings.TrimSpace(c.Address); address != "" {
 		return address
 	}
+
 	return net.JoinHostPort(defaultListenHost, strconv.FormatUint(uint64(c.Port), 10))
 }
 
@@ -117,6 +122,7 @@ func (c Config) metricsListenAddress() string {
 	if address := strings.TrimSpace(c.MetricsAddress); address != "" {
 		return address
 	}
+
 	return net.JoinHostPort(defaultListenHost, strconv.FormatUint(uint64(c.MetricsPort), 10))
 }
 
@@ -130,5 +136,6 @@ func validateListenAddress(address string, invalidAddress, invalidPort error) (u
 	if err != nil || port > maxPort {
 		return 0, fmt.Errorf("%w: %s", invalidPort, portText)
 	}
+
 	return uint(port), nil
 }

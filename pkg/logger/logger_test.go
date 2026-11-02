@@ -12,6 +12,8 @@ import (
 )
 
 func TestLogger_BasicUsage(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	config := logger.DefaultConfig()
 
@@ -20,6 +22,7 @@ func TestLogger_BasicUsage(t *testing.T) {
 
 	// Assert
 	require.NoError(t, err)
+
 	assert.NotNil(t, log)
 	defer log.Sync()
 
@@ -28,6 +31,8 @@ func TestLogger_BasicUsage(t *testing.T) {
 }
 
 func TestLogger_WithOptions(t *testing.T) {
+	t.Parallel()
+
 	// Arrange & Act
 	log := logger.MustNewWithOptions(
 		logger.WithLevel("debug"),
@@ -43,6 +48,8 @@ func TestLogger_WithOptions(t *testing.T) {
 }
 
 func TestLogger_StructuredLogging(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	config := logger.DevelopmentConfig()
 
@@ -61,8 +68,11 @@ func TestLogger_StructuredLogging(t *testing.T) {
 }
 
 func TestLogger_WithContext(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	config := logger.DevelopmentConfig()
+
 	log := logger.MustNew(config)
 	defer log.Sync()
 
@@ -80,10 +90,14 @@ func TestLogger_WithContext(t *testing.T) {
 }
 
 func TestLogger_WithError(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	config := logger.DevelopmentConfig()
+
 	log := logger.MustNew(config)
 	defer log.Sync()
+
 	err := errors.New("something went wrong")
 
 	// Act
@@ -98,6 +112,8 @@ func TestLogger_WithError(t *testing.T) {
 }
 
 func TestDuration_ReturnsProperField(t *testing.T) {
+	t.Parallel()
+
 	field := logger.Duration("elapsed", 5*time.Second)
 
 	assert.Equal(t, "elapsed", field.Key)
@@ -105,6 +121,8 @@ func TestDuration_ReturnsProperField(t *testing.T) {
 }
 
 func TestTime_ReturnsProperField(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	field := logger.Time("ts", now)
 
@@ -113,6 +131,8 @@ func TestTime_ReturnsProperField(t *testing.T) {
 }
 
 func TestLogger_Named(t *testing.T) {
+	t.Parallel()
+
 	log := logger.MustNew(logger.DefaultConfig())
 	defer log.Sync()
 
@@ -123,6 +143,8 @@ func TestLogger_Named(t *testing.T) {
 }
 
 func TestLogger_GetZapLogger(t *testing.T) {
+	t.Parallel()
+
 	log := logger.MustNew(logger.DefaultConfig())
 	defer log.Sync()
 
@@ -132,10 +154,13 @@ func TestLogger_GetZapLogger(t *testing.T) {
 }
 
 func TestNewWithOptions_FromDevelopmentConfig(t *testing.T) {
+	t.Parallel()
+
 	config := logger.DevelopmentConfig()
 	log, err := logger.New(config)
 
 	require.NoError(t, err)
+
 	require.NotNil(t, log)
 	defer log.Sync()
 

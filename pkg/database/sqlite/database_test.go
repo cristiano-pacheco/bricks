@@ -19,6 +19,8 @@ import (
 )
 
 func TestNewConfiguresSQLiteConnection(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	path := filepath.Join(t.TempDir(), "workplan.db")
 
@@ -48,6 +50,8 @@ func TestNewConfiguresSQLiteConnection(t *testing.T) {
 }
 
 func TestNewAppliesGORMConfiguration(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	path := filepath.Join(t.TempDir(), "workplan.db")
 	gormConfig := &gorm.Config{
@@ -68,6 +72,8 @@ func TestNewAppliesGORMConfiguration(t *testing.T) {
 }
 
 func TestNewUsesImmediateTransactions(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	path := filepath.Join(t.TempDir(), "workplan.db")
 	first, err := sqlite.New(sqlite.Config{DSN: path, BusyTimeout: 25 * time.Millisecond})
@@ -93,6 +99,8 @@ func TestNewUsesImmediateTransactions(t *testing.T) {
 }
 
 func TestNewRejectsInvalidConfiguration(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	cfg := sqlite.Config{}
 
@@ -106,6 +114,8 @@ func TestNewRejectsInvalidConfiguration(t *testing.T) {
 }
 
 func TestNewPreservesSQLiteOpenError(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	path := filepath.Join(t.TempDir(), "missing", "workplan.db")
 	cfg := sqlite.Config{DSN: "file:" + path + "?mode=ro"}
@@ -116,6 +126,7 @@ func TestNewPreservesSQLiteOpenError(t *testing.T) {
 	// Assert
 	require.Error(t, err)
 	require.ErrorIs(t, err, sqlite.ErrConnectionFailed)
+
 	var driverErr sqlite3.Error
 	require.ErrorAs(t, err, &driverErr)
 }
@@ -133,6 +144,7 @@ func TestModuleClosesDatabaseOnStop(t *testing.T) {
 	require.NoError(t, os.WriteFile(configFile, configData, 0o600))
 
 	var db *gorm.DB
+
 	app := fx.New(
 		sqlite.Module,
 		fx.Invoke(func(database *gorm.DB) { db = database }),
@@ -142,9 +154,11 @@ func TestModuleClosesDatabaseOnStop(t *testing.T) {
 
 	// Act
 	require.NoError(t, app.Start(ctx))
+
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
 	require.NoError(t, app.Stop(ctx))
+
 	pingErr := sqlDB.Ping()
 
 	// Assert
@@ -154,6 +168,7 @@ func TestModuleClosesDatabaseOnStop(t *testing.T) {
 
 func closeDatabase(t *testing.T, db *gorm.DB) {
 	t.Helper()
+
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
 	require.NoError(t, sqlDB.Close())

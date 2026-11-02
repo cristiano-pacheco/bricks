@@ -9,7 +9,7 @@ import (
 	en_translations "github.com/go-playground/validator/v10/translations/en"
 )
 
-// Validator provides struct validation with translation support
+// Validator provides struct validation with translation support.
 type Validator interface {
 	// Validate validates a struct
 	Validate(s any) error
@@ -30,7 +30,7 @@ type validator struct {
 	translator ut.Translator
 }
 
-// New creates a new Validator with English translations pre-configured
+// New creates a new Validator with English translations pre-configured.
 func New() (Validator, error) {
 	// Create validator instance
 	v := lib_validator.New(lib_validator.WithRequiredStructEnabled())
@@ -38,6 +38,7 @@ func New() (Validator, error) {
 	// Setup English translator
 	en := en.New()
 	uni := ut.New(en, en)
+
 	trans, found := uni.GetTranslator("en")
 	if !found {
 		return nil, errors.New("translator not found")
@@ -54,32 +55,32 @@ func New() (Validator, error) {
 	}, nil
 }
 
-// Validate validates a struct and returns translated error messages
+// Validate validates a struct and returns translated error messages.
 func (v *validator) Validate(s any) error {
 	return v.engine.Struct(s)
 }
 
-// ValidateVar validates a single variable with translated error messages
+// ValidateVar validates a single variable with translated error messages.
 func (v *validator) ValidateVar(field any, tag string) error {
 	return v.engine.Var(field, tag)
 }
 
-// Struct validates a struct (alias for Validate)
+// Struct validates a struct (alias for Validate).
 func (v *validator) Struct(s any) error {
 	return v.engine.Struct(s)
 }
 
-// Var validates a single variable (alias for ValidateVar)
+// Var validates a single variable (alias for ValidateVar).
 func (v *validator) Var(field any, tag string) error {
 	return v.engine.Var(field, tag)
 }
 
-// Engine returns the underlying validator engine for advanced usage
+// Engine returns the underlying validator engine for advanced usage.
 func (v *validator) Engine() *lib_validator.Validate {
 	return v.engine
 }
 
-// Translator returns the universal translator for custom translations
+// Translator returns the universal translator for custom translations.
 func (v *validator) Translator() ut.Translator {
 	return v.translator
 }

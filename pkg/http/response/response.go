@@ -14,6 +14,7 @@ func JSON[T any](w http.ResponseWriter, status int, data T, headers http.Header)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+
 	for key, values := range headers {
 		for _, value := range values {
 			w.Header().Add(key, value)
@@ -22,6 +23,7 @@ func JSON[T any](w http.ResponseWriter, status int, data T, headers http.Header)
 
 	w.WriteHeader(status)
 	_, err = w.Write(body)
+
 	return err
 }
 
@@ -37,6 +39,7 @@ func JSONRaw[T any](w http.ResponseWriter, status int, data T, headers http.Head
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+
 	for key, values := range headers {
 		for _, value := range values {
 			w.Header().Add(key, value)
@@ -45,5 +48,6 @@ func JSONRaw[T any](w http.ResponseWriter, status int, data T, headers http.Head
 
 	w.WriteHeader(status)
 	_, err = w.Write(body)
+
 	return err
 }
