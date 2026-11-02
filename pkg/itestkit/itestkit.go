@@ -57,6 +57,7 @@ func New(config Config) *ITestKit {
 	if config.PostgresImage == "" {
 		config = DefaultConfig()
 	}
+
 	return &ITestKit{
 		config:      config,
 		pgOnce:      &sync.Once{},
@@ -69,26 +70,27 @@ func New(config Config) *ITestKit {
 // Returns error if container fails to start.
 func (k *ITestKit) StartPostgres() error {
 	var initErr error
+
 	k.pgOnce.Do(func() {
 		ctx := context.Background()
+
 		c, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-			ContainerRequest: testcontainers.ContainerRequest{
-				Image:        k.config.PostgresImage,
-				ExposedPorts: []string{"5432/tcp"},
-				Env: map[string]string{
-					"POSTGRES_DB":       k.config.Database,
-					"POSTGRES_USER":     k.config.User,
-					"POSTGRES_PASSWORD": k.config.Password,
-				},
-				WaitingFor: wait.ForLog("database system is ready to accept connections").
-					WithOccurrence(postgresReadyLogCount).WithStartupTimeout(containerStartupTimeout),
+			Image:        k.config.PostgresImage,
+			ExposedPorts: []string{"5432/tcp"},
+			Env: map[string]string{
+				"POSTGRES_DB":       k.config.Database,
+				"POSTGRES_USER":     k.config.User,
+				"POSTGRES_PASSWORD": k.config.Password,
 			},
+			WaitingFor: wait.ForLog("database system is ready to accept connections").
+				WithOccurrence(postgresReadyLogCount).WithStartupTimeout(containerStartupTimeout),
 			Started: true,
 		})
 		if err != nil {
 			initErr = fmt.Errorf("start postgres container: %w", err)
 			return
 		}
+
 		k.pgContainer = c
 
 		host, hostErr := c.Host(ctx)
@@ -96,11 +98,13 @@ func (k *ITestKit) StartPostgres() error {
 			initErr = fmt.Errorf("get container host: %w", hostErr)
 			return
 		}
+
 		port, portErr := c.MappedPort(ctx, "5432")
 		if portErr != nil {
 			initErr = fmt.Errorf("get container port: %w", portErr)
 			return
 		}
+
 		k.dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 			host, port.Port(), k.config.User, k.config.Password, k.config.Database)
 		k.migrateDSN = (&url.URL{
@@ -118,12 +122,15 @@ func (k *ITestKit) StartPostgres() error {
 			if initErr == nil {
 				break
 			}
+
 			time.Sleep(retryDelay)
 		}
+
 		if initErr != nil {
 			initErr = fmt.Errorf("connect to database: %w", initErr)
 		}
 	})
+
 	return initErr
 }
 
@@ -131,20 +138,21 @@ func (k *ITestKit) StartPostgres() error {
 // Returns error if container fails to start.
 func (k *ITestKit) StartRedis() error {
 	var initErr error
+
 	k.redisOnce.Do(func() {
 		ctx := context.Background()
+
 		c, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-			ContainerRequest: testcontainers.ContainerRequest{
-				Image:        k.config.RedisImage,
-				ExposedPorts: []string{"6379/tcp"},
-				WaitingFor:   wait.ForLog("Ready to accept connections"),
-			},
-			Started: true,
+			Image:        k.config.RedisImage,
+			ExposedPorts: []string{"6379/tcp"},
+			WaitingFor:   wait.ForLog("Ready to accept connections"),
+			Started:      true,
 		})
 		if err != nil {
 			initErr = fmt.Errorf("start redis container: %w", err)
 			return
 		}
+
 		k.redisContainer = c
 
 		host, hostErr := c.Host(ctx)
@@ -152,11 +160,13 @@ func (k *ITestKit) StartRedis() error {
 			initErr = fmt.Errorf("get redis host: %w", hostErr)
 			return
 		}
+
 		port, portErr := c.MappedPort(ctx, "6379")
 		if portErr != nil {
 			initErr = fmt.Errorf("get redis port: %w", portErr)
 			return
 		}
+
 		addr := fmt.Sprintf("%s:%s", host, port.Port())
 		k.redis = redis.NewClient(&redis.Options{Addr: addr})
 
@@ -165,12 +175,15 @@ func (k *ITestKit) StartRedis() error {
 			if initErr == nil {
 				break
 			}
+
 			time.Sleep(retryDelay)
 		}
+
 		if initErr != nil {
 			initErr = fmt.Errorf("connect to redis: %w", initErr)
 		}
 	})
+
 	return initErr
 }
 
@@ -178,11 +191,13 @@ func (k *ITestKit) StartRedis() error {
 // Must call StartPostgres() first.
 func (k *ITestKit) RunMigrations() error {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
 	var initErr error
+
 	k.migrateOnce.Do(func() {
 		migrationsPath := k.config.MigrationsPath
-		if strings.HasPrefix(migrationsPath, "file://") {
-			relativePath := strings.TrimPrefix(migrationsPath, "file://")
+		if after, ok := strings.CutPrefix(migrationsPath, "file://"); ok {
+			relativePath := after
 			if !filepath.IsAbs(relativePath) {
 				absolutePath := filepath.Join(getProjectRoot(), relativePath)
 				migrationsPath = "file://" + absolutePath
@@ -199,14 +214,17 @@ func (k *ITestKit) RunMigrations() error {
 			if srcErr != nil {
 				logger.Warn("[itestkit] close migration source", "error", srcErr)
 			}
+
 			if dbErr != nil {
 				logger.Warn("[itestkit] close migration database", "error", dbErr)
 			}
 		}()
+
 		if err = m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 			initErr = fmt.Errorf("run migrations: %w", err)
 		}
 	})
+
 	return initErr
 }
 
@@ -217,17 +235,21 @@ func getProjectRoot() string {
 	if err != nil {
 		return ""
 	}
+
 	for {
 		goModPath := filepath.Join(dir, "go.mod")
 		if _, statErr := os.Stat(goModPath); statErr == nil {
 			return dir
 		}
+
 		parent := filepath.Dir(dir)
 		if parent == dir {
 			break
 		}
+
 		dir = parent
 	}
+
 	return ""
 }
 
@@ -235,19 +257,23 @@ func getProjectRoot() string {
 // Must call StartPostgres() first.
 func (k *ITestKit) TruncateTables(t *testing.T) {
 	t.Helper()
+
 	rows, err := k.db.Raw(`
 		SELECT table_name FROM information_schema.tables
 		WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name != 'schema_migrations'
 	`).Rows()
 	require.NoError(t, err)
+
 	defer rows.Close()
 
 	var tables []string
+
 	for rows.Next() {
 		var name string
 		require.NoError(t, rows.Scan(&name))
 		tables = append(tables, name)
 	}
+
 	if len(tables) > 0 {
 		require.NoError(
 			t,
@@ -259,6 +285,7 @@ func (k *ITestKit) TruncateTables(t *testing.T) {
 // StopPostgres stops the PostgreSQL container.
 func (k *ITestKit) StopPostgres() {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
 	if k.db != nil {
 		if sqlDB, _ := k.db.DB(); sqlDB != nil {
 			if err := sqlDB.Close(); err != nil {
@@ -266,6 +293,7 @@ func (k *ITestKit) StopPostgres() {
 			}
 		}
 	}
+
 	if k.pgContainer != nil {
 		if err := testcontainers.TerminateContainer(k.pgContainer); err != nil {
 			logger.Warn("[itestkit] terminate postgres container", "error", err)
@@ -276,11 +304,13 @@ func (k *ITestKit) StopPostgres() {
 // StopRedis stops the Redis container.
 func (k *ITestKit) StopRedis() {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
 	if k.redis != nil {
 		if err := k.redis.Close(); err != nil {
 			logger.Warn("[itestkit] close redis client", "error", err)
 		}
 	}
+
 	if k.redisContainer != nil {
 		if err := testcontainers.TerminateContainer(k.redisContainer); err != nil {
 			logger.Warn("[itestkit] terminate redis container", "error", err)
@@ -292,6 +322,7 @@ func (k *ITestKit) StopRedis() {
 // This is a convenience method that calls StopPostgres and StopRedis.
 func (k *ITestKit) Cleanup() {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
 	if k.db != nil {
 		if sqlDB, _ := k.db.DB(); sqlDB != nil {
 			if err := sqlDB.Close(); err != nil {
@@ -299,16 +330,19 @@ func (k *ITestKit) Cleanup() {
 			}
 		}
 	}
+
 	if k.pgContainer != nil {
 		if err := testcontainers.TerminateContainer(k.pgContainer); err != nil {
 			logger.Warn("[itestkit] terminate postgres container", "error", err)
 		}
 	}
+
 	if k.redis != nil {
 		if err := k.redis.Close(); err != nil {
 			logger.Warn("[itestkit] close redis client", "error", err)
 		}
 	}
+
 	if k.redisContainer != nil {
 		if err := testcontainers.TerminateContainer(k.redisContainer); err != nil {
 			logger.Warn("[itestkit] terminate redis container", "error", err)
@@ -322,11 +356,13 @@ func (k *ITestKit) Cleanup() {
 func CleanupAll() {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	logger.Info("[itestkit] Running cleanup for orphaned Docker containers...")
+
 	ctx, cancel := context.WithTimeout(context.Background(), cleanupTimeout)
 	defer cancel()
 
 	// Find all testcontainers containers (both running and stopped)
 	cmd := exec.CommandContext(ctx, "docker", "ps", "-a", "-q", "--filter", "label=org.testcontainers")
+
 	output, err := cmd.Output()
 	if err != nil || len(output) == 0 {
 		logger.Info("[itestkit] No testcontainers found, cleanup complete")
@@ -372,13 +408,16 @@ func TestMain(m *testing.M) {
 
 	// Run tests in a goroutine to handle both normal exit and signals
 	testDone := make(chan int, 1)
+
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
 				logger.Error("[itestkit] Panic recovered during test execution", "panic", r)
+
 				testDone <- 1
 			}
 		}()
+
 		testDone <- m.Run()
 	}()
 
@@ -390,6 +429,7 @@ func TestMain(m *testing.M) {
 	case sig := <-sigChan:
 		// Received interrupt signal
 		logger.Info("[itestkit] Received signal, cleaning up...", "signal", sig.String())
+
 		code = 1
 	}
 

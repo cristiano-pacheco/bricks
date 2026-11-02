@@ -20,6 +20,7 @@ const (
 
 type ChainTestSuite struct {
 	suite.Suite
+
 	sut            ucdecorator.UseCase[string, string]
 	handlerMock    *mocks.MockUseCase[string, string]
 	loggerMock     *mocks.MockLogger
@@ -50,6 +51,7 @@ func TestChainSuite(t *testing.T) {
 func (s *ChainTestSuite) TestExecute_Success_ObservesDurationIncrementsSuccessAndLogsSuccess() {
 	// Arrange
 	ctx := context.Background()
+
 	s.handlerMock.On("Execute", mock.Anything, chainTestInput).Return(chainTestOutput, nil)
 	s.metricsMock.On("ObserveDuration", chainTestMetricName, mock.Anything).Return()
 	s.metricsMock.On("IncSuccess", chainTestMetricName).Return()

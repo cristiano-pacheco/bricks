@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"errors"
+	"maps"
 	"net/http"
 	"testing"
 
@@ -32,7 +33,12 @@ func (s *ErrorTranslatorServiceTestSuite) TestTranslateBricksError() {
 	translatedErr := translator.TranslateError(originalErr)
 
 	var translatedBricksErr *errs.Error
-	s.Require().True(errors.As(translatedErr, &translatedBricksErr))
+	s.Require().ErrorAs(translatedErr, &translatedBricksErr)
+	if translatedBricksErr == nil {
+		s.FailNow("translated error must not be nil")
+		return
+	}
+
 	s.Equal("CATALOG_01", translatedBricksErr.Code)
 	s.Equal(http.StatusBadRequest, translatedBricksErr.Status)
 	s.Equal("Tipo de conteudo de imagem nao suportado", translatedBricksErr.Message)
@@ -80,10 +86,9 @@ func (s *stubTranslationService) TranslateWithData(domain, key string, _ map[str
 
 func (s *stubTranslationService) GetAllForDomain(domain string) map[string]string {
 	domainMap := s.translations[domain]
+
 	output := make(map[string]string, len(domainMap))
-	for key, value := range domainMap {
-		output[key] = value
-	}
+	maps.Copy(output, domainMap)
 
 	return output
 }

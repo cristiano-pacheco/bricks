@@ -13,6 +13,7 @@ import (
 
 type LocaleLoaderServiceTestSuite struct {
 	suite.Suite
+
 	sut        *service.LocaleLoaderService
 	FileSystem locale.FileSystem
 	fsys       fstest.MapFS

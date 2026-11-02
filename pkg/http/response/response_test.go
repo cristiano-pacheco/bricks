@@ -11,10 +11,13 @@ import (
 )
 
 func TestJSON_SetsHeadersAndEnvelopes(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	rr := httptest.NewRecorder()
 	headers := http.Header{}
 	headers.Add("X-Custom", "v1")
+
 	data := map[string]string{"hello": "world"}
 
 	// Act
@@ -34,6 +37,8 @@ func TestJSON_SetsHeadersAndEnvelopes(t *testing.T) {
 }
 
 func TestNoContent_WritesNoContentStatus(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	rr := httptest.NewRecorder()
 
@@ -46,6 +51,8 @@ func TestNoContent_WritesNoContentStatus(t *testing.T) {
 }
 
 func TestJSON_MarshalFailureDoesNotWriteHeaders(t *testing.T) {
+	t.Parallel()
+
 	rr := httptest.NewRecorder()
 	// chan is not JSON-serializable — json.Marshal returns an error
 	err := response.JSON(rr, http.StatusOK, make(chan int), http.Header{})
@@ -58,10 +65,13 @@ func TestJSON_MarshalFailureDoesNotWriteHeaders(t *testing.T) {
 }
 
 func TestJSONRaw_WritesRawJSONAndHeaders(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	rr := httptest.NewRecorder()
 	headers := http.Header{}
 	headers.Add("X-Trace", "t1")
+
 	payload := struct {
 		Msg string `json:"msg"`
 	}{Msg: "ok"}

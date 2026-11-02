@@ -21,6 +21,7 @@ func withMetrics[T any, R any](
 	if useCaseMetrics == nil {
 		return base
 	}
+
 	return &metricsDecorator[T, R]{
 		base:       base,
 		metrics:    useCaseMetrics,
@@ -33,11 +34,13 @@ func (decorator *metricsDecorator[T, R]) Execute(ctx context.Context, input T) (
 	output, err := decorator.base.Execute(ctx, input)
 
 	decorator.metrics.ObserveDuration(decorator.metricName, time.Since(start))
+
 	if err != nil {
 		decorator.metrics.IncError(decorator.metricName)
 		return output, err
 	}
 
 	decorator.metrics.IncSuccess(decorator.metricName)
+
 	return output, nil
 }

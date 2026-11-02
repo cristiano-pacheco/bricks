@@ -116,6 +116,7 @@ func TestNewPreservesSQLiteOpenError(t *testing.T) {
 	// Assert
 	require.Error(t, err)
 	require.ErrorIs(t, err, sqlite.ErrConnectionFailed)
+
 	var driverErr sqlite3.Error
 	require.ErrorAs(t, err, &driverErr)
 }
@@ -133,6 +134,7 @@ func TestModuleClosesDatabaseOnStop(t *testing.T) {
 	require.NoError(t, os.WriteFile(configFile, configData, 0o600))
 
 	var db *gorm.DB
+
 	app := fx.New(
 		sqlite.Module,
 		fx.Invoke(func(database *gorm.DB) { db = database }),
@@ -142,9 +144,11 @@ func TestModuleClosesDatabaseOnStop(t *testing.T) {
 
 	// Act
 	require.NoError(t, app.Start(ctx))
+
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
 	require.NoError(t, app.Stop(ctx))
+
 	pingErr := sqlDB.Ping()
 
 	// Assert
@@ -154,6 +158,7 @@ func TestModuleClosesDatabaseOnStop(t *testing.T) {
 
 func closeDatabase(t *testing.T, db *gorm.DB) {
 	t.Helper()
+
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
 	require.NoError(t, sqlDB.Close())

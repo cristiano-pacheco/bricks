@@ -20,6 +20,7 @@ func TestLogger_BasicUsage(t *testing.T) {
 
 	// Assert
 	require.NoError(t, err)
+
 	assert.NotNil(t, log)
 	defer log.Sync()
 
@@ -63,6 +64,7 @@ func TestLogger_StructuredLogging(t *testing.T) {
 func TestLogger_WithContext(t *testing.T) {
 	// Arrange
 	config := logger.DevelopmentConfig()
+
 	log := logger.MustNew(config)
 	defer log.Sync()
 
@@ -82,8 +84,10 @@ func TestLogger_WithContext(t *testing.T) {
 func TestLogger_WithError(t *testing.T) {
 	// Arrange
 	config := logger.DevelopmentConfig()
+
 	log := logger.MustNew(config)
 	defer log.Sync()
+
 	err := errors.New("something went wrong")
 
 	// Act
@@ -136,6 +140,7 @@ func TestNewWithOptions_FromDevelopmentConfig(t *testing.T) {
 	log, err := logger.New(config)
 
 	require.NoError(t, err)
+
 	require.NotNil(t, log)
 	defer log.Sync()
 

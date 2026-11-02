@@ -34,6 +34,7 @@ func withDebug[T any, R any](
 
 func (decorator *debugDecorator[T, R]) Execute(ctx context.Context, input T) (R, error) {
 	startedAt := time.Now()
+
 	decorator.log.Debug(
 		"decorator execute start",
 		logger.String("use_case", decorator.useCaseName),
@@ -41,6 +42,7 @@ func (decorator *debugDecorator[T, R]) Execute(ctx context.Context, input T) (R,
 	)
 
 	output, err := decorator.base.Execute(ctx, input)
+
 	durationMs := time.Since(startedAt).Milliseconds()
 	if err != nil {
 		decorator.log.Debug(
@@ -50,6 +52,7 @@ func (decorator *debugDecorator[T, R]) Execute(ctx context.Context, input T) (R,
 			logger.Int64("duration_ms", durationMs),
 			logger.Error(err),
 		)
+
 		return output, err
 	}
 
@@ -59,5 +62,6 @@ func (decorator *debugDecorator[T, R]) Execute(ctx context.Context, input T) (R,
 		logger.String("decorator", decorator.decoratorName),
 		logger.Int64("duration_ms", durationMs),
 	)
+
 	return output, nil
 }

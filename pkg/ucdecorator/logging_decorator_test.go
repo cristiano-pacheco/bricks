@@ -13,6 +13,7 @@ import (
 
 type LoggingDecoratorTestSuite struct {
 	suite.Suite
+
 	sut        ucdecorator.UseCase[string, string]
 	baseMock   *mocks.MockUseCase[string, string]
 	loggerMock *mocks.MockLogger
@@ -42,6 +43,7 @@ func (s *LoggingDecoratorTestSuite) TestWithLogging_NilLogger_ReturnsBaseUnchang
 func (s *LoggingDecoratorTestSuite) TestExecute_Success_LogsSuccessAndDoesNotLogError() {
 	// Arrange
 	ctx := context.Background()
+
 	s.baseMock.On("Execute", mock.Anything, "input").Return("output", nil)
 	s.loggerMock.On("Info", "TestUseCase.Execute succeeded").Return()
 	// No loggerMock.On("Error", ...) — any unexpected call will fail the test.

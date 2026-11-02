@@ -13,6 +13,7 @@ func TestParamsOffsetAndLimit(t *testing.T) {
 	if got := params.Offset(); got != 40 {
 		t.Fatalf("Offset() = %d, want 40", got)
 	}
+
 	if got := params.Limit(); got != 20 {
 		t.Fatalf("Limit() = %d, want 20", got)
 	}
@@ -20,10 +21,12 @@ func TestParamsOffsetAndLimit(t *testing.T) {
 
 func TestParseQueryParams(t *testing.T) {
 	query := url.Values{"page": []string{"2"}, "per_page": []string{"50"}}
+
 	got, err := paginator.ParseQueryParams(query, 1, 20)
 	if err != nil {
 		t.Fatalf("ParseQueryParams() unexpected error = %v", err)
 	}
+
 	if got.Page != 2 || got.PerPage != 50 {
 		t.Fatalf("ParseQueryParams() = %+v, want page=2 per_page=50", got)
 	}
@@ -52,6 +55,7 @@ func TestOptionalTrimmedStringPtr(t *testing.T) {
 	if got := paginator.OptionalTrimmedStringPtr("   "); got != nil {
 		t.Fatalf("OptionalTrimmedStringPtr(spaces) = %v, want nil", *got)
 	}
+
 	got := paginator.OptionalTrimmedStringPtr("  hello ")
 	if got == nil || *got != "hello" {
 		t.Fatalf("OptionalTrimmedStringPtr() = %v, want hello", got)
@@ -62,6 +66,7 @@ func TestTotalPages(t *testing.T) {
 	if got := paginator.TotalPages(41, 20); got != 3 {
 		t.Fatalf("TotalPages() = %d, want 3", got)
 	}
+
 	if got := paginator.TotalPages(0, 20); got != 0 {
 		t.Fatalf("TotalPages() zero total = %d, want 0", got)
 	}

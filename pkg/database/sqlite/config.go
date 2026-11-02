@@ -85,18 +85,22 @@ func (c Config) Validate() error {
 			return err
 		}
 	}
+
 	return nil
 }
 
 func (c Config) validateDSN() error {
 	hasDSN := strings.TrimSpace(c.DSN) != ""
+
 	hasPath := strings.TrimSpace(c.Path) != ""
 	if !hasDSN && !hasPath {
 		return ErrMissingDSN
 	}
+
 	if hasDSN && hasPath {
 		return ErrMultipleDSNs
 	}
+
 	return nil
 }
 
@@ -104,6 +108,7 @@ func (c Config) validateBusyTimeout() error {
 	if c.BusyTimeout < 0 || (c.BusyTimeout > 0 && c.BusyTimeout < time.Millisecond) {
 		return fmt.Errorf("%w: %s", ErrInvalidBusyTimeout, c.BusyTimeout)
 	}
+
 	return nil
 }
 
@@ -111,6 +116,7 @@ func (c Config) validateJournalMode() error {
 	if c.JournalMode != "" && !validJournalMode(c.JournalMode) {
 		return fmt.Errorf("%w: %q", ErrInvalidJournalMode, c.JournalMode)
 	}
+
 	return nil
 }
 
@@ -118,6 +124,7 @@ func (c Config) validateTxLock() error {
 	if c.TxLock != "" && !validTxLock(c.TxLock) {
 		return fmt.Errorf("%w: %q", ErrInvalidTxLock, c.TxLock)
 	}
+
 	return nil
 }
 
@@ -125,6 +132,7 @@ func (c Config) validateMaxOpenConnections() error {
 	if c.MaxOpenConnections < 0 || c.MaxOpenConnections > DefaultMaxOpenConnections {
 		return fmt.Errorf("%w: %d", ErrInvalidMaxOpenConnections, c.MaxOpenConnections)
 	}
+
 	return nil
 }
 
@@ -132,6 +140,7 @@ func (c Config) validateMaxIdleConnections() error {
 	if c.MaxIdleConnections < 0 || c.MaxIdleConnections > DefaultMaxIdleConnections {
 		return fmt.Errorf("%w: %d", ErrInvalidMaxIdleConnections, c.MaxIdleConnections)
 	}
+
 	return nil
 }
 
@@ -139,19 +148,25 @@ func (c Config) withDefaults() Config {
 	if c.JournalMode == "" {
 		c.JournalMode = DefaultJournalMode
 	}
+
 	if c.BusyTimeout == 0 {
 		c.BusyTimeout = DefaultBusyTimeout
 	}
+
 	if c.TxLock == "" {
 		c.TxLock = DefaultTxLock
 	}
+
 	if c.MaxOpenConnections == 0 {
 		c.MaxOpenConnections = DefaultMaxOpenConnections
 	}
+
 	if c.MaxIdleConnections == 0 {
 		c.MaxIdleConnections = DefaultMaxIdleConnections
 	}
+
 	c.ForeignKeys = true
+
 	return c
 }
 
@@ -159,6 +174,7 @@ func (c Config) dsn() string {
 	if strings.TrimSpace(c.DSN) != "" {
 		return c.DSN
 	}
+
 	return c.Path
 }
 
@@ -166,11 +182,13 @@ func (c Config) connectionDSN() (string, error) {
 	dsn := c.dsn()
 	base, rawQuery, hasQuery := strings.Cut(dsn, "?")
 	values := make(url.Values)
+
 	if hasQuery {
 		parsed, err := url.ParseQuery(rawQuery)
 		if err != nil {
 			return "", fmt.Errorf("%w: %w", ErrInvalidDSN, err)
 		}
+
 		values = parsed
 	}
 
@@ -186,6 +204,7 @@ func setQueryValue(values url.Values, key, value string, aliases ...string) {
 	for _, alias := range append(aliases, key) {
 		values.Del(alias)
 	}
+
 	values.Set(key, value)
 }
 

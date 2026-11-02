@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	// DefaultMaxBodySize is 1MB - can be overridden with ReadJSONWithMaxSize
+	// DefaultMaxBodySize is 1MB - can be overridden with ReadJSONWithMaxSize.
 	DefaultMaxBodySize = 1_048_576
 )
 
@@ -47,6 +47,7 @@ func validateJSONContentType(contentType string) error {
 	if idx := strings.IndexByte(contentType, ';'); idx != -1 {
 		contentType = contentType[:idx]
 	}
+
 	contentType = strings.TrimSpace(contentType)
 	if contentType != "application/json" {
 		return errs.New(
@@ -56,6 +57,7 @@ func validateJSONContentType(contentType string) error {
 			nil,
 		)
 	}
+
 	return nil
 }
 
@@ -75,10 +77,12 @@ func decodeJSONPayload(dec *json.Decoder, dst any) error {
 }
 
 func parseJSONDecodeError(err error) error {
-	var syntaxError *json.SyntaxError
-	var unmarshalTypeError *json.UnmarshalTypeError
-	var invalidUnmarshalError *json.InvalidUnmarshalError
-	var maxBytesError *http.MaxBytesError
+	var (
+		syntaxError           *json.SyntaxError
+		unmarshalTypeError    *json.UnmarshalTypeError
+		invalidUnmarshalError *json.InvalidUnmarshalError
+		maxBytesError         *http.MaxBytesError
+	)
 
 	switch {
 	case errors.As(err, &syntaxError):
@@ -97,6 +101,7 @@ func parseJSONDecodeError(err error) error {
 				nil,
 			)
 		}
+
 		return errs.New("BAD_REQUEST", "request body contains invalid JSON type", http.StatusBadRequest, nil)
 
 	case errors.Is(err, io.EOF):
@@ -105,6 +110,7 @@ func parseJSONDecodeError(err error) error {
 	// Performance: Use strings.Cut (Go 1.18+) which is faster than HasPrefix + TrimPrefix
 	case strings.HasPrefix(err.Error(), "json: unknown field "):
 		fieldName := strings.TrimPrefix(err.Error(), "json: unknown field ")
+
 		return errs.New(
 			"BAD_REQUEST",
 			fmt.Sprintf("request body contains unknown field %s", fieldName),

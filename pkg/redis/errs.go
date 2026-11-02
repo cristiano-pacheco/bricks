@@ -6,32 +6,32 @@ import (
 )
 
 var (
-	// ErrInvalidConfig indicates that the Redis configuration is invalid or incomplete
+	// ErrInvalidConfig indicates that the Redis configuration is invalid or incomplete.
 	ErrInvalidConfig = errors.New("invalid redis configuration")
 
-	// ErrConnectionFailed indicates that the Redis connection attempt failed
+	// ErrConnectionFailed indicates that the Redis connection attempt failed.
 	ErrConnectionFailed = errors.New("failed to connect to redis")
 
-	// ErrMissingURL indicates that the Redis URL is required but not provided
+	// ErrMissingURL indicates that the Redis URL is required but not provided.
 	ErrMissingURL = errors.New("redis URL is required")
 
-	// ErrInvalidClientType indicates that the client type is invalid
+	// ErrInvalidClientType indicates that the client type is invalid.
 	ErrInvalidClientType = errors.New("invalid redis client type")
 
-	// ErrEmptyClientType indicates that the client type is empty
+	// ErrEmptyClientType indicates that the client type is empty.
 	ErrEmptyClientType = errors.New("redis client type cannot be empty")
 
-	// ErrPingFailed indicates that the ping operation failed
+	// ErrPingFailed indicates that the ping operation failed.
 	ErrPingFailed = errors.New("redis ping failed")
 
-	// ErrInvalidDB indicates that the DB number is invalid
+	// ErrInvalidDB indicates that the DB number is invalid.
 	ErrInvalidDB = errors.New("invalid redis DB number")
 
-	// ErrClientClosed indicates that the client is already closed
+	// ErrClientClosed indicates that the client is already closed.
 	ErrClientClosed = errors.New("redis client is closed")
 )
 
-// ConnectionError wraps connection errors with additional context
+// ConnectionError wraps connection errors with additional context.
 type ConnectionError struct {
 	URL        string
 	ClientType ClientType
@@ -48,15 +48,15 @@ func (e *ConnectionError) Unwrap() error {
 	return e.Err
 }
 
-// Is checks if the error matches the target
+// Is checks if the error matches the target.
 func (e *ConnectionError) Is(target error) bool {
 	return errors.Is(e.Err, target)
 }
 
-// ConfigError wraps configuration errors with additional context
+// ConfigError wraps configuration errors with additional context.
 type ConfigError struct {
 	Field string
-	Value interface{}
+	Value any
 	Err   error
 }
 

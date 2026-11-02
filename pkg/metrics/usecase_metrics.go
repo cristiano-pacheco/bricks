@@ -10,6 +10,7 @@ const (
 	usecaseDurationMetricName = "usecase_duration_seconds"
 	usecaseSuccessMetricName  = "usecase_success_total"
 	usecaseErrorMetricName    = "usecase_error_total"
+	usecaseNameLabel          = "name"
 )
 
 type UseCaseMetrics interface {
@@ -17,8 +18,6 @@ type UseCaseMetrics interface {
 	IncSuccess(name string)
 	IncError(name string)
 }
-
-var durationBuckets = []float64{0.005, 0.025, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 1, 1.5, 2, 3, 4, 5}
 
 type PrometheusUseCaseMetrics struct {
 	duration *prometheus.HistogramVec
@@ -33,31 +32,33 @@ func NewPrometheusUseCaseMetrics() (*PrometheusUseCaseMetrics, error) {
 		prometheus.HistogramOpts{
 			Name:    usecaseDurationMetricName,
 			Help:    "Duration of use case execution in seconds",
-			Buckets: durationBuckets,
+			Buckets: []float64{0.005, 0.025, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 1, 1.5, 2, 3, 4, 5},
 		},
-		[]string{"name"},
+		[]string{usecaseNameLabel},
 	)
 	successCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: usecaseSuccessMetricName,
 			Help: "Total successful use case executions",
 		},
-		[]string{"name"},
+		[]string{usecaseNameLabel},
 	)
 	errorCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: usecaseErrorMetricName,
 			Help: "Total failed use case executions",
 		},
-		[]string{"name"},
+		[]string{usecaseNameLabel},
 	)
 
 	if err := prometheus.Register(duration); err != nil {
 		return nil, err
 	}
+
 	if err := prometheus.Register(successCounter); err != nil {
 		return nil, err
 	}
+
 	if err := prometheus.Register(errorCounter); err != nil {
 		return nil, err
 	}

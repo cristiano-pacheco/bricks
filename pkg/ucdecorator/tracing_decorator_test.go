@@ -13,6 +13,7 @@ import (
 
 type TracingDecoratorTestSuite struct {
 	suite.Suite
+
 	sut      ucdecorator.UseCase[string, string]
 	baseMock *mocks.MockUseCase[string, string]
 }
@@ -29,6 +30,7 @@ func TestTracingDecoratorSuite(t *testing.T) {
 func (s *TracingDecoratorTestSuite) TestExecute_Success_PropagatesOutputToCallerAndCallsBase() {
 	// Arrange
 	ctx := context.Background()
+
 	s.baseMock.On("Execute", mock.Anything, "input").Return("output", nil)
 
 	// Act

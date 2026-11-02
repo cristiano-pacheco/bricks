@@ -61,12 +61,15 @@ func TestRunner_UpSQLite_OrdersFilesystemContributionsDeterministically(t *testi
 	rows, err := db.Query("SELECT step FROM migration_order ORDER BY step")
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, rows.Close()) })
+
 	var steps []int
+
 	for rows.Next() {
 		var step int
 		require.NoError(t, rows.Scan(&step))
 		steps = append(steps, step)
 	}
+
 	require.NoError(t, rows.Err())
 	assert.Equal(t, []int{2, 3}, steps)
 	version, exists := schemaVersion(t, db)
@@ -84,6 +87,7 @@ func TestRunner_UpSQLite_OlderSchemaAppliesAllPendingMigrations(t *testing.T) {
 		},
 	)
 	require.NoError(t, migration.NewRunner([]migration.FileSystem{initial}).UpSQLite(db))
+
 	full := newMigrationFileSystem(
 		migrationFile{
 			name: "000001_create_accounts.up.sql",
@@ -119,6 +123,7 @@ func TestRunner_UpSQLite_OlderSchemaAppliesAllPendingMigrations(t *testing.T) {
 	version, exists := schemaVersion(t, db)
 	require.True(t, exists)
 	assert.Equal(t, uint64(3), version)
+
 	var name string
 	require.NoError(t, db.QueryRow("SELECT name FROM accounts").Scan(&name))
 	assert.Equal(t, "alice", name)
@@ -152,6 +157,7 @@ func TestRunner_UpSQLite_CurrentSchemaIsNoOp(t *testing.T) {
 
 	// Assert
 	require.NoError(t, err)
+
 	var count int
 	require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM events").Scan(&count))
 	assert.Equal(t, 1, count)
@@ -174,6 +180,7 @@ func TestRunner_UpSQLite_FailedMigrationRollsBackPendingSchema(t *testing.T) {
 		},
 	)
 	require.NoError(t, migration.NewRunner([]migration.FileSystem{initial}).UpSQLite(db))
+
 	failing := newMigrationFileSystem(
 		migrationFile{
 			name: "000001_create_base.up.sql",
@@ -246,6 +253,7 @@ func TestRunner_UpSQLite_RejectsNewerSchemaBeforeRunningMigrations(t *testing.T)
 	require.NoError(t, err)
 	_, err = db.Exec("INSERT INTO schema_migrations (version, dirty) VALUES (99, false)")
 	require.NoError(t, err)
+
 	runner := migration.NewRunner([]migration.FileSystem{newMigrationFileSystem(
 		migrationFile{
 			name: "000001_must_not_run.up.sql",
@@ -329,6 +337,7 @@ func newSQLiteDatabase(t *testing.T) *sql.DB {
 	db, err := gormDB.DB()
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
+
 	return db
 }
 
@@ -337,29 +346,39 @@ func newMigrationFileSystem(files ...migrationFile) migration.FileSystem {
 	for _, file := range files {
 		fileSystem[file.name] = &fstest.MapFile{Data: []byte(file.sql)}
 	}
+
 	return migration.New(fileSystem)
 }
 
 func schemaVersion(t *testing.T, db *sql.DB) (uint64, bool) {
 	t.Helper()
-	var version uint64
-	var dirty bool
+
+	var (
+		version uint64
+		dirty   bool
+	)
+
 	err := db.QueryRow("SELECT version, dirty FROM schema_migrations").Scan(&version, &dirty)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, false
 	}
+
 	require.NoError(t, err)
 	assert.False(t, dirty)
+
 	return version, true
 }
 
 func tableExists(t *testing.T, db *sql.DB, table string) bool {
 	t.Helper()
+
 	var count int
+
 	err := db.QueryRow(
 		"SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?",
 		table,
 	).Scan(&count)
 	require.NoError(t, err)
+
 	return count == 1
 }

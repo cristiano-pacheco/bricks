@@ -32,7 +32,9 @@ func loadConfig[T any](configDir string, options ...config.Option) (config.Confi
 		_ = os.Unsetenv("APP_CONFIG_DIR")
 		return config.New[T](options...)
 	}
+
 	_ = os.Setenv("APP_CONFIG_DIR", resolvedDir)
+
 	return config.New[T](options...)
 }
 
@@ -41,22 +43,27 @@ func normalizeConfigDir(configDir string) string {
 	if trimmedDir == "" {
 		return ""
 	}
+
 	if !filepath.IsAbs(trimmedDir) {
 		return trimmedDir
 	}
+
 	root, err := os.Getwd()
 	if err != nil {
 		return trimmedDir
 	}
+
 	rel, relErr := filepath.Rel(root, trimmedDir)
 	if relErr != nil {
 		return trimmedDir
 	}
+
 	return rel
 }
 
 func tempConfigDir(t *testing.T) string {
 	t.Helper()
+
 	root, err := os.Getwd()
 	require.NoError(t, err)
 	baseDir := filepath.Base(t.TempDir())
@@ -65,6 +72,7 @@ func tempConfigDir(t *testing.T) string {
 	t.Cleanup(func() {
 		_ = os.RemoveAll(dir)
 	})
+
 	return dir
 }
 
@@ -75,6 +83,7 @@ func TestNew(t *testing.T) {
 
 		// Act
 		t.Setenv("APP_ENV", "local")
+
 		cfg, err := loadConfig[TestConfig](configDir)
 
 		// Assert
@@ -90,6 +99,7 @@ func TestLoad_EnvironmentFromEnvVar(t *testing.T) {
 	t.Run("should load production environment via APP_ENV", func(t *testing.T) {
 		// Arrange
 		configDir := testConfigDir
+
 		t.Setenv("APP_ENV", "production")
 
 		// Act
@@ -132,6 +142,7 @@ app:
 
 		// Act
 		t.Setenv("APP_ENV", "local")
+
 		cfg, err := loadConfig[TestConfig](tmpDir)
 
 		// Assert
@@ -161,6 +172,7 @@ app:
 
 		// Act
 		t.Setenv("APP_ENV", "local")
+
 		_, err = loadConfig[TestConfig](tmpDir)
 
 		// Assert
@@ -226,6 +238,7 @@ func TestNewWithPath(t *testing.T) {
 	t.Run("should load database section with CustomLoad", func(t *testing.T) {
 		// Arrange
 		configDir := testConfigDir
+
 		t.Setenv("APP_ENV", "local")
 
 		// Act
@@ -242,6 +255,7 @@ func TestNewWithPath(t *testing.T) {
 	t.Run("should load app section with CustomLoad", func(t *testing.T) {
 		// Arrange
 		configDir := testConfigDir
+
 		t.Setenv("APP_ENV", "local")
 
 		// Act
@@ -258,6 +272,7 @@ func TestNewWithPath(t *testing.T) {
 	t.Run("should load database section with APP_ENV=production", func(t *testing.T) {
 		// Arrange
 		configDir := testConfigDir
+
 		t.Setenv("APP_ENV", "production")
 
 		// Act
@@ -293,6 +308,7 @@ func TestNewWithPath(t *testing.T) {
 	t.Run("should load successfully with WithPath", func(t *testing.T) {
 		// Arrange
 		configDir := testConfigDir
+
 		t.Setenv("APP_ENV", "local")
 
 		// Act & Assert
@@ -383,6 +399,7 @@ func TestConfigFilePermissionErrors(t *testing.T) {
 		// Remove read permissions
 		err = os.Chmod(configPath, 0000)
 		require.NoError(t, err)
+
 		defer os.Chmod(configPath, 0644) // Restore permissions
 
 		// Act
@@ -414,6 +431,7 @@ app:
 		require.NoError(t, err)
 		err = os.Chmod(envConfigPath, 0000)
 		require.NoError(t, err)
+
 		defer os.Chmod(envConfigPath, 0644)
 
 		t.Setenv("APP_ENV", "production")
@@ -467,6 +485,7 @@ func TestConfigWithSpacesAndTrimming(t *testing.T) {
 		require.NoError(t, err)
 		relDir, err := filepath.Rel(root, tmpDir)
 		require.NoError(t, err)
+
 		configDir := "  " + relDir + "  "
 
 		baseConfig := `
@@ -532,6 +551,7 @@ app:
 
 		// Act - Set environment with mixed case
 		t.Setenv("APP_ENV", "  PrOdUcTiOn  ")
+
 		cfg, err := loadConfig[TestConfig](tmpDir)
 
 		// Assert
@@ -561,6 +581,7 @@ app:
 		// loadConfigFile is called with name="" which tries to open ".yaml"; that file
 		// does not exist, so only base.yaml is loaded.
 		t.Setenv("APP_ENV", "   ")
+
 		cfg, err := loadConfig[TestConfig](tmpDir)
 
 		// Assert - only base.yaml is loaded; local.yaml is not used
@@ -795,7 +816,7 @@ app:
 		assert.Equal(t, "re_prod_xxx", cfg.Get().App.Notification.EmailProviders.Resend.APIKey)
 		assert.Equal(t, "postgres.internal", cfg.Get().App.Database.Host)
 		assert.Equal(t, 5432, cfg.Get().App.Database.Port)
-		assert.Equal(t, "", cfg.Get().App.Database.Password)
+		assert.Empty(t, cfg.Get().App.Database.Password)
 	})
 }
 
@@ -823,6 +844,7 @@ app:
 		// Remove all permissions from config directory (not just read)
 		err = os.Chmod(configDir, 0000)
 		require.NoError(t, err)
+
 		defer os.Chmod(configDir, 0755) // Restore permissions for cleanup
 
 		// Act
@@ -831,7 +853,7 @@ app:
 		// Assert - Should get permission error (either accessing dir or reading file)
 		require.Error(t, err)
 		// Error message varies by OS, but should mention permission issues
-		assert.True(t, err != nil, "should have permission error")
+		assert.Error(t, err, "should have permission error")
 	})
 }
 
@@ -980,6 +1002,7 @@ nested_slice:
 		assert.Equal(t, "value2", cfg.Get().StringMap["key2"])
 		assert.Equal(t, []int{1, 2, 3}, cfg.Get().IntSlice)
 		assert.True(t, cfg.Get().BoolValue)
+		//nolint:testifylint // Parsing the literal should produce the exact same float64.
 		assert.Equal(t, 3.14159, cfg.Get().FloatValue)
 		assert.Len(t, cfg.Get().NestedSlice, 2)
 		assert.Equal(t, "item1", cfg.Get().NestedSlice[0]["name"])

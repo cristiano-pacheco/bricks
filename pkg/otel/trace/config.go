@@ -22,31 +22,37 @@ type TracerConfig struct {
 	ExporterType ExporterType  `config:"exporter_type"`  // GRPC or HTTP, default GRPC
 }
 
-// Validate checks if the configuration is valid
+// Validate checks if the configuration is valid.
 func (c *TracerConfig) Validate() error {
 	if c.AppName == "" {
 		return ErrAppNameRequired
 	}
+
 	if c.TraceEnabled && c.TraceURL == "" {
 		return ErrTraceURLRequired
 	}
+
 	if c.SampleRate < 0.0 || c.SampleRate > 1.0 {
 		return ErrInvalidSampleRate
 	}
+
 	return nil
 }
 
-// setDefaults sets default values for optional configuration fields
+// setDefaults sets default values for optional configuration fields.
 func (c *TracerConfig) setDefaults() {
 	if c.BatchTimeout == 0 {
 		c.BatchTimeout = defaultBatchTimeout
 	}
+
 	if c.MaxBatchSize == 0 {
 		c.MaxBatchSize = 512
 	}
+
 	if c.SampleRate == 0.0 {
 		c.SampleRate = defaultSampleRate
 	}
+
 	if c.ExporterType.IsZero() {
 		exporterType, err := NewExporterType(ExporterTypeGRPC)
 		if err == nil {

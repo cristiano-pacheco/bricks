@@ -2,7 +2,6 @@ package request_test
 
 import (
 	"bytes"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -25,6 +24,7 @@ func TestReadJSON(t *testing.T) {
 		body := bytes.NewBufferString(`{"name":"alice"}`)
 		r := httptest.NewRequest(http.MethodPost, "/", body)
 		r.Header.Set("Content-Type", "application/json")
+
 		w := httptest.NewRecorder()
 
 		// Act
@@ -33,6 +33,7 @@ func TestReadJSON(t *testing.T) {
 		// Assert
 		require.NoError(t, err)
 		assert.Equal(t, "alice", dst.Name)
+
 		_ = w
 	})
 
@@ -43,9 +44,11 @@ func TestReadJSON(t *testing.T) {
 		}
 
 		var dst Payload
+
 		body := bytes.NewBufferString(`{"name":"bob"}`)
 		r := httptest.NewRequest(http.MethodPost, "/", body)
 		r.Header.Set("Content-Type", "text/plain")
+
 		w := httptest.NewRecorder()
 
 		// Act
@@ -53,11 +56,13 @@ func TestReadJSON(t *testing.T) {
 
 		// Assert
 		require.Error(t, err)
+
 		var reqErr *errs.Error
-		require.True(t, errors.As(err, &reqErr))
+		require.ErrorAs(t, err, &reqErr)
 		assert.Equal(t, http.StatusUnsupportedMediaType, reqErr.Status)
 		assert.Equal(t, "UNSUPPORTED_MEDIA_TYPE", reqErr.Code)
 		assert.Equal(t, "Content-Type header is not application/json", reqErr.Message)
+
 		_ = w
 	})
 
@@ -68,9 +73,11 @@ func TestReadJSON(t *testing.T) {
 		}
 
 		var dst Payload
+
 		body := bytes.NewBufferString(`{"name":}`)
 		r := httptest.NewRequest(http.MethodPost, "/", body)
 		r.Header.Set("Content-Type", "application/json")
+
 		w := httptest.NewRecorder()
 
 		// Act
@@ -78,11 +85,13 @@ func TestReadJSON(t *testing.T) {
 
 		// Assert
 		require.Error(t, err)
+
 		var reqErr *errs.Error
-		require.True(t, errors.As(err, &reqErr))
+		require.ErrorAs(t, err, &reqErr)
 		assert.Equal(t, http.StatusBadRequest, reqErr.Status)
 		assert.Equal(t, "BAD_REQUEST", reqErr.Code)
 		assert.Contains(t, reqErr.Message, "malformed JSON")
+
 		_ = w
 	})
 
@@ -93,9 +102,11 @@ func TestReadJSON(t *testing.T) {
 		}
 
 		var dst Payload
+
 		body := bytes.NewBufferString("")
 		r := httptest.NewRequest(http.MethodPost, "/", body)
 		r.Header.Set("Content-Type", "application/json")
+
 		w := httptest.NewRecorder()
 
 		// Act
@@ -103,11 +114,13 @@ func TestReadJSON(t *testing.T) {
 
 		// Assert
 		require.Error(t, err)
+
 		var reqErr *errs.Error
-		require.True(t, errors.As(err, &reqErr))
+		require.ErrorAs(t, err, &reqErr)
 		assert.Equal(t, http.StatusBadRequest, reqErr.Status)
 		assert.Equal(t, "BAD_REQUEST", reqErr.Code)
 		assert.Equal(t, "request body must not be empty", reqErr.Message)
+
 		_ = w
 	})
 
@@ -118,9 +131,11 @@ func TestReadJSON(t *testing.T) {
 		}
 
 		var dst Payload
+
 		body := bytes.NewBufferString(`{"unknown":1}`)
 		r := httptest.NewRequest(http.MethodPost, "/", body)
 		r.Header.Set("Content-Type", "application/json")
+
 		w := httptest.NewRecorder()
 
 		// Act
@@ -128,11 +143,13 @@ func TestReadJSON(t *testing.T) {
 
 		// Assert
 		require.Error(t, err)
+
 		var reqErr *errs.Error
-		require.True(t, errors.As(err, &reqErr))
+		require.ErrorAs(t, err, &reqErr)
 		assert.Equal(t, http.StatusBadRequest, reqErr.Status)
 		assert.Equal(t, "BAD_REQUEST", reqErr.Code)
 		assert.Contains(t, reqErr.Message, "unknown field")
+
 		_ = w
 	})
 
@@ -151,6 +168,7 @@ func TestReadJSON(t *testing.T) {
 
 		r := httptest.NewRequest(http.MethodPost, "/", jsonBuf)
 		r.Header.Set("Content-Type", "application/json")
+
 		w := httptest.NewRecorder()
 
 		// Act
@@ -158,11 +176,13 @@ func TestReadJSON(t *testing.T) {
 
 		// Assert
 		require.Error(t, err)
+
 		var reqErr *errs.Error
-		require.True(t, errors.As(err, &reqErr))
+		require.ErrorAs(t, err, &reqErr)
 		assert.Equal(t, http.StatusRequestEntityTooLarge, reqErr.Status)
 		assert.Equal(t, "REQUEST_ENTITY_TOO_LARGE", reqErr.Code)
 		assert.Contains(t, reqErr.Message, "must not exceed")
+
 		_ = w
 	})
 
@@ -173,9 +193,11 @@ func TestReadJSON(t *testing.T) {
 		}
 
 		var dst Payload
+
 		body := bytes.NewBufferString(`{} {}`)
 		r := httptest.NewRequest(http.MethodPost, "/", body)
 		r.Header.Set("Content-Type", "application/json")
+
 		w := httptest.NewRecorder()
 
 		// Act
@@ -183,11 +205,13 @@ func TestReadJSON(t *testing.T) {
 
 		// Assert
 		require.Error(t, err)
+
 		var reqErr *errs.Error
-		require.True(t, errors.As(err, &reqErr))
+		require.ErrorAs(t, err, &reqErr)
 		assert.Equal(t, http.StatusBadRequest, reqErr.Status)
 		assert.Equal(t, "BAD_REQUEST", reqErr.Code)
 		assert.Equal(t, "request body must contain only a single JSON value", reqErr.Message)
+
 		_ = w
 	})
 }

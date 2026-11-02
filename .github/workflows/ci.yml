@@ -1,105 +1,66 @@
 name: CI
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
-  static-checks:
-    name: Static Checks
+  lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-          cache: false
+          cache: true
+      - run: make lint
 
-      - name: Cache dependencies
-        uses: actions/cache@v4
+  vulnerabilities:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          go-version-file: go.mod
+          cache: true
+      - run: make vuln-check
 
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Install golangci-lint
-        uses: golangci/golangci-lint-action@v9
+  nilaway:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
-          version: v2.10.1
-
-      - name: Lint (golangci-lint)
-        run: make lint
-
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
-
-      - name: Vulnerability Check (govulncheck)
-        run: make vuln-check
-
-      - name: Install nilaway
-        run: go install go.uber.org/nilaway/cmd/nilaway@latest
-
-      - name: NilAway
-        run: make nilaway
+          go-version-file: go.mod
+          cache: true
+      - run: make nilaway
 
   unit-tests:
-    name: Unit Tests & Coverage
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-          cache: false
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Test and generate coverage report
-        run: make unit-test-coverage
-
+          cache: true
+      - run: make unit-test-coverage
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: cristiano-pacheco/bricks
 
   integration-tests:
-    name: Integration Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-          cache: false
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Run integration tests
-        run: make test-integration
+          cache: true
+      - run: make test-integration

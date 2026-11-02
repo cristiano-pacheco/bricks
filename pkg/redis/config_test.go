@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestConfigValidation tests configuration validation
+// TestConfigValidation tests configuration validation.
 func TestConfigValidation(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -68,7 +68,7 @@ func TestConfigValidation(t *testing.T) {
 	}
 }
 
-// TestConfigDefaults tests default values
+// TestConfigDefaults tests default values.
 func TestConfigDefaults(t *testing.T) {
 	// Arrange
 	cfg := redis.Config{

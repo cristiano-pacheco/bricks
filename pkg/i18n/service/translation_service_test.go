@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"errors"
+	"maps"
 	"testing"
 
 	"github.com/cristiano-pacheco/bricks/pkg/i18n/config"
@@ -12,6 +13,7 @@ import (
 
 type TranslationServiceTestSuite struct {
 	suite.Suite
+
 	sut *service.TranslationService
 }
 
@@ -90,9 +92,8 @@ func cloneTranslations(input map[string]map[string]string) map[string]map[string
 	copied := make(map[string]map[string]string, len(input))
 	for domain, values := range input {
 		domainCopy := make(map[string]string, len(values))
-		for key, value := range values {
-			domainCopy[key] = value
-		}
+		maps.Copy(domainCopy, values)
+
 		copied[domain] = domainCopy
 	}
 

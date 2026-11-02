@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"strings"
 	"text/template"
 
@@ -50,6 +51,7 @@ func NewTranslationService(
 
 func (s *TranslationService) Translate(domain, key string) string {
 	resolvedDomain := strings.TrimSpace(domain)
+
 	resolvedKey := strings.TrimSpace(key)
 	if resolvedDomain == "" || resolvedKey == "" {
 		return resolvedKey
@@ -67,6 +69,7 @@ func (s *TranslationService) Translate(domain, key string) string {
 			logger.String("domain", resolvedDomain),
 			logger.String("key", resolvedKey),
 		)
+
 		return fallbackValue
 	}
 
@@ -94,6 +97,7 @@ func (s *TranslationService) TranslateWithData(domain, key string, data map[stri
 			logger.String("key", key),
 			logger.Error(parseErr),
 		)
+
 		return value
 	}
 
@@ -105,6 +109,7 @@ func (s *TranslationService) TranslateWithData(domain, key string, data map[stri
 			logger.String("key", key),
 			logger.Error(executeErr),
 		)
+
 		return value
 	}
 
@@ -118,12 +123,9 @@ func (s *TranslationService) GetAllForDomain(domain string) map[string]string {
 	}
 
 	result := make(map[string]string)
-	for key, value := range s.fallbackTranslations[resolvedDomain] {
-		result[key] = value
-	}
-	for key, value := range s.translations[resolvedDomain] {
-		result[key] = value
-	}
+	maps.Copy(result, s.fallbackTranslations[resolvedDomain])
+
+	maps.Copy(result, s.translations[resolvedDomain])
 
 	return result
 }

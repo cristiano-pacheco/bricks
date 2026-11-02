@@ -34,6 +34,7 @@ func TestServer_Start_PortZeroReportsEffectiveAddressAndShutsDown(t *testing.T) 
 	go func() {
 		startErrors <- server.Start()
 	}()
+
 	defer func() {
 		_ = server.Shutdown(context.Background())
 	}()
@@ -80,6 +81,7 @@ func TestServer_MetricsPortZeroReportsEffectiveAddress(t *testing.T) {
 	go func() {
 		startErrors <- server.Start()
 	}()
+
 	defer func() {
 		_ = server.Shutdown(context.Background())
 	}()
@@ -98,6 +100,7 @@ func TestServer_MetricsPortZeroReportsEffectiveAddress(t *testing.T) {
 func TestServer_Start_ReturnsErrorForOccupiedAddress(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
+
 	defer func() {
 		_ = listener.Close()
 	}()
@@ -110,12 +113,13 @@ func TestServer_Start_ReturnsErrorForOccupiedAddress(t *testing.T) {
 func TestServer_FxStart_ReturnsErrorForOccupiedAddress(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
+
 	defer func() {
 		_ = listener.Close()
 	}()
 
 	loaded := loadConfig(t, listener.Addr().String(), false, false, false)
-	app, _ := newLifecycleApp(loaded, nil, nil)
+	app, _ := newLifecycleApp(t, loaded, nil, nil)
 
 	require.ErrorIs(t, app.Start(context.Background()), chi.ErrListen)
 	_ = app.Stop(context.Background())
@@ -128,7 +132,7 @@ func TestServer_FxStartRegistersRoutesBeforeServing(t *testing.T) {
 			_, _ = writer.Write([]byte("from-fx-route"))
 		})
 	})
-	app, server := newLifecycleApp(loaded, route, nil)
+	app, server := newLifecycleApp(t, loaded, route, nil)
 
 	require.NoError(t, app.Start(context.Background()))
 	address := waitForEffectiveAddress(t, server.Addr)
@@ -150,9 +154,10 @@ func TestServer_FxStartHonorsRouteLogging(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var logs strings.Builder
+
 			logger := slog.New(slog.NewTextHandler(&logs, nil))
 			loaded := loadConfig(t, "127.0.0.1:0", false, false, tt.enabled)
-			app, server := newLifecycleApp(loaded, nil, logger)
+			app, server := newLifecycleApp(t, loaded, nil, logger)
 
 			require.NoError(t, app.Start(context.Background()))
 			require.NotEmpty(t, server.Addr())
@@ -162,6 +167,7 @@ func TestServer_FxStartHonorsRouteLogging(t *testing.T) {
 				require.Contains(t, logs.String(), "HTTP Server")
 				return
 			}
+
 			require.Empty(t, logs.String())
 		})
 	}
@@ -212,15 +218,20 @@ func loadConfig(
 
 	loaded, err := bricksconfig.New[chi.Config](bricksconfig.WithPath("app.http"))
 	require.NoError(t, err)
+
 	return loaded
 }
 
 func newLifecycleApp(
+	t *testing.T,
 	loaded bricksconfig.Config[chi.Config],
 	route chi.Route,
 	logger *slog.Logger,
 ) (*fx.App, *chi.Server) {
+	t.Helper()
+
 	var server *chi.Server
+
 	options := []fx.Option{
 		fx.Provide(func() bricksconfig.Config[chi.Config] {
 			return loaded
@@ -236,27 +247,44 @@ func newLifecycleApp(
 			fx.ResultTags(`group:"routes"`),
 		)))
 	}
+
 	if logger != nil {
 		options = append(options, fx.Supply(logger))
 	}
-	return fx.New(options...), server
+
+	app := fx.New(options...)
+	require.NoError(t, app.Err())
+
+	if server == nil {
+		t.Fatal("fx did not provide a server")
+	}
+
+	return app, server
 }
 
 func waitForEffectiveAddress(t *testing.T, address func() string) string {
 	t.Helper()
+
 	var effective string
+
 	require.Eventually(t, func() bool {
 		effective = address()
 		_, port, err := net.SplitHostPort(effective)
+
 		return err == nil && port != "0"
 	}, time.Second, 10*time.Millisecond)
+
 	return effective
 }
 
 func waitForResponse(t *testing.T, url string) (int, string) {
 	t.Helper()
-	var status int
-	var body string
+
+	var (
+		status int
+		body   string
+	)
+
 	client := &http.Client{Timeout: time.Second}
 	require.Eventually(t, func() bool {
 		response, err := client.Get(url)
@@ -264,20 +292,26 @@ func waitForResponse(t *testing.T, url string) (int, string) {
 			return false
 		}
 		defer response.Body.Close()
+
 		contents, err := io.ReadAll(response.Body)
 		if err != nil {
 			return false
 		}
+
 		status = response.StatusCode
 		body = string(contents)
+
 		return true
 	}, time.Second, 10*time.Millisecond)
+
 	return status, body
 }
 
 func hostOf(t *testing.T, address string) string {
 	t.Helper()
+
 	host, _, err := net.SplitHostPort(address)
 	require.NoError(t, err)
+
 	return host
 }

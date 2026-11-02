@@ -21,6 +21,7 @@ func (h *testHandlerUseCase) Execute(_ context.Context, _ string) (string, error
 
 type FactoryTestSuite struct {
 	suite.Suite
+
 	loggerMock     *mocks.MockLogger
 	metricsMock    *mocks.MockUseCaseMetrics
 	translatorMock *mocks.MockErrorTranslator
@@ -342,7 +343,7 @@ func TestToSnakeCase(t *testing.T) {
 	})
 
 	t.Run("empty string returns empty string", func(t *testing.T) {
-		require.Equal(t, "", f.ToSnakeCase(""))
+		require.Empty(t, f.ToSnakeCase(""))
 	})
 
 	t.Run("mixed case with id suffix", func(t *testing.T) {

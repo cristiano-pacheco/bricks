@@ -62,6 +62,7 @@ func NormalizeParams(
 	if normalizedPerPage < 1 {
 		normalizedPerPage = defaultPerPage
 	}
+
 	if maxPerPage > 0 && normalizedPerPage > maxPerPage {
 		normalizedPerPage = maxPerPage
 	}
@@ -91,6 +92,7 @@ func parsePositiveIntQueryValue(value string, fallback int) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	if parsedValue <= 0 {
 		return 0, errors.New("value must be greater than zero")
 	}

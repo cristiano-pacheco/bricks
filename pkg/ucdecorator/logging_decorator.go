@@ -16,6 +16,7 @@ func withLogging[T any, R any](base UseCase[T, R], log logger.Logger, name strin
 	if log == nil {
 		return base
 	}
+
 	return &loggingDecorator[T, R]{
 		base:   base,
 		logger: log,
@@ -24,8 +25,10 @@ func withLogging[T any, R any](base UseCase[T, R], log logger.Logger, name strin
 }
 
 func (decorator *loggingDecorator[T, R]) Execute(ctx context.Context, input T) (R, error) {
-	var output R
-	var err error
+	var (
+		output R
+		err    error
+	)
 
 	defer func() {
 		if err != nil {
@@ -36,5 +39,6 @@ func (decorator *loggingDecorator[T, R]) Execute(ctx context.Context, input T) (
 	}()
 
 	output, err = decorator.base.Execute(ctx, input)
+
 	return output, err
 }

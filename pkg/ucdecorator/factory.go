@@ -52,6 +52,7 @@ func Wrap[T any, R any](
 			factory.logger.Debug("applying translation decorator", logger.String("use_case", useCaseName))
 		}
 	}
+
 	if cfg.Tracing {
 		result = withTracing(result, useCaseName)
 		if cfg.DebugMode {
@@ -59,6 +60,7 @@ func Wrap[T any, R any](
 			factory.logger.Debug("applying tracing decorator", logger.String("use_case", useCaseName))
 		}
 	}
+
 	if cfg.Metrics {
 		result = withMetrics(result, factory.metrics, metricName)
 		if cfg.DebugMode {
@@ -66,6 +68,7 @@ func Wrap[T any, R any](
 			factory.logger.Debug("applying metrics decorator", logger.String("use_case", useCaseName))
 		}
 	}
+
 	if cfg.Logging {
 		result = withLogging(result, factory.logger, useCaseName)
 		if cfg.DebugMode {
@@ -83,7 +86,7 @@ func (f *Factory) inferUseCaseName(handler any) string {
 		return "UseCase.Execute"
 	}
 
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
@@ -97,6 +100,7 @@ func (f *Factory) inferUseCaseName(handler any) string {
 
 func (f *Factory) inferMetricName(useCaseName string) string {
 	name := strings.TrimSuffix(useCaseName, ".Execute")
+
 	name = strings.TrimSuffix(name, "UseCase")
 	if name == "" {
 		return "use_case"
@@ -113,15 +117,18 @@ func (f *Factory) toSnakeCase(value string) string {
 	}
 
 	runes := []rune(value)
+
 	out := make([]rune, 0, len(runes)+additionalCapacity)
 	for i, r := range runes {
 		if i > 0 && unicode.IsUpper(r) {
 			prev := runes[i-1]
+
 			nextLower := i+1 < len(runes) && unicode.IsLower(runes[i+1])
 			if unicode.IsLower(prev) || unicode.IsDigit(prev) || (unicode.IsUpper(prev) && nextLower) {
 				out = append(out, '_')
 			}
 		}
+
 		out = append(out, unicode.ToLower(r))
 	}
 

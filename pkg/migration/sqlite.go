@@ -90,6 +90,7 @@ func (r *Runner) runSQLiteMigrations(
 	if runErr != nil {
 		return fmt.Errorf("run sqlite %s migrations: %w", direction, runErr)
 	}
+
 	return nil
 }
 
@@ -102,6 +103,7 @@ func applySQLiteUpMigrations(tx *sql.Tx, migrations []sqliteMigration) error {
 	if versionErr != nil {
 		return versionErr
 	}
+
 	if current.dirty {
 		return fmt.Errorf("%w: version %d", ErrDatabaseDirty, current.version)
 	}
@@ -120,9 +122,11 @@ func applySQLiteUpMigrations(tx *sql.Tx, migrations []sqliteMigration) error {
 		if migration.direction != source.Up || (current.exists && migration.version <= current.version) {
 			continue
 		}
+
 		if executeErr := executeSQLiteMigration(tx, migration); executeErr != nil {
 			return executeErr
 		}
+
 		if recordErr := writeSQLiteSchemaVersion(tx, migration.version); recordErr != nil {
 			return fmt.Errorf("record version %d: %w", migration.version, recordErr)
 		}
@@ -140,9 +144,11 @@ func applySQLiteDownMigrations(tx *sql.Tx, migrations []sqliteMigration) error {
 	if versionErr != nil {
 		return versionErr
 	}
+
 	if !current.exists {
 		return nil
 	}
+
 	if current.dirty {
 		return fmt.Errorf("%w: version %d", ErrDatabaseDirty, current.version)
 	}
@@ -161,16 +167,20 @@ func applySQLiteDownMigrations(tx *sql.Tx, migrations []sqliteMigration) error {
 	if downErr != nil {
 		return downErr
 	}
+
 	for index, migration := range downMigrations {
 		if executeErr := executeSQLiteMigration(tx, migration); executeErr != nil {
 			return executeErr
 		}
+
 		if index == len(downMigrations)-1 {
 			if clearErr := clearSQLiteSchemaVersion(tx); clearErr != nil {
 				return fmt.Errorf("clear schema version: %w", clearErr)
 			}
+
 			continue
 		}
+
 		previousVersion := downMigrations[index+1].version
 		if recordErr := writeSQLiteSchemaVersion(tx, previousVersion); recordErr != nil {
 			return fmt.Errorf("record version %d: %w", previousVersion, recordErr)
@@ -193,6 +203,7 @@ func (r *Runner) readSQLiteMigrations() ([]sqliteMigration, error) {
 		if readErr != nil {
 			return nil, readErr
 		}
+
 		for _, migration := range fileSystemMigrations {
 			key := sqliteMigrationKey{version: migration.version, direction: migration.direction}
 			if previousName, exists := seen[key]; exists {
@@ -205,6 +216,7 @@ func (r *Runner) readSQLiteMigrations() ([]sqliteMigration, error) {
 					migration.name,
 				)
 			}
+
 			seen[key] = migration.name
 			migrations = append(migrations, migration)
 		}
@@ -214,11 +226,14 @@ func (r *Runner) readSQLiteMigrations() ([]sqliteMigration, error) {
 		if migrations[i].version != migrations[j].version {
 			return migrations[i].version < migrations[j].version
 		}
+
 		if migrations[i].direction != migrations[j].direction {
 			return migrations[i].direction < migrations[j].direction
 		}
+
 		return migrations[i].name < migrations[j].name
 	})
+
 	return migrations, nil
 }
 
@@ -235,6 +250,7 @@ func readSQLiteFilesystem(fileSystemIndex int, fileSystem fs.FS) ([]sqliteMigrat
 		}
 
 		name := entry.Name()
+
 		parsed, parseErr := source.DefaultParse(name)
 		if parseErr != nil {
 			return nil, fmt.Errorf(
@@ -248,6 +264,7 @@ func readSQLiteFilesystem(fileSystemIndex int, fileSystem fs.FS) ([]sqliteMigrat
 		if contentErr != nil {
 			return nil, fmt.Errorf("read migration %q: %w", name, contentErr)
 		}
+
 		migrations = append(migrations, sqliteMigration{
 			name:      name,
 			version:   parsed.Version,
@@ -255,6 +272,7 @@ func readSQLiteFilesystem(fileSystemIndex int, fileSystem fs.FS) ([]sqliteMigrat
 			contents:  contents,
 		})
 	}
+
 	return migrations, nil
 }
 
@@ -270,6 +288,7 @@ func latestSQLiteUpVersion(migrations []sqliteMigration) uint {
 			latest = migration.version
 		}
 	}
+
 	return latest
 }
 
@@ -279,6 +298,7 @@ func matchingSQLiteDownMigrations(
 ) ([]sqliteMigration, error) {
 	upVersions := make(map[uint]struct{})
 	downMigrationsByVersion := make(map[uint]sqliteMigration)
+
 	for _, migration := range migrations {
 		switch migration.direction {
 		case source.Up:
@@ -295,14 +315,17 @@ func matchingSQLiteDownMigrations(
 		if _, exists := downMigrationsByVersion[version]; !exists {
 			return nil, fmt.Errorf("%w: version %d", ErrMissingDownMigration, version)
 		}
+
 		versions = append(versions, version)
 	}
+
 	sort.Slice(versions, func(i, j int) bool { return versions[i] > versions[j] })
 
 	result := make([]sqliteMigration, 0, len(versions))
 	for _, version := range versions {
 		result = append(result, downMigrationsByVersion[version])
 	}
+
 	return result, nil
 }
 
@@ -315,20 +338,25 @@ func withSQLiteMigrationTransaction(ctx context.Context, db *sql.DB, fn func(*sq
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			_ = tx.Rollback()
+
 			panic(recovered)
 		}
+
 		if err != nil {
 			if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
 				err = errors.Join(err, fmt.Errorf("rollback transaction: %w", rollbackErr))
 			}
+
 			return
 		}
+
 		if commitErr := tx.Commit(); commitErr != nil {
 			err = fmt.Errorf("commit transaction: %w", commitErr)
 		}
 	}()
 
 	err = fn(tx)
+
 	return err
 }
 
@@ -340,6 +368,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS schema_migrations_version_unique
 	if _, execErr := tx.ExecContext(context.Background(), query); execErr != nil {
 		return fmt.Errorf("create schema migrations table: %w", execErr)
 	}
+
 	return nil
 }
 
@@ -354,20 +383,26 @@ func readSQLiteSchemaVersion(tx *sql.Tx) (sqliteSchemaVersion, error) {
 		if rowsErr := rows.Err(); rowsErr != nil {
 			return sqliteSchemaVersion{}, fmt.Errorf("read schema version: %w", rowsErr)
 		}
+
 		return sqliteSchemaVersion{}, nil
 	}
 
-	var version uint64
-	var dirty bool
+	var (
+		version uint64
+		dirty   bool
+	)
 	if scanErr := rows.Scan(&version, &dirty); scanErr != nil {
 		return sqliteSchemaVersion{}, fmt.Errorf("scan schema version: %w", scanErr)
 	}
+
 	if uint64(uint(version)) != version {
 		return sqliteSchemaVersion{}, fmt.Errorf("%w: version %d overflows uint", ErrInvalidSchemaVersion, version)
 	}
+
 	if rows.Next() {
 		return sqliteSchemaVersion{}, fmt.Errorf("%w: more than one current version", ErrInvalidSchemaVersion)
 	}
+
 	if rowsErr := rows.Err(); rowsErr != nil {
 		return sqliteSchemaVersion{}, fmt.Errorf("read schema version: %w", rowsErr)
 	}
@@ -385,6 +420,7 @@ func executeSQLiteMigration(tx *sql.Tx, migration sqliteMigration) error {
 			execErr,
 		)
 	}
+
 	return nil
 }
 
@@ -392,6 +428,7 @@ func writeSQLiteSchemaVersion(tx *sql.Tx, version uint) error {
 	if _, deleteErr := tx.ExecContext(context.Background(), "DELETE FROM "+sqliteMigrationsTable); deleteErr != nil {
 		return fmt.Errorf("delete previous schema version: %w", deleteErr)
 	}
+
 	if _, insertErr := tx.ExecContext(
 		context.Background(),
 		"INSERT INTO "+sqliteMigrationsTable+" (version, dirty) VALUES (?, ?)",
@@ -400,6 +437,7 @@ func writeSQLiteSchemaVersion(tx *sql.Tx, version uint) error {
 	); insertErr != nil {
 		return fmt.Errorf("insert schema version: %w", insertErr)
 	}
+
 	return nil
 }
 
@@ -407,5 +445,6 @@ func clearSQLiteSchemaVersion(tx *sql.Tx) error {
 	if _, deleteErr := tx.ExecContext(context.Background(), "DELETE FROM "+sqliteMigrationsTable); deleteErr != nil {
 		return fmt.Errorf("delete schema version: %w", deleteErr)
 	}
+
 	return nil
 }

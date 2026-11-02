@@ -13,16 +13,21 @@ type User struct {
 }
 
 func TestNew(t *testing.T) {
+	t.Parallel()
+
 	v, err := validator.New()
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
+
 	if v == nil {
 		t.Fatal("New() returned nil validator")
 	}
 }
 
 func TestValidate(t *testing.T) {
+	t.Parallel()
+
 	v, err := validator.New()
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -57,6 +62,8 @@ func TestValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			gotErr := v.Validate(tt.user)
 			if (gotErr != nil) != tt.wantErr {
 				t.Errorf("Validate() error = %v, wantErr %v", gotErr, tt.wantErr)
@@ -66,6 +73,8 @@ func TestValidate(t *testing.T) {
 }
 
 func TestValidateVar(t *testing.T) {
+	t.Parallel()
+
 	v, err := validator.New()
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -105,6 +114,8 @@ func TestValidateVar(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			gotErr := v.ValidateVar(tt.value, tt.tag)
 			if (gotErr != nil) != tt.wantErr {
 				t.Errorf("ValidateVar() error = %v, wantErr %v", gotErr, tt.wantErr)
@@ -114,10 +125,13 @@ func TestValidateVar(t *testing.T) {
 }
 
 func TestEngine(t *testing.T) {
+	t.Parallel()
+
 	v, err := validator.New()
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
+
 	engine := v.Engine()
 	if engine == nil {
 		t.Fatal("Engine() returned nil")
@@ -125,10 +139,13 @@ func TestEngine(t *testing.T) {
 }
 
 func TestTranslator(t *testing.T) {
+	t.Parallel()
+
 	v, err := validator.New()
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
+
 	trans := v.Translator()
 	if trans == nil {
 		t.Fatal("Translator() returned nil")

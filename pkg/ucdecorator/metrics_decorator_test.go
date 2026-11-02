@@ -13,6 +13,7 @@ import (
 
 type MetricsDecoratorTestSuite struct {
 	suite.Suite
+
 	sut         ucdecorator.UseCase[string, string]
 	baseMock    *mocks.MockUseCase[string, string]
 	metricsMock *mocks.MockUseCaseMetrics
@@ -42,6 +43,7 @@ func (s *MetricsDecoratorTestSuite) TestWithMetrics_NilMetrics_ReturnsBaseUnchan
 func (s *MetricsDecoratorTestSuite) TestExecute_Success_ObservesDurationAndIncrementsSuccess() {
 	// Arrange
 	ctx := context.Background()
+
 	s.baseMock.On("Execute", mock.Anything, "input").Return("output", nil)
 	s.metricsMock.On("ObserveDuration", "create_user", mock.Anything).Return()
 	s.metricsMock.On("IncSuccess", "create_user").Return()
