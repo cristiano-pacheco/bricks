@@ -1,235 +1,52 @@
-# OpenTelemetry Trace
+# OpenTelemetry tracing
 
-Simple and powerful OpenTelemetry tracing integration for Go applications.
-
-## Installation
-
-```bash
-go get github.com/cristiano-pacheco/bricks
-```
-
-## Usage
-
-To use the module, add it to your fx app:
+Add `trace.Module` to an Fx application to load tracing configuration and manage the provider. Declare the tracing module before modules that register application lifecycle hooks. Fx stops hooks in reverse order, so application work can drain before tracing flushes.
 
 ```go
-app := fx.New(trace.Module)
-app.Run()
+fx.New(
+    trace.Module,
+    application.Module,
+).Run()
 ```
 
-## Installation
-
-```bash
-go get github.com/cristiano-pacheco/bricks
-```
-
-## Quick Start
-
-### With Uber FX
-
-```go
-package main
-
-import (
-    "time"
-    
-    "github.com/cristiano-pacheco/bricks/pkg/otel/trace"
-    "go.uber.org/fx"
-)
-
-func main() {
-    fx.New(
-        trace.Module,
-        fx.Provide(NewTracerConfig),
-    ).Run()
-}
-
-func NewTracerConfig() trace.TracerConfig {
-    exporterType, _ := trace.NewExporterType(trace.ExporterTypeGRPC)
-    
-    return trace.TracerConfig{
-        AppName:      "my-service",
-        TraceEnabled: true,
-        TracerVendor: "jaeger",
-        TraceURL:     "localhost:4317",
-        ExporterType: exporterType,
-        Insecure:     true,
-        SampleRate:   1.0,
-        BatchTimeout: 5 * time.Second,
-        MaxBatchSize: 512,
-    }
-}
-```
-
-### Without FX
-
-```go
-package main
-
-import (
-    "context"
-    "time"
-    
-    "github.com/cristiano-pacheco/bricks/pkg/otel/trace"
-)
-
-func main() {
-    exporterType, _ := trace.NewExporterType(trace.ExporterTypeGRPC)
-    
-    config := trace.TracerConfig{
-        AppName:      "my-service",
-        TraceEnabled: true,
-        TracerVendor: "jaeger",
-        TraceURL:     "localhost:4317",
-        ExporterType: exporterType,
-        Insecure:     true,
-        SampleRate:   1.0,
-        BatchTimeout: 5 * time.Second,
-        MaxBatchSize: 512,
-    }
-
-    trace.MustInitialize(config)
-    defer trace.Shutdown(context.Background())
-
-    // Your application logic...
-}
-```
-
-## Usage
-
-### Creating Spans
-
-```go
-func ProcessOrder(ctx context.Context, orderID string) error {
-    ctx, span := trace.Span(ctx, "ProcessOrder")
-    defer span.End()
-
-    span.SetAttributes(
-        attribute.String("order.id", orderID),
-    )
-
-    // Your business logic...
-    
-    return nil
-}
-```
-
-### HTTP Middleware
-
-```go
-func TracingMiddleware(next http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        ctx, span := trace.Span(r.Context(), r.Method+" "+r.URL.Path)
-        defer span.End()
-
-        next.ServeHTTP(w, r.WithContext(ctx))
-    })
-}
-```
-
-## Configuration
-
-```go
-type TracerConfig struct {
-    AppName      string        // Application name (required)
-    TraceEnabled bool          // Enable/disable tracing
-    TracerVendor string        // Tracer vendor (jaeger, tempo, etc.)
-    TraceURL     string        // OTLP endpoint (required if enabled)
-    ExporterType ExporterType  // ExporterTypeGRPC or ExporterTypeHTTP
-    BatchTimeout time.Duration // Batch timeout (default: 5s)
-    MaxBatchSize int           // Max spans per batch (default: 512)
-    Insecure     bool          // Use insecure connection
-    SampleRate   float64       // Sampling rate 0.0-1.0 (default: 1.0)
-}
-```
-
-### YAML Example
+Bricks loads `app.open-telemetry` through `pkg/config` from `config/base.yaml` and the environment-specific YAML file. For example:
 
 ```yaml
 app:
-  name: myapp
-
-opentelemetry:
-  enabled: true
-  tracervendor: jaeger
-  tracerurl: localhost:4317
-  exportertype: grpc
-  batchtimeout: 5s
-  maxbatchsize: 512
-  insecure: true
-  samplerate: 1.0
+  open-telemetry:
+    app_name: my-service
+    app_version: "1.0.0"
+    trace_enabled: true
+    trace_url: localhost:4317
+    exporter_type: grpc
+    insecure: true
+    sample_rate: 1.0
+    batch_timeout: 5s
+    max_batch_size: 512
+    max_queue_size: 2048
+    export_timeout: 10s
+    shutdown_timeout: 10s
 ```
 
-## Environment Examples
+`app_name` is required. An enabled exporter also requires `trace_url`. Use `grpc` or `http` for `exporter_type`; the default is `grpc`. Set `sample_rate` between 0 and 1. A zero rate disables root sampling, while sampled parent contexts remain sampled. When omitted, the rate defaults to 0.01. Sampling does not depend on the application environment.
 
-### Development (Local Jaeger)
+Batch and queue sizes and timeouts bound export work. Invalid values reject startup. The exporter does not require the backend to be available at startup. A backend outage may cause spans to be dropped. Fx stops tracing within the configured shutdown timeout or the Fx stop deadline, whichever comes first.
+
+Create spans using the existing API:
 
 ```go
-exporterType, _ := trace.NewExporterType(trace.ExporterTypeGRPC)
-
-trace.TracerConfig{
-    AppName:      "my-service",
-    TraceEnabled: true,
-    TracerVendor: "jaeger",
-    TraceURL:     "localhost:4317",
-    ExporterType: exporterType,
-    Insecure:     true,
-    SampleRate:   1.0,
-}
+ctx, span := trace.Span(ctx, "process-order")
+defer span.End()
 ```
 
-### Production
+Pass the returned context to downstream operations. Use the OpenTelemetry propagator for transport boundaries.
 
-```go
-exporterType, _ := trace.NewExporterType(trace.ExporterTypeGRPC)
+## Migration
 
-trace.TracerConfig{
-    AppName:      "my-service",
-    TraceEnabled: true,
-    TracerVendor: "tempo",
-    TraceURL:     "tempo.production.com:443",
-    ExporterType: exporterType,
-    Insecure:     false,
-    SampleRate:   0.1, // 10% sampling
-}
-```
+Bricks delegates provider initialization, span creation and shutdown to `github.com/cristiano-pacheco/go-otel`. Applications using `trace.Module` should remove separate initialization and shutdown calls. Existing direct `Initialize`, `MustInitialize`, `Span`, and `Shutdown` APIs remain available for applications that manage their own lifecycle. Do not combine direct initialization with the module.
 
-### HTTP Exporter
+The module initializes tracing during `app.Start`, rather than during `fx.New`. Spans created by constructors or invokes before startup are not recorded. Move startup instrumentation into lifecycle hooks registered after the tracing module.
 
-```go
-exporterType, _ := trace.NewExporterType(trace.ExporterTypeHTTP)
+The module no longer provides `config.Config[trace.TracerConfig]` to other Fx consumers. Applications that inject that value must provide it separately.
 
-trace.TracerConfig{
-    AppName:      "my-service",
-    TraceEnabled: true,
-    TraceURL:     "localhost:4318",
-    ExporterType: exporterType,
-    Insecure:     true,
-}
-```
-
-## Running Jaeger Locally
-
-```bash
-docker run -d --name jaeger \
-  -e COLLECTOR_OTLP_ENABLED=true \
-  -p 16686:16686 \
-  -p 4317:4317 \
-  -p 4318:4318 \
-  jaegertracing/all-in-one:latest
-```
-
-Access UI at http://localhost:16686
-
-## Best Practices
-
-- Always defer `span.End()`
-- Use descriptive span names
-- Add relevant attributes
-- Record errors with `span.RecordError(err)`
-- Use appropriate sampling rates in production
-- Always propagate context
-
-## License
-
-Part of the bricks project.
+For direct Go configuration, set `SampleRateSet: true` to explicitly select a zero sampling rate. YAML callers only need `sample_rate: 0`. The old environment-based sampling behavior is removed. Set the desired rate explicitly.
