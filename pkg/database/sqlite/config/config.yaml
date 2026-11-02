@@ -1,0 +1,22 @@
+app:
+  sqlite:
+    # SQLite path or driver DSN. Path is used when dsn is empty.
+    dsn: ./data/workplan.db
+    path: ""
+
+    # SQLite connection settings.
+    foreign_keys: true
+    journal_mode: WAL
+    busy_timeout: 5s
+    tx_lock: immediate
+
+    # The SQLite package uses one open connection per process.
+    max_open_connections: 1
+    max_idle_connections: 1
+
+    # GORM settings.
+    prepare_stmt: false
+    skip_default_transaction: false
+    disable_foreign_key_constraint_when_migrating: false
+    disable_foreign_key_constraint: false
+    enable_logs: false

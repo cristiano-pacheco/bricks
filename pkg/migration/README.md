@@ -37,6 +37,47 @@ func main() {
 }
 ```
 
+### SQLite
+
+`Runner.UpSQLite` accepts the underlying `*sql.DB` from the Bricks SQLite
+package. It applies every pending up migration and its version update in one
+transaction. The supplied database remains open and owned by the caller.
+
+```go
+package main
+
+import (
+    "log"
+
+    "github.com/cristiano-pacheco/bricks/pkg/database/sqlite"
+    "github.com/cristiano-pacheco/bricks/pkg/migration"
+)
+
+func main() {
+    db, err := sqlite.New(sqlite.Config{DSN: "./data/workplan.db"})
+    if err != nil {
+        log.Fatal(err)
+    }
+    sqlDB, err := db.DB()
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer sqlDB.Close()
+
+    runner := migration.NewRunner(nil)
+    if err := runner.UpSQLite(sqlDB); err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+`DownSQLite` is an explicit development-only operation that applies matching
+down migrations in reverse order. Runtime startup should call only
+`UpSQLite`; it never downgrades automatically. SQLite migrations must not
+contain explicit `BEGIN` or `COMMIT` statements because the runner owns the
+transaction. A database version newer than the migrations in the running
+binary is rejected with `ErrDatabaseNewer`.
+
 ### With Uber FX
 
 Each module provides a `migration.FileSystem` tagged to the `"migration_filesystems"` group. A consumer (e.g. a CLI command or startup hook) collects them all and runs the migrations:
@@ -57,6 +98,8 @@ fx.Annotate(
 - **Embedded SQL**: Uses `//go:embed` — no filesystem path dependency at runtime
 - **Global ordering**: Migration files from all modules are merged into a single sorted virtual FS; lexicographic timestamp prefixes guarantee correct cross-module execution order
 - **ErrNoChange handling**: `Runner.Up` returns `nil` when there are no pending migrations
+- **Transactional SQLite**: `Runner.UpSQLite` applies all pending up migrations and records the final version in one transaction
+- **Explicit development downgrades**: `Runner.DownSQLite` applies matching down migrations only when called directly
 - **FX Integration**: First-class support for the Uber FX `group:"migration_filesystems"` value group pattern
 
 ## SQL File Naming
@@ -132,6 +175,20 @@ func (r *Runner) Up(dsn string) error
 ```
 
 Merges all filesystems, creates a `golang-migrate` instance via the `iofs` driver, and applies all pending up-migrations. Returns `nil` on success or when there are no new migrations (`ErrNoChange`).
+
+### `Runner.UpSQLite` and `Runner.DownSQLite`
+
+```go
+func (r *Runner) UpSQLite(db *sql.DB) error
+func (r *Runner) DownSQLite(db *sql.DB) error
+```
+
+`UpSQLite` reads and validates all contributed migration files before opening a
+transaction, rejects a dirty or newer schema, applies pending up migrations in
+ascending version order, and commits once. Errors roll back the entire run.
+`DownSQLite` is for explicit development use and applies all matching down
+migrations in descending version order in one transaction. Neither method
+closes `db`.
 
 ## Complete FX Integration Example
 
@@ -241,6 +298,8 @@ var dbMigrateCmd = &cobra.Command{
 This package depends on:
 
 - [`pkg/database`](../database) - For `Config.PostgresDSN()` used when building the DSN
+- [`pkg/database/sqlite`](../database/sqlite) - For the caller-owned SQLite connection used by `UpSQLite`
 - [`github.com/golang-migrate/migrate/v4`](https://github.com/golang-migrate/migrate) - Migration engine
 - [`github.com/golang-migrate/migrate/v4/source/iofs`](https://github.com/golang-migrate/migrate/tree/master/source/iofs) - In-memory FS source driver
+- `database/sql` (standard library) - caller-owned SQLite connection for transactional migrations
 - `testing/fstest` (standard library) - `MapFS` used as the merged virtual filesystem

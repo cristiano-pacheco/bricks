@@ -1,37 +1,14 @@
 package trace
 
-import "fmt"
+import oteltrace "github.com/cristiano-pacheco/go-otel/trace"
 
 const (
-	ExporterTypeGRPC = "grpc"
-	ExporterTypeHTTP = "http"
+	ExporterTypeGRPC = oteltrace.ExporterTypeGRPC
+	ExporterTypeHTTP = oteltrace.ExporterTypeHTTP
 )
 
-type ExporterType struct {
-	value string
-}
+type ExporterType = oteltrace.ExporterType
 
 func NewExporterType(value string) (ExporterType, error) {
-	switch value {
-	case ExporterTypeGRPC, ExporterTypeHTTP:
-		return ExporterType{value: value}, nil
-	default:
-		return ExporterType{}, fmt.Errorf("%w: %s", ErrInvalidExporterType, value)
-	}
-}
-
-func (e ExporterType) String() string {
-	return e.value
-}
-
-func (e ExporterType) IsGRPC() bool {
-	return e.value == ExporterTypeGRPC
-}
-
-func (e ExporterType) IsHTTP() bool {
-	return e.value == ExporterTypeHTTP
-}
-
-func (e ExporterType) IsZero() bool {
-	return e.value == ""
+	return oteltrace.NewExporterType(value)
 }

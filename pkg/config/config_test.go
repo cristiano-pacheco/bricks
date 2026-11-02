@@ -32,7 +32,9 @@ func loadConfig[T any](configDir string, options ...config.Option) (config.Confi
 		_ = os.Unsetenv("APP_CONFIG_DIR")
 		return config.New[T](options...)
 	}
+
 	_ = os.Setenv("APP_CONFIG_DIR", resolvedDir)
+
 	return config.New[T](options...)
 }
 
@@ -41,22 +43,27 @@ func normalizeConfigDir(configDir string) string {
 	if trimmedDir == "" {
 		return ""
 	}
+
 	if !filepath.IsAbs(trimmedDir) {
 		return trimmedDir
 	}
+
 	root, err := os.Getwd()
 	if err != nil {
 		return trimmedDir
 	}
+
 	rel, relErr := filepath.Rel(root, trimmedDir)
 	if relErr != nil {
 		return trimmedDir
 	}
+
 	return rel
 }
 
 func tempConfigDir(t *testing.T) string {
 	t.Helper()
+
 	root, err := os.Getwd()
 	require.NoError(t, err)
 	baseDir := filepath.Base(t.TempDir())
@@ -65,6 +72,7 @@ func tempConfigDir(t *testing.T) string {
 	t.Cleanup(func() {
 		_ = os.RemoveAll(dir)
 	})
+
 	return dir
 }
 
@@ -75,6 +83,7 @@ func TestNew(t *testing.T) {
 
 		// Act
 		t.Setenv("APP_ENV", "local")
+
 		cfg, err := loadConfig[TestConfig](configDir)
 
 		// Assert
@@ -90,6 +99,7 @@ func TestLoad_EnvironmentFromEnvVar(t *testing.T) {
 	t.Run("should load production environment via APP_ENV", func(t *testing.T) {
 		// Arrange
 		configDir := testConfigDir
+
 		t.Setenv("APP_ENV", "production")
 
 		// Act
@@ -104,14 +114,19 @@ func TestLoad_EnvironmentFromEnvVar(t *testing.T) {
 }
 
 func TestEnvironmentVariables(t *testing.T) {
-	t.Run("should override config with environment variables", func(t *testing.T) {
+	t.Run("should resolve env reference values from yaml", func(t *testing.T) {
 		// Arrange
 		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
 app:
   name: "EnvTest"
-  port: 8080
+  port: env://APP_PORT
+  debug: env://APP_DEBUG
+  database:
+    host: env://DB_HOST
+    port: env://DB_PORT
+    password: env://DB_PASSWORD
 `
 		err := os.WriteFile(
 			filepath.Join(tmpDir, "base.yaml"),
@@ -120,14 +135,22 @@ app:
 		)
 		require.NoError(t, err)
 		t.Setenv("APP_PORT", "9999")
+		t.Setenv("APP_DEBUG", "true")
+		t.Setenv("DB_HOST", "postgres.internal")
+		t.Setenv("DB_PORT", "5432")
+		t.Setenv("DB_PASSWORD", "secret")
 
 		// Act
 		t.Setenv("APP_ENV", "local")
+
 		cfg, err := loadConfig[TestConfig](tmpDir)
 
 		// Assert
 		require.NoError(t, err)
 		assert.Equal(t, 9999, cfg.Get().App.Port)
+		assert.True(t, cfg.Get().App.Debug)
+		assert.Equal(t, "postgres.internal", cfg.Get().App.Database.Host)
+		assert.Equal(t, 5432, cfg.Get().App.Database.Port)
 	})
 }
 
@@ -149,6 +172,7 @@ app:
 
 		// Act
 		t.Setenv("APP_ENV", "local")
+
 		_, err = loadConfig[TestConfig](tmpDir)
 
 		// Assert
@@ -170,6 +194,7 @@ func TestMissingConfigDir(t *testing.T) {
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestConfigDirNotFound(t *testing.T) {
 	t.Run("should return error when config dir does not exist", func(t *testing.T) {
 		// Arrange
@@ -196,6 +221,7 @@ func TestConfigDirNotFound(t *testing.T) {
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestNewWithPath(t *testing.T) {
 	type DatabaseConfig struct {
 		Host string `config:"host"`
@@ -214,6 +240,7 @@ func TestNewWithPath(t *testing.T) {
 	t.Run("should load database section with CustomLoad", func(t *testing.T) {
 		// Arrange
 		configDir := testConfigDir
+
 		t.Setenv("APP_ENV", "local")
 
 		// Act
@@ -230,6 +257,7 @@ func TestNewWithPath(t *testing.T) {
 	t.Run("should load app section with CustomLoad", func(t *testing.T) {
 		// Arrange
 		configDir := testConfigDir
+
 		t.Setenv("APP_ENV", "local")
 
 		// Act
@@ -246,6 +274,7 @@ func TestNewWithPath(t *testing.T) {
 	t.Run("should load database section with APP_ENV=production", func(t *testing.T) {
 		// Arrange
 		configDir := testConfigDir
+
 		t.Setenv("APP_ENV", "production")
 
 		// Act
@@ -281,6 +310,7 @@ func TestNewWithPath(t *testing.T) {
 	t.Run("should load successfully with WithPath", func(t *testing.T) {
 		// Arrange
 		configDir := testConfigDir
+
 		t.Setenv("APP_ENV", "local")
 
 		// Act & Assert
@@ -292,6 +322,7 @@ func TestNewWithPath(t *testing.T) {
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestInvalidYAMLParsing(t *testing.T) {
 	t.Run("should return error on invalid YAML syntax", func(t *testing.T) {
 		// Arrange
@@ -314,6 +345,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestInvalidConfigStructure(t *testing.T) {
 	type StrictConfig struct {
 		RequiredInt int `config:"required_int"`
@@ -360,6 +392,7 @@ database:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestConfigFilePermissionErrors(t *testing.T) {
 	t.Run("should return error when base.yaml is not readable", func(t *testing.T) {
 		// Arrange
@@ -371,6 +404,7 @@ func TestConfigFilePermissionErrors(t *testing.T) {
 		// Remove read permissions
 		err = os.Chmod(configPath, 0000)
 		require.NoError(t, err)
+
 		defer os.Chmod(configPath, 0644) // Restore permissions
 
 		// Act
@@ -402,6 +436,7 @@ app:
 		require.NoError(t, err)
 		err = os.Chmod(envConfigPath, 0000)
 		require.NoError(t, err)
+
 		defer os.Chmod(envConfigPath, 0644)
 
 		t.Setenv("APP_ENV", "production")
@@ -447,6 +482,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestConfigWithSpacesAndTrimming(t *testing.T) {
 	t.Run("should handle config dir with whitespace", func(t *testing.T) {
 		// Arrange
@@ -455,6 +491,7 @@ func TestConfigWithSpacesAndTrimming(t *testing.T) {
 		require.NoError(t, err)
 		relDir, err := filepath.Rel(root, tmpDir)
 		require.NoError(t, err)
+
 		configDir := "  " + relDir + "  "
 
 		baseConfig := `
@@ -520,6 +557,7 @@ app:
 
 		// Act - Set environment with mixed case
 		t.Setenv("APP_ENV", "  PrOdUcTiOn  ")
+
 		cfg, err := loadConfig[TestConfig](tmpDir)
 
 		// Assert
@@ -549,6 +587,7 @@ app:
 		// loadConfigFile is called with name="" which tries to open ".yaml"; that file
 		// does not exist, so only base.yaml is loaded.
 		t.Setenv("APP_ENV", "   ")
+
 		cfg, err := loadConfig[TestConfig](tmpDir)
 
 		// Assert - only base.yaml is loaded; local.yaml is not used
@@ -556,7 +595,7 @@ app:
 		assert.Equal(t, "Base", cfg.Get().App.Name)
 	})
 
-	t.Run("should override nested config with environment variables", func(t *testing.T) {
+	t.Run("should ignore legacy APP-prefixed config override env vars", func(t *testing.T) {
 		// Arrange
 		tmpDir := tempConfigDir(t)
 
@@ -569,8 +608,6 @@ app:
 		err := os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(baseConfig), 0644)
 		require.NoError(t, err)
 
-		// Set multiple environment variables.
-		// The transformer strips APP_ then prepends "app.", so APP_X -> app.x
 		t.Setenv("APP_HOST", "prod.example.com")
 		t.Setenv("APP_PORT", "3306")
 		t.Setenv("APP_NAME", "production_db")
@@ -586,12 +623,13 @@ app:
 
 		// Assert
 		require.NoError(t, err)
-		assert.Equal(t, "prod.example.com", cfg.Get().Host)
-		assert.Equal(t, 3306, cfg.Get().Port)
-		assert.Equal(t, "production_db", cfg.Get().Name)
+		assert.Equal(t, "localhost", cfg.Get().Host)
+		assert.Equal(t, 5432, cfg.Get().Port)
+		assert.Equal(t, "myapp", cfg.Get().Name)
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestMultipleOptions(t *testing.T) {
 	t.Run("should handle nil options gracefully", func(t *testing.T) {
 		// Arrange
@@ -613,6 +651,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestConfigGet(t *testing.T) {
 	t.Run("should return same value on multiple Get calls", func(t *testing.T) {
 		// Arrange
@@ -644,6 +683,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestEmptyConfigStructure(t *testing.T) {
 	type EmptyConfig struct{}
 
@@ -667,6 +707,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestDeepNestedConfiguration(t *testing.T) {
 	type DeepConfig struct {
 		Level1 struct {
@@ -726,46 +767,70 @@ level1:
 }
 
 func TestEnvironmentVariablesWithComplexPaths(t *testing.T) {
-	t.Run("should override deeply nested values with env vars", func(t *testing.T) {
+	t.Run("should resolve deeply nested env references and env-specific overrides", func(t *testing.T) {
 		// Arrange
 		tmpDir := tempConfigDir(t)
 
 		baseConfig := `
 app:
-  api:
-    endpoint:
-      url: "http://localhost"
-      port: 8080
+  notification:
+    email_providers:
+      resend:
+        api_key: env://BASE_RESEND_API_KEY
+  database:
+    host: env://DB_HOST
+    port: env://DB_PORT
+    password: env://MISSING_DB_PASSWORD
+`
+		productionConfig := `
+app:
+  notification:
+    email_providers:
+      resend:
+        api_key: env://RESEND_API_KEY
 `
 		err := os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(baseConfig), 0644)
+		require.NoError(t, err)
+		err = os.WriteFile(filepath.Join(tmpDir, "production.yaml"), []byte(productionConfig), 0644)
 		require.NoError(t, err)
 
 		type ServiceConfig struct {
 			App struct {
-				API struct {
-					Endpoint struct {
-						URL  string `config:"url"`
-						Port int    `config:"port"`
-					} `config:"endpoint"`
-				} `config:"api"`
+				Notification struct {
+					EmailProviders struct {
+						Resend struct {
+							APIKey string `config:"api_key"`
+						} `config:"resend"`
+					} `config:"email_providers"`
+				} `config:"notification"`
+				Database struct {
+					Host     string `config:"host"`
+					Port     int    `config:"port"`
+					Password string `config:"password"`
+				} `config:"database"`
 			} `config:"app"`
 		}
 
-		// Set environment variables for deeply nested values.
-		// Use __ as nesting delimiter: APP_API__ENDPOINT__URL -> app.api.endpoint.url
-		t.Setenv("APP_API__ENDPOINT__URL", "https://production.example.com")
-		t.Setenv("APP_API__ENDPOINT__PORT", "443")
+		t.Setenv("APP_ENV", "production")
+		t.Setenv("RESEND_API_KEY", "re_prod_xxx")
+		t.Setenv("BASE_RESEND_API_KEY", "re_base_xxx")
+		t.Setenv("DB_HOST", "postgres.internal")
+		t.Setenv("DB_PORT", "5432")
+		t.Setenv("APP_NOTIFICATION__EMAIL_PROVIDERS__RESEND__API_KEY", "legacy-override")
 
 		// Act
 		cfg, err := loadConfig[ServiceConfig](tmpDir)
 
 		// Assert
 		require.NoError(t, err)
-		assert.Equal(t, "https://production.example.com", cfg.Get().App.API.Endpoint.URL)
-		assert.Equal(t, 443, cfg.Get().App.API.Endpoint.Port)
+		assert.Equal(t, "re_prod_xxx", cfg.Get().App.Notification.EmailProviders.Resend.APIKey)
+		assert.Equal(t, "postgres.internal", cfg.Get().App.Database.Host)
+		assert.Equal(t, 5432, cfg.Get().App.Database.Port)
+		assert.Empty(t, cfg.Get().App.Database.Password)
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestConfigDirectoryPermissionError(t *testing.T) {
 	// This test is platform-specific and may not work on all systems
 	if os.Getenv("SKIP_PERMISSION_TESTS") != "" {
@@ -790,6 +855,7 @@ app:
 		// Remove all permissions from config directory (not just read)
 		err = os.Chmod(configDir, 0000)
 		require.NoError(t, err)
+
 		defer os.Chmod(configDir, 0755) // Restore permissions for cleanup
 
 		// Act
@@ -798,10 +864,11 @@ app:
 		// Assert - Should get permission error (either accessing dir or reading file)
 		require.Error(t, err)
 		// Error message varies by OS, but should mention permission issues
-		assert.True(t, err != nil, "should have permission error")
+		assert.Error(t, err, "should have permission error")
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestNilTargetUnmarshal(t *testing.T) {
 	// This tests internal behavior that's not directly exposed
 	// but we can test it indirectly through the public API
@@ -826,6 +893,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestYAMLProviderReadBytes(t *testing.T) {
 	t.Run("yamlProvider uses Read; ReadBytes is unused by koanf", func(t *testing.T) {
 		// koanf calls Read() on the provider, not ReadBytes(); config loading works correctly
@@ -846,6 +914,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestEdgeCaseYAMLFiles(t *testing.T) {
 	t.Run("should handle empty base.yaml", func(t *testing.T) {
 		// Arrange
@@ -906,6 +975,7 @@ func TestEdgeCaseYAMLFiles(t *testing.T) {
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestComplexDataTypes(t *testing.T) {
 	type ComplexConfig struct {
 		StringMap   map[string]string   `config:"string_map"`
@@ -947,6 +1017,7 @@ nested_slice:
 		assert.Equal(t, "value2", cfg.Get().StringMap["key2"])
 		assert.Equal(t, []int{1, 2, 3}, cfg.Get().IntSlice)
 		assert.True(t, cfg.Get().BoolValue)
+		//nolint:testifylint // Parsing the literal should produce the exact same float64.
 		assert.Equal(t, 3.14159, cfg.Get().FloatValue)
 		assert.Len(t, cfg.Get().NestedSlice, 2)
 		assert.Equal(t, "item1", cfg.Get().NestedSlice[0]["name"])
@@ -960,13 +1031,11 @@ func TestEnvironmentVariableWithInvalidValues(t *testing.T) {
 
 		baseConfig := `
 app:
-  port: 8080
+  port: env://APP_PORT
 `
 		err := os.WriteFile(filepath.Join(tmpDir, "base.yaml"), []byte(baseConfig), 0644)
 		require.NoError(t, err)
 
-		// Set environment variable with invalid value for int field.
-		// APP_PORT -> app.port (transformer strips APP_, prepends "app.")
 		t.Setenv("APP_PORT", "not_a_number")
 
 		type AppConfig struct {

@@ -2,13 +2,12 @@
 # This file contains default settings that apply to all environments
 # Override specific values in environment-specific files (local.yaml, production.yaml, etc.)
 #
-# Environment Variable Override:
-# You can override any configuration value using environment variables with APP_ prefix.
-# Double underscore (__) is the nesting delimiter; all keys are mapped under app.
+# Environment Variable References:
+# Use env://VAR_NAME to resolve a value from the process environment at load time.
 # Examples:
-#   APP_NAME=MyNewApp              -> overrides app.name
-#   APP_DATABASE__HOST=db.host     -> overrides app.database.host
-#   APP_REDIS__PORT=6380           -> overrides app.redis.port
+#   host: env://DB_HOST
+#   port: env://DB_PORT
+#   password: env://DB_PASSWORD
 
 app:
   name: MyApp

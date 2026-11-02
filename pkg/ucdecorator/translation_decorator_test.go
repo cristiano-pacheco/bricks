@@ -13,6 +13,7 @@ import (
 
 type TranslationDecoratorTestSuite struct {
 	suite.Suite
+
 	sut            ucdecorator.UseCase[string, string]
 	baseMock       *mocks.MockUseCase[string, string]
 	translatorMock *mocks.MockErrorTranslator
@@ -24,6 +25,7 @@ func (s *TranslationDecoratorTestSuite) SetupTest() {
 	s.sut = ucdecorator.WithTranslation(s.baseMock, s.translatorMock)
 }
 
+//nolint:paralleltest // Testify suites keep mutable state and do not support parallel tests.
 func TestTranslationDecoratorSuite(t *testing.T) {
 	suite.Run(t, new(TranslationDecoratorTestSuite))
 }
@@ -42,6 +44,7 @@ func (s *TranslationDecoratorTestSuite) TestWithTranslation_NilTranslator_Return
 func (s *TranslationDecoratorTestSuite) TestExecute_Success_DoesNotCallTranslator() {
 	// Arrange
 	ctx := context.Background()
+
 	s.baseMock.On("Execute", mock.Anything, "input").Return("output", nil)
 	// No translatorMock.On("TranslateError", ...) — any unexpected call will fail.
 
@@ -58,6 +61,7 @@ func (s *TranslationDecoratorTestSuite) TestExecute_Error_TranslatesError() {
 	ctx := context.Background()
 	originalErr := errors.New("original error")
 	translatedErr := errors.New("translated error")
+
 	s.baseMock.On("Execute", mock.Anything, "input").Return("", originalErr)
 	s.translatorMock.On("TranslateError", originalErr).Return(translatedErr)
 

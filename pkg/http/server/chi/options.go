@@ -7,9 +7,18 @@ const defaultCORSMaxAge = 300
 // Option is a functional option for configuring the Server.
 type Option func(*Config)
 
-// WithPort sets the server port.
+// WithAddress sets the complete TCP listen address for the server.
+// When it is empty, the server uses Port with the default listen host.
+func WithAddress(address string) Option {
+	return func(c *Config) {
+		c.Address = address
+	}
+}
+
+// WithPort sets the server port and clears a previously configured address.
 func WithPort(port uint) Option {
 	return func(c *Config) {
+		c.Address = ""
 		c.Port = port
 	}
 }
@@ -62,10 +71,40 @@ func WithDefaultCORS() Option {
 	}
 }
 
-// WithMetricsPort sets the port for the metrics server.
+// WithMetrics enables or disables the metrics listener.
+func WithMetrics(enabled bool) Option {
+	return func(c *Config) {
+		c.EnableMetrics = enabled
+	}
+}
+
+// WithMetricsAddress sets the complete TCP listen address for the metrics server.
+// When it is empty, the metrics server uses MetricsPort with the default listen host.
+func WithMetricsAddress(address string) Option {
+	return func(c *Config) {
+		c.MetricsAddress = address
+	}
+}
+
+// WithMetricsPort sets the metrics server port and clears a previously configured address.
 func WithMetricsPort(port uint) Option {
 	return func(c *Config) {
+		c.MetricsAddress = ""
 		c.MetricsPort = port
+	}
+}
+
+// WithRequestLogging enables or disables request logging.
+func WithRequestLogging(enabled bool) Option {
+	return func(c *Config) {
+		c.EnableRequestLogging = enabled
+	}
+}
+
+// WithRouteLogging enables or disables route logging.
+func WithRouteLogging(enabled bool) Option {
+	return func(c *Config) {
+		c.EnableRouteLogging = enabled
 	}
 }
 

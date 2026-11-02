@@ -2,55 +2,39 @@ package trace
 
 import (
 	"time"
-)
 
-const (
-	defaultBatchTimeout = 5 * time.Second
-	defaultSampleRate   = 0.01
+	oteltrace "github.com/cristiano-pacheco/go-otel/trace"
 )
 
 type TracerConfig struct {
-	AppName      string        `config:"app_name"`       // Application name
-	AppVersion   string        `config:"app_version"`    // Application version
-	TracerVendor string        `config:"tracer_vendor"`  // Tracer vendor name (e.g., jaeger, tempo, datadog)
-	TraceURL     string        `config:"trace_url"`      // OTLP endpoint URL (without http/https prefix)
-	TraceEnabled bool          `config:"trace_enabled"`  // Enable/disable tracing
-	BatchTimeout time.Duration `config:"batch_timeout"`  // Maximum time to wait before sending a batch
-	MaxBatchSize int           `config:"max_batch_size"` // Maximum number of spans in a batch
-	Insecure     bool          `config:"insecure"`       // Use insecure connection (no TLS)
-	SampleRate   float64       `config:"sample_rate"`    // 0.0 to 1.0
-	ExporterType ExporterType  `config:"exporter_type"`  // GRPC or HTTP, default GRPC
+	AppName         string        `config:"app_name"`
+	AppVersion      string        `config:"app_version"`
+	TracerVendor    string        `config:"tracer_vendor"`
+	TraceURL        string        `config:"trace_url"`
+	TraceEnabled    bool          `config:"trace_enabled"`
+	BatchTimeout    time.Duration `config:"batch_timeout"`
+	MaxBatchSize    int           `config:"max_batch_size"`
+	MaxQueueSize    int           `config:"max_queue_size"`
+	ExportTimeout   time.Duration `config:"export_timeout"`
+	ShutdownTimeout time.Duration `config:"shutdown_timeout"`
+	Insecure        bool          `config:"insecure"`
+	SampleRate      float64       `config:"sample_rate"`
+	SampleRateSet   bool          `config:"sample_rate_set"`
+	ExporterType    ExporterType  `config:"exporter_type"`
 }
 
-// Validate checks if the configuration is valid
+// Validate checks the tracing configuration.
 func (c *TracerConfig) Validate() error {
-	if c.AppName == "" {
-		return ErrAppNameRequired
-	}
-	if c.TraceEnabled && c.TraceURL == "" {
-		return ErrTraceURLRequired
-	}
-	if c.SampleRate < 0.0 || c.SampleRate > 1.0 {
-		return ErrInvalidSampleRate
-	}
-	return nil
+	cfg := c.otelConfig()
+	return cfg.Validate()
 }
 
-// setDefaults sets default values for optional configuration fields
-func (c *TracerConfig) setDefaults() {
-	if c.BatchTimeout == 0 {
-		c.BatchTimeout = defaultBatchTimeout
-	}
-	if c.MaxBatchSize == 0 {
-		c.MaxBatchSize = 512
-	}
-	if c.SampleRate == 0.0 {
-		c.SampleRate = defaultSampleRate
-	}
-	if c.ExporterType.IsZero() {
-		exporterType, err := NewExporterType(ExporterTypeGRPC)
-		if err == nil {
-			c.ExporterType = exporterType
-		}
+func (c *TracerConfig) otelConfig() oteltrace.TracerConfig {
+	return oteltrace.TracerConfig{
+		AppName: c.AppName, AppVersion: c.AppVersion, TracerVendor: c.TracerVendor,
+		TraceURL: c.TraceURL, TraceEnabled: c.TraceEnabled, BatchTimeout: c.BatchTimeout,
+		MaxBatchSize: c.MaxBatchSize, MaxQueueSize: c.MaxQueueSize, ExportTimeout: c.ExportTimeout,
+		ShutdownTimeout: c.ShutdownTimeout, Insecure: c.Insecure, SampleRate: c.SampleRate,
+		SampleRateSet: c.SampleRateSet, ExporterType: c.ExporterType,
 	}
 }

@@ -19,23 +19,29 @@ app.Run()
 
 ## Features
 
-- Chi router, CORS, default middleware (RequestID, RealIP, Logger, Recoverer)
-- Health `/healthz`, Prometheus metrics on a separate port
+- Chi router, CORS, and configurable middleware (RequestID, RealIP, Logger, Recoverer)
+- Health `/healthz`, with an optional Prometheus listener
 - Swagger `/swagger/` endpoint for Swagger
 - `Route`: interface for modules to register routes via FX
+- Synchronous listener binding with support for port `0`
 - Config validation
 
 ## Configuration
 
 ```go
 type Config struct {
-    Port            uint          // default: 8080
-    ReadTimeout     time.Duration // default: 15s
-    WriteTimeout    time.Duration // default: 15s
-    IdleTimeout     time.Duration // default: 60s
-    ShutdownTimeout time.Duration // default: 10s
-    MetricsPort     uint          // default: 9090
-    CORS            *CORSConfig
+    Address               string        // complete listen address; empty uses 0.0.0.0:Port
+    Port                  uint          // default: 8080; port 0 selects an available port
+    ReadTimeout           time.Duration // default: 15s
+    WriteTimeout          time.Duration // default: 15s
+    IdleTimeout           time.Duration // default: 60s
+    ShutdownTimeout       time.Duration // default: 10s
+    EnableMetrics         bool          // default: true
+    MetricsAddress        string        // complete metrics listen address
+    MetricsPort           uint          // default: 9090; port 0 selects an available port
+    EnableRequestLogging  bool          // default: true
+    EnableRouteLogging    bool          // default: true
+    CORS                  *CORSConfig
 }
 ```
 
@@ -50,7 +56,9 @@ server, _ := chi.New(cfg)
 server.Router().Get("/hello", handler)
 
 // Or: server.RegisterRoute(route); server.SetupRoutes()
-server.Start()
+if err := server.Start(); err != nil {
+    log.Fatal(err)
+}
 ```
 
 ### With FX
@@ -107,8 +115,8 @@ Routes from the `"routes"` group are collected automatically; the server starts 
 | `Router()` | Chi Mux |
 | `RegisterRoute(r)`, `RegisterRoutes(routes)` | Adds to the registry |
 | `SetupRoutes()` | Calls Setup on all routes (before Start) |
-| `Start()`, `Shutdown(ctx)` | Lifecycle |
-| `Addr()`, `MetricsAddr()` | Addresses |
+| `Start()`, `Shutdown(ctx)` | Binds listeners and serves until shutdown |
+| `Addr()`, `MetricsAddr()` | Configured or effective listener addresses |
 
 ## CORS
 
@@ -123,4 +131,4 @@ cfg.CORS = &chi.CORSConfig{
 ## Endpoints
 
 - `/healthz` — health check
-- `/metrics` — Prometheus (MetricsPort)
+- `/metrics` — Prometheus when `EnableMetrics` is true

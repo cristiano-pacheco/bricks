@@ -7,17 +7,19 @@ type Config struct {
 	MigrationsPath string
 	Database       string
 	User           string
-	Password       string //nolint:gosec // intentional config field for test container credentials
+	Password       string
 }
 
 // DefaultConfig returns sensible defaults.
 func DefaultConfig() Config {
+	const defaultCredential = "itest"
+
 	return Config{
 		PostgresImage:  "postgres:16-alpine",
 		RedisImage:     "redis:7-alpine",
 		MigrationsPath: "file://migrations",
-		Database:       "itest",
-		User:           "itest",
-		Password:       "itest",
+		Database:       defaultCredential,
+		User:           defaultCredential,
+		Password:       defaultCredential,
 	}
 }

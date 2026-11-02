@@ -1,13 +1,13 @@
 # Config
 
-Type-safe configuration loader with multi-environment support and environment variable overrides.
+Type-safe configuration loader with multi-environment support and YAML-based environment variable references.
 
 ## Overview
 
 This package loads YAML configuration files and unmarshals them into strongly-typed Go structs using generics. It supports:
 
 - **Multi-environment configs**: Merge base.yaml with environment-specific files (local.yaml, production.yaml, etc.)
-- **Environment variables**: Override any config value using `APP_` prefixed env vars
+- **Environment variable references**: Resolve YAML values like `env://DB_HOST` from the process environment
 - **Type safety**: Generic `Config[T]` type ensures compile-time type checking
 - **Partial loading**: Load only a subtree of the config using `WithPath` option
 
@@ -22,7 +22,7 @@ go get github.com/cristiano-pacheco/bricks
 1. **Config directory**: Reads `APP_CONFIG_DIR` (defaults to `./config` if not set)
 2. **Loading order**: `base.yaml` is loaded first, then the environment-specific file (e.g., `local.yaml`) merges on top
 3. **Environment detection**: Reads `APP_ENV` environment variable (defaults to `local` if not set)
-4. **Environment variable overrides**: Any `APP_` prefixed env var overrides config values after files are loaded
+4. **Environment variable references**: Any YAML string value written as `env://VAR_NAME` is resolved from `os.Getenv("VAR_NAME")`
 5. **Unmarshal**: Final merged config is unmarshaled into your struct using the `config` struct tag
 
 ## Basic Usage
@@ -111,39 +111,43 @@ The resolved path is checked under the process root and must exist:
 export APP_CONFIG_DIR=./config
 ```
 
-## Environment Variable Overrides
+## Environment Variable References
 
-Any configuration value can be overridden using environment variables with the `APP_` prefix.
-
-**Transformation rule**: `APP_<PATH>` where path uses double underscore (`__`) as the nesting delimiter. All keys are automatically mapped under the `app.` root.
-
-**Why double underscore?** Single underscores inside key names (e.g., `api_key`, `max_tokens`) are preserved. Only double underscores are converted to dots for nesting.
+Any YAML string value can reference an environment variable using the `env://` prefix.
 
 Examples:
-```bash
-# Override app.name
-export APP_NAME=MyServiceProd
 
-# Override app.database.host
-export APP_DATABASE__HOST=prod-db.example.com
-
-# Override app.redis.password
-export APP_REDIS__PASSWORD=secret
-
-# Override app.auth.jwt_secret
-export APP_AUTH__JWT_SECRET=my-secret
-
-# Override deeply nested values (app.ai.providers.openai.api_key)
-export APP_AI__PROVIDERS__OPENAI__API_KEY=sk-xxxx
-
-# Keys with single underscores in names are preserved (app.database.api_key)
-export APP_DATABASE__API_KEY=secret123
+```yaml
+app:
+  database:
+    host: env://DB_HOST
+    port: env://DB_PORT
+    password: env://DB_PASSWORD
+  auth:
+    jwt_secret: env://JWT_SECRET
+  notification:
+    email_providers:
+      resend:
+        api_key: env://RESEND_API_KEY
 ```
 
+At load time, the package resolves the full string value:
+
+- `env://DB_HOST` -> `os.Getenv("DB_HOST")`
+- `env://DB_PORT` -> `os.Getenv("DB_PORT")`
+- `env://RESEND_API_KEY` -> `os.Getenv("RESEND_API_KEY")`
+
+Important behavior:
+
+- Only full-value references are supported. `env://DB_HOST` works; `"postgres://env://DB_HOST"` does not.
+- Missing environment variables resolve to an empty string.
+- Typed fields still work through normal unmarshalling, so `port: env://DB_PORT` can populate an `int` field when `DB_PORT` contains a numeric string such as `5432`.
+
 **Precedence order** (highest to lowest):
-1. Environment variables (`APP_*`)
-2. Environment-specific YAML file (e.g., `production.yaml`)
-3. Base YAML file (`base.yaml`)
+1. Environment-specific YAML file (e.g., `production.yaml`)
+2. Base YAML file (`base.yaml`)
+
+Environment variables do not override config paths directly. They are only read when referenced by a YAML value.
 
 ## Struct Tags
 
@@ -242,9 +246,10 @@ app:
   port: 8080
   debug: true
   database:
-    host: "localhost"
-    port: 5432
+    host: env://DB_HOST
+    port: env://DB_PORT
     name: "mydb"
+    password: env://DB_PASSWORD
 ```
 
 **config/production.yaml**:
@@ -253,7 +258,7 @@ app:
   port: 443
   debug: false
   database:
-    host: "prod-db.example.com"
+    host: env://PROD_DB_HOST
 ```
 
 **main.go**:
@@ -272,9 +277,10 @@ type AppConfig struct {
         Port  int    `config:"port"`
         Debug bool   `config:"debug"`
         Database struct {
-            Host string `config:"host"`
-            Port int    `config:"port"`
-            Name string `config:"name"`
+            Host     string `config:"host"`
+            Port     int    `config:"port"`
+            Name     string `config:"name"`
+            Password string `config:"password"`
         } `config:"database"`
     } `config:"app"`
 }
@@ -298,7 +304,7 @@ func main() {
 }
 ```
 
-With `APP_ENV=production` and `APP_PORT=8443`:
-- Outputs: "Starting MyService on port 8443"
-- Database host will be "prod-db.example.com" (from production.yaml)
-- Port 8443 from env var (`APP_PORT` → `app.port`) overrides production.yaml's 443
+With `APP_ENV=production`, `PROD_DB_HOST=prod-db.example.com`, `DB_PORT=5432`, and `DB_PASSWORD=secret`:
+- The production file still overrides `base.yaml`, so the database host is read from `PROD_DB_HOST`
+- `DB_PORT` is resolved from `env://DB_PORT` and unmarshaled into the `int` field
+- `DB_PASSWORD` is resolved from `env://DB_PASSWORD`

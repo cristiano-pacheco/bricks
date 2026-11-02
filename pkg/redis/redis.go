@@ -13,10 +13,10 @@ import (
 
 const backoffBase = 2
 
-// UniversalClient is an interface that represents both redis.Client and redis.ClusterClient
+// UniversalClient is an interface that represents both redis.Client and redis.ClusterClient.
 type UniversalClient = redis.UniversalClient
 
-// Client wraps the Redis client with additional functionality
+// Client wraps the Redis client with additional functionality.
 type Client struct {
 	client    redis.UniversalClient
 	config    Config
@@ -26,7 +26,7 @@ type Client struct {
 	isClosed  bool
 }
 
-// NewClient creates a new Redis client with the given configuration and options
+// NewClient creates a new Redis client with the given configuration and options.
 func NewClient(ctx context.Context, cfg Config, opts ...Option) (*Client, error) {
 	// Set defaults
 	cfg.SetDefaults()
@@ -101,7 +101,7 @@ func createUniversalClient(cfg Config) (redis.UniversalClient, error) {
 	}
 }
 
-// createSingleNodeClient creates a single-node Redis client
+// createSingleNodeClient creates a single-node Redis client.
 func createSingleNodeClient(cfg Config) (redis.UniversalClient, error) {
 	opts, err := redis.ParseURL(cfg.URL)
 	if err != nil {
@@ -147,7 +147,7 @@ func createSingleNodeClient(cfg Config) (redis.UniversalClient, error) {
 	return redis.NewClient(opts), nil
 }
 
-// createClusterClient creates a Redis cluster client
+// createClusterClient creates a Redis cluster client.
 func createClusterClient(cfg Config) (redis.UniversalClient, error) {
 	var opts *redis.ClusterOptions
 
@@ -157,6 +157,7 @@ func createClusterClient(cfg Config) (redis.UniversalClient, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse redis cluster URL: %w", err)
 		}
+
 		opts = parsedOpts
 	} else {
 		opts = &redis.ClusterOptions{
@@ -203,7 +204,7 @@ func createClusterClient(cfg Config) (redis.UniversalClient, error) {
 	return redis.NewClusterClient(opts), nil
 }
 
-// createSentinelClient creates a Redis sentinel client
+// createSentinelClient creates a Redis sentinel client.
 func createSentinelClient(cfg Config) redis.UniversalClient {
 	opts := &redis.FailoverOptions{
 		MasterName:       cfg.MasterName,
@@ -252,7 +253,7 @@ func createSentinelClient(cfg Config) redis.UniversalClient {
 	return redis.NewFailoverClient(opts)
 }
 
-// createFailoverClient creates a Redis failover client (alias for sentinel)
+// createFailoverClient creates a Redis failover client (alias for sentinel).
 func createFailoverClient(cfg Config) (redis.UniversalClient, error) {
 	opts, err := redis.ParseURL(cfg.URL)
 	if err != nil {
@@ -304,9 +305,10 @@ func createFailoverClient(cfg Config) (redis.UniversalClient, error) {
 	return redis.NewFailoverClient(failoverOpts), nil
 }
 
-// pingWithRetry attempts to ping the Redis server with retries
+// pingWithRetry attempts to ping the Redis server with retries.
 func (c *Client) pingWithRetry(ctx context.Context) error {
 	var lastErr error
+
 	maxRetries := c.config.MaxRetries
 	if maxRetries == 0 {
 		maxRetries = 3
@@ -316,17 +318,10 @@ func (c *Client) pingWithRetry(ctx context.Context) error {
 		pingCtx, cancel := context.WithTimeout(ctx, c.config.DialTimeout)
 		start := time.Now()
 		err := c.client.Ping(pingCtx).Err()
+
 		cancel()
 
-		if c.metrics != nil {
-			c.metrics.recordCommand(time.Since(start), err)
-			if err != nil {
-				c.metrics.recordConnectionError()
-				if attempt < maxRetries {
-					c.metrics.recordRetry()
-				}
-			}
-		}
+		c.recordPingMetrics(start, err, attempt < maxRetries)
 
 		if err == nil {
 			return nil
@@ -354,7 +349,23 @@ func (c *Client) pingWithRetry(ctx context.Context) error {
 	}
 }
 
-// calculateBackoff calculates the backoff duration for retry attempts
+func (c *Client) recordPingMetrics(start time.Time, err error, retry bool) {
+	if c.metrics == nil {
+		return
+	}
+
+	c.metrics.recordCommand(time.Since(start), err)
+
+	if err != nil {
+		c.metrics.recordConnectionError()
+
+		if retry {
+			c.metrics.recordRetry()
+		}
+	}
+}
+
+// calculateBackoff calculates the backoff duration for retry attempts.
 func (c *Client) calculateBackoff(attempt int) time.Duration {
 	minBackoff := c.config.MinRetryBackoff
 	maxBackoff := c.config.MaxRetryBackoff
@@ -362,6 +373,7 @@ func (c *Client) calculateBackoff(attempt int) time.Duration {
 	if minBackoff == 0 {
 		minBackoff = defaultMinRetryBackoff
 	}
+
 	if maxBackoff == 0 {
 		maxBackoff = defaultMaxRetryBackoff
 	}
@@ -371,43 +383,45 @@ func (c *Client) calculateBackoff(attempt int) time.Duration {
 	}
 
 	multiplier := math.Pow(backoffBase, float64(attempt-1))
-	backoff := time.Duration(float64(minBackoff) * multiplier)
-	if backoff > maxBackoff {
-		backoff = maxBackoff
-	}
+
+	backoff := min(time.Duration(float64(minBackoff)*multiplier), maxBackoff)
 
 	return backoff
 }
 
-// UniversalClient returns the underlying Redis universal client
+// UniversalClient returns the underlying Redis universal client.
 func (c *Client) UniversalClient() redis.UniversalClient {
 	return c.client
 }
 
-// Ping checks the connection to Redis server
+// Ping checks the connection to Redis server.
 func (c *Client) Ping(ctx context.Context) error {
 	if c.isClosed {
 		return ErrClientClosed
 	}
+
 	return c.client.Ping(ctx).Err()
 }
 
-// Close closes the Redis client connection
+// Close closes the Redis client connection.
 func (c *Client) Close() error {
 	if c.isClosed {
 		return ErrClientClosed
 	}
+
 	c.isClosed = true
+
 	return c.client.Close()
 }
 
-// Stats returns the connection pool statistics
+// Stats returns the connection pool statistics.
 func (c *Client) Stats() *PoolStats {
 	if c.isClosed {
 		return nil
 	}
 
 	var stats *redis.PoolStats
+
 	switch client := c.client.(type) {
 	case *redis.Client:
 		stats = client.PoolStats()
@@ -430,45 +444,50 @@ func (c *Client) Stats() *PoolStats {
 	}
 }
 
-// WithNamespace returns a namespaced key
+// WithNamespace returns a namespaced key.
 func (c *Client) WithNamespace(key string) string {
 	if c.namespace == "" {
 		return key
 	}
+
 	return c.namespace + ":" + key
 }
 
-// WithoutNamespace removes the namespace from a key
+// WithoutNamespace removes the namespace from a key.
 func (c *Client) WithoutNamespace(key string) string {
 	if c.namespace == "" {
 		return key
 	}
+
 	prefix := c.namespace + ":"
+
 	return strings.TrimPrefix(key, prefix)
 }
 
-// Config returns the client configuration
+// Config returns the client configuration.
 func (c *Client) Config() Config {
 	return c.config
 }
 
-// IsClosed returns whether the client is closed
+// IsClosed returns whether the client is closed.
 func (c *Client) IsClosed() bool {
 	return c.isClosed
 }
 
-// GetMetrics returns collected metrics (if enabled)
+// GetMetrics returns collected metrics (if enabled).
 func (c *Client) GetMetrics() *Metrics {
 	if c.metrics == nil {
 		return nil
 	}
+
 	return c.metrics.get()
 }
 
-// ResetMetrics clears collected metrics (if enabled)
+// ResetMetrics clears collected metrics (if enabled).
 func (c *Client) ResetMetrics() {
 	if c.metrics == nil {
 		return
 	}
+
 	c.metrics.reset()
 }

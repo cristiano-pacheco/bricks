@@ -17,11 +17,15 @@ import (
 
 var camelToSnakeRe = regexp.MustCompile("([a-z0-9])([A-Z])")
 
-var genericError = Envelope{
-	"error": map[string]string{
-		"code":    "internal_server_error",
-		"message": "Internal server error",
-	},
+const errorKey = "error"
+
+func genericError() Envelope {
+	return Envelope{
+		errorKey: map[string]string{
+			"code":    "internal_server_error",
+			"message": "Internal server error",
+		},
+	}
 }
 
 type ErrorHandler interface {
@@ -49,8 +53,7 @@ func (h *ErrorHandlerImpl) logError(msg string, err error) {
 }
 
 func (h *ErrorHandlerImpl) Error(w http.ResponseWriter, err error) {
-	var validationErrors lib_validator.ValidationErrors
-	if errors.As(err, &validationErrors) {
+	if validationErrors, ok := errors.AsType[lib_validator.ValidationErrors](err); ok {
 		details := make([]errs.Detail, 0, len(validationErrors))
 		for _, e := range validationErrors {
 			var msg string
@@ -59,6 +62,7 @@ func (h *ErrorHandlerImpl) Error(w http.ResponseWriter, err error) {
 			} else {
 				msg = fmt.Sprintf("%s: %s", camelToSnake(e.Field()), e.Tag())
 			}
+
 			details = append(details, errs.Detail{
 				Field:   camelToSnake(e.Field()),
 				Message: msg,
@@ -72,14 +76,16 @@ func (h *ErrorHandlerImpl) Error(w http.ResponseWriter, err error) {
 			details,
 		)
 
-		h.writeResponse(w, validationError.Status, Envelope{"error": validationError})
+		h.writeResponse(w, validationError.Status, Envelope{errorKey: validationError})
+
 		return
 	}
 
 	rError := &errs.Error{}
+
 	ok := errors.As(err, &rError)
 	if !ok {
-		h.writeResponse(w, http.StatusInternalServerError, genericError)
+		h.writeResponse(w, http.StatusInternalServerError, genericError())
 		return
 	}
 
@@ -87,7 +93,7 @@ func (h *ErrorHandlerImpl) Error(w http.ResponseWriter, err error) {
 		rError.Status = http.StatusInternalServerError
 	}
 
-	h.writeResponse(w, rError.Status, Envelope{"error": rError})
+	h.writeResponse(w, rError.Status, Envelope{errorKey: rError})
 }
 
 func (h *ErrorHandlerImpl) writeResponse(w http.ResponseWriter, status int, payload Envelope) {
@@ -95,23 +101,28 @@ func (h *ErrorHandlerImpl) writeResponse(w http.ResponseWriter, status int, payl
 	if err != nil {
 		h.logError("failed to marshal error response", err)
 		h.writeGenericError(w)
+
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
+
 	if _, err = w.Write(body); err != nil {
 		h.logError("failed to write error response", err)
 	}
 }
 
 func (h *ErrorHandlerImpl) writeGenericError(w http.ResponseWriter) {
-	body, err := json.Marshal(genericError)
+	body, err := json.Marshal(genericError())
 	if err != nil {
 		h.logError("failed to marshal generic error response", err)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusInternalServerError)
+
 	if _, err = w.Write(body); err != nil {
 		h.logError("failed to write generic error response", err)
 	}

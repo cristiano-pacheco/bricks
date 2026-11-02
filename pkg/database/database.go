@@ -53,6 +53,7 @@ func NewWithLifecycle(cfg Config, lc fx.Lifecycle) (*gorm.DB, error) {
 			if errGetSQLDB != nil {
 				return fmt.Errorf("failed to get underlying sql.DB: %w", errGetSQLDB)
 			}
+
 			return sqlDB.Close()
 		},
 	})
@@ -65,8 +66,10 @@ func connect(cfg Config) (*gorm.DB, error) {
 	gormConfig := buildGormConfig(cfg)
 	pgConfig := postgres.Config{DSN: dsn}
 
-	var db *gorm.DB
-	var err error
+	var (
+		db  *gorm.DB
+		err error
+	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultConnectTimeout)
 	defer cancel()
@@ -132,10 +135,10 @@ func calculateBackoff(attempt int, baseDelay time.Duration) time.Duration {
 	if attempt <= 1 {
 		return baseDelay
 	}
+
 	multiplier := math.Pow(backoffBase, float64(attempt-1))
-	backoff := time.Duration(float64(baseDelay) * multiplier)
-	if backoff > maxRetryBackoff {
-		backoff = maxRetryBackoff
-	}
+
+	backoff := min(time.Duration(float64(baseDelay)*multiplier), maxRetryBackoff)
+
 	return backoff
 }

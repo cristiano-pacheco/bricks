@@ -11,14 +11,14 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-// Config holds the configuration for database connection
+// Config holds the configuration for database connection.
 type Config struct {
 	// Connection parameters
 	Host     string
 	Port     uint
 	Name     string
 	User     string
-	Password string //nolint:gosec // intentional config field for database credentials
+	Password string
 
 	// SSL configuration
 	SSLMode     bool
@@ -53,32 +53,38 @@ type Config struct {
 	PreferSimpleProtol bool
 }
 
-// Validate validates the database configuration
+// Validate validates the database configuration.
 func (c Config) Validate() error {
 	if c.Host == "" {
 		return ErrMissingHost
 	}
+
 	if c.Name == "" {
 		return ErrMissingName
 	}
+
 	if c.User == "" {
 		return ErrMissingUser
 	}
+
 	if c.Port == 0 {
 		return ErrMissingPort
 	}
+
 	if c.Port > math.MaxUint16 {
 		return fmt.Errorf("%w: %d", ErrInvalidPortNumber, c.Port)
 	}
+
 	return nil
 }
 
-// DSN generates a GORM-compatible DSN string
+// DSN generates a GORM-compatible DSN string.
 func (c Config) DSN() string {
 	sslMode := c.sslModeValue()
 	timeZone := c.timeZoneValue()
 
 	var builder strings.Builder
+
 	_, _ = fmt.Fprintf(
 		&builder,
 		"host=%s user=%s password=%s dbname=%s port=%d sslmode=%s TimeZone=%s",
@@ -101,6 +107,7 @@ func (c Config) sslModeValue() string {
 	if c.SSLMode {
 		return "require"
 	}
+
 	return "disable"
 }
 
@@ -108,6 +115,7 @@ func (c Config) timeZoneValue() string {
 	if strings.TrimSpace(c.TimeZone) == "" {
 		return "UTC"
 	}
+
 	return c.TimeZone
 }
 
@@ -115,12 +123,15 @@ func (c Config) appendSSLParams(builder *strings.Builder) {
 	if !c.SSLMode {
 		return
 	}
+
 	if c.SSLCert != "" {
 		_, _ = fmt.Fprintf(builder, " sslcert=%s", c.SSLCert)
 	}
+
 	if c.SSLKey != "" {
 		_, _ = fmt.Fprintf(builder, " sslkey=%s", c.SSLKey)
 	}
+
 	if c.SSLRootCert != "" {
 		_, _ = fmt.Fprintf(builder, " sslrootcert=%s", c.SSLRootCert)
 	}
@@ -130,18 +141,23 @@ func (c Config) appendOptionalParams(builder *strings.Builder) {
 	if c.ApplicationName != "" {
 		_, _ = fmt.Fprintf(builder, " application_name=%s", c.ApplicationName)
 	}
+
 	if c.SearchPath != "" {
 		_, _ = fmt.Fprintf(builder, " search_path=%s", c.SearchPath)
 	}
+
 	if c.StatementTimeout > 0 {
 		_, _ = fmt.Fprintf(builder, " statement_timeout=%d", c.StatementTimeout)
 	}
+
 	if c.LockTimeout > 0 {
 		_, _ = fmt.Fprintf(builder, " lock_timeout=%d", c.LockTimeout)
 	}
+
 	if c.IdleInTransaction > 0 {
 		_, _ = fmt.Fprintf(builder, " idle_in_transaction_session_timeout=%d", c.IdleInTransaction)
 	}
+
 	if c.ConnectTimeout > 0 {
 		_, _ = fmt.Fprintf(builder, " connect_timeout=%d", c.ConnectTimeout)
 	}
@@ -182,7 +198,7 @@ func (c Config) PostgresDSN() (string, error) {
 	return dsn, nil
 }
 
-// Clone creates a deep copy of the configuration
+// Clone creates a deep copy of the configuration.
 func (c Config) Clone() Config {
 	return Config{
 		Host:                        c.Host,
@@ -213,9 +229,10 @@ func (c Config) Clone() Config {
 	}
 }
 
-// WithDatabase creates a new config with a different database name
+// WithDatabase creates a new config with a different database name.
 func (c Config) WithDatabase(name string) Config {
 	cfg := c.Clone()
 	cfg.Name = name
+
 	return cfg
 }

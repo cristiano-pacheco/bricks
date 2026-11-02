@@ -6,17 +6,17 @@ import (
 	"time"
 )
 
-// ClientType represents the type of Redis client
+// ClientType represents the type of Redis client.
 type ClientType string
 
 const (
-	// ClientTypeSingleNode represents a single-node Redis instance
+	// ClientTypeSingleNode represents a single-node Redis instance.
 	ClientTypeSingleNode ClientType = "single_node"
-	// ClientTypeCluster represents a Redis cluster
+	// ClientTypeCluster represents a Redis cluster.
 	ClientTypeCluster ClientType = "cluster"
-	// ClientTypeSentinel represents a Redis Sentinel setup
+	// ClientTypeSentinel represents a Redis Sentinel setup.
 	ClientTypeSentinel ClientType = "sentinel"
-	// ClientTypeFailover represents a Redis Failover setup
+	// ClientTypeFailover represents a Redis Failover setup.
 	ClientTypeFailover ClientType = "failover"
 )
 
@@ -35,11 +35,11 @@ const (
 	defaultCommandTimeout  = 5 * time.Second
 )
 
-// Config holds the configuration for Redis connection
+// Config holds the configuration for Redis connection.
 type Config struct {
 	// Connection parameters
-	URL      string     // Redis URL (e.g., redis://localhost:6379)
-	Password string     //nolint:gosec // Redis password
+	URL      string // Redis URL (e.g., redis://localhost:6379)
+	Password string
 	DB       int        // Database number (0-15 for single node)
 	Type     ClientType // Client type (single_node, cluster, sentinel, failover)
 
@@ -90,7 +90,7 @@ type Config struct {
 	CommandTimeout time.Duration // Default timeout for commands
 }
 
-// Validate validates the Redis configuration
+// Validate validates the Redis configuration.
 func (c *Config) Validate() error {
 	validators := []func() error{
 		c.validateClientType,
@@ -111,7 +111,7 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// SetDefaults sets default values for unset configuration fields
+// SetDefaults sets default values for unset configuration fields.
 func (c *Config) SetDefaults() {
 	if c.Type == "" {
 		c.Type = ClientTypeSingleNode
@@ -155,6 +155,7 @@ func (c *Config) validateURL() error {
 	if c.Type != ClientTypeSingleNode && c.Type != ClientTypeFailover {
 		return nil
 	}
+
 	if strings.TrimSpace(c.URL) == "" {
 		return &ConfigError{
 			Field: "URL",
@@ -162,6 +163,7 @@ func (c *Config) validateURL() error {
 			Err:   ErrMissingURL,
 		}
 	}
+
 	return nil
 }
 
@@ -169,6 +171,7 @@ func (c *Config) validateCluster() error {
 	if c.Type != ClientTypeCluster {
 		return nil
 	}
+
 	if len(c.ClusterAddrs) == 0 && strings.TrimSpace(c.URL) == "" {
 		return &ConfigError{
 			Field: "ClusterAddrs",
@@ -176,6 +179,7 @@ func (c *Config) validateCluster() error {
 			Err:   errors.New("cluster addresses or URL is required for cluster mode"),
 		}
 	}
+
 	return nil
 }
 
@@ -183,6 +187,7 @@ func (c *Config) validateSentinel() error {
 	if c.Type != ClientTypeSentinel {
 		return nil
 	}
+
 	if len(c.SentinelAddrs) == 0 {
 		return &ConfigError{
 			Field: "SentinelAddrs",
@@ -190,6 +195,7 @@ func (c *Config) validateSentinel() error {
 			Err:   errors.New("sentinel addresses are required for sentinel mode"),
 		}
 	}
+
 	if strings.TrimSpace(c.MasterName) == "" {
 		return &ConfigError{
 			Field: "MasterName",
@@ -197,6 +203,7 @@ func (c *Config) validateSentinel() error {
 			Err:   errors.New("master name is required for sentinel mode"),
 		}
 	}
+
 	return nil
 }
 
@@ -204,6 +211,7 @@ func (c *Config) validateFailover() error {
 	if c.Type != ClientTypeFailover {
 		return nil
 	}
+
 	if strings.TrimSpace(c.MasterName) == "" {
 		return &ConfigError{
 			Field: "MasterName",
@@ -211,6 +219,7 @@ func (c *Config) validateFailover() error {
 			Err:   errors.New("master name is required for failover mode"),
 		}
 	}
+
 	return nil
 }
 
@@ -218,6 +227,7 @@ func (c *Config) validateDB() error {
 	if c.Type != ClientTypeSingleNode {
 		return nil
 	}
+
 	if c.DB < 0 || c.DB > 15 {
 		return &ConfigError{
 			Field: "DB",
@@ -225,6 +235,7 @@ func (c *Config) validateDB() error {
 			Err:   ErrInvalidDB,
 		}
 	}
+
 	return nil
 }
 

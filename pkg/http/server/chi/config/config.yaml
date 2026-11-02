@@ -1,11 +1,16 @@
 app:
   http:
-    port: 9000                      # (required) Server port, default: 8080 (if using Default())
+    address: ""                    # (optional) Complete server listen address; falls back to 0.0.0.0:port
+    port: 9000                      # (optional) Server port, default: 8080 (if using Default())
     readtimeout: 15s                # (optional) Read timeout (e.g., 15s, 1m), default: 15s
     writetimeout: 15s               # (optional) Write timeout (e.g., 15s, 1m), default: 15s
     idletimeout: 60s                # (optional) Idle timeout (e.g., 60s, 5m), default: 60s
     shutdowntimeout: 15s            # (optional) Graceful shutdown timeout (e.g., 15s, 30s), default: 10s
+    enablemetrics: true             # (optional) Start the metrics listener, default: true
+    metricsaddress: ""              # (optional) Complete metrics listen address; falls back to 0.0.0.0:metricsport
     metricsport: 9090               # (optional) Metrics server port, default: 9090
+    enablerequestlogging: true      # (optional) Write request logs to the console, default: true
+    enableroutelogging: true        # (optional) Write route logs to the console, default: true
     
     # CORS configuration (optional)
     # Set to null or omit entirely to disable CORS

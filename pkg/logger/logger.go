@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// Logger is the interface for logging operations
+// Logger is the interface for logging operations.
 type Logger interface {
 	// Debug logs a debug message
 	Debug(msg string, fields ...Field)
@@ -50,17 +50,17 @@ type Logger interface {
 	GetZapLogger() *zap.Logger
 }
 
-// Field is an alias for zap.Field
+// Field is an alias for zap.Field.
 type Field = zap.Field
 
-// ZapLogger implements Logger interface
+// ZapLogger implements Logger interface.
 type ZapLogger struct {
 	logger *zap.Logger
 }
 
 var _ Logger = (*ZapLogger)(nil) // Ensure ZapLogger implements Logger
 
-// New creates a new logger instance from config
+// New creates a new logger instance from config.
 func New(config Config) (*ZapLogger, error) {
 	zapConfig := zap.Config{
 		Level:             zap.NewAtomicLevelAt(parseLevel(config.Level)),
@@ -108,16 +108,17 @@ func NewWithLifecycle(lc fx.Lifecycle, cfg config.Config[Config]) (*ZapLogger, e
 	return log, nil
 }
 
-// MustNew creates a new logger or panics on error
+// MustNew creates a new logger or panics on error.
 func MustNew(config Config) *ZapLogger {
 	logger, err := New(config)
 	if err != nil {
 		panic(err)
 	}
+
 	return logger
 }
 
-// getEncoderConfig returns encoder configuration
+// getEncoderConfig returns encoder configuration.
 func getEncoderConfig(encoding string) zapcore.EncoderConfig {
 	if encoding == "console" {
 		return zapcore.EncoderConfig{
@@ -203,67 +204,67 @@ func (l *ZapLogger) GetZapLogger() *zap.Logger {
 
 // Common field helpers
 
-// String creates a string field
+// String creates a string field.
 func String(key, val string) Field {
 	return zap.String(key, val)
 }
 
-// Int creates an int field
+// Int creates an int field.
 func Int(key string, val int) Field {
 	return zap.Int(key, val)
 }
 
-// Int64 creates an int64 field
+// Int64 creates an int64 field.
 func Int64(key string, val int64) Field {
 	return zap.Int64(key, val)
 }
 
-// Float64 creates a float64 field
+// Float64 creates a float64 field.
 func Float64(key string, val float64) Field {
 	return zap.Float64(key, val)
 }
 
-// Bool creates a bool field
+// Bool creates a bool field.
 func Bool(key string, val bool) Field {
 	return zap.Bool(key, val)
 }
 
-// Error creates an error field
+// Error creates an error field.
 func Error(err error) Field {
 	return zap.Error(err)
 }
 
-// Any creates a field from any value
-func Any(key string, val interface{}) Field {
+// Any creates a field from any value.
+func Any(key string, val any) Field {
 	return zap.Any(key, val)
 }
 
-// Duration creates a duration field
+// Duration creates a duration field.
 func Duration(key string, val time.Duration) Field {
 	return zap.Duration(key, val)
 }
 
-// Time creates a time field
+// Time creates a time field.
 func Time(key string, val time.Time) Field {
 	return zap.Time(key, val)
 }
 
-// Namespace creates a named, isolated scope within the logger's context
+// Namespace creates a named, isolated scope within the logger's context.
 func Namespace(key string) Field {
 	return zap.Namespace(key)
 }
 
-// Stringer creates a field from any value implementing fmt.Stringer
+// Stringer creates a field from any value implementing [fmt.Stringer].
 func Stringer(key string, val fmt.Stringer) Field {
 	return zap.Stringer(key, val)
 }
 
-// Uint64 creates a uint64 field
+// Uint64 creates a uint64 field.
 func Uint64(key string, val uint64) Field {
 	return zap.Uint64(key, val)
 }
 
-// Int32 creates an int32 field
+// Int32 creates an int32 field.
 func Int32(key string, val int32) Field {
 	return zap.Int32(key, val)
 }

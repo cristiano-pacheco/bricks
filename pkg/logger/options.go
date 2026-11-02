@@ -1,80 +1,82 @@
 package logger
 
-// Option is a functional option for configuring the logger
+import "maps"
+
+// Option is a functional option for configuring the logger.
 type Option func(*Config)
 
-// WithLevel sets the log level
+// WithLevel sets the log level.
 func WithLevel(level string) Option {
 	return func(c *Config) {
 		c.Level = level
 	}
 }
 
-// WithEncoding sets the encoding format (json or console)
+// WithEncoding sets the encoding format (json or console).
 func WithEncoding(encoding string) Option {
 	return func(c *Config) {
 		c.Encoding = encoding
 	}
 }
 
-// WithDevelopment enables or disables development mode
+// WithDevelopment enables or disables development mode.
 func WithDevelopment(dev bool) Option {
 	return func(c *Config) {
 		c.Development = dev
 	}
 }
 
-// WithCaller enables or disables caller information
+// WithCaller enables or disables caller information.
 func WithCaller(enabled bool) Option {
 	return func(c *Config) {
 		c.DisableCaller = !enabled
 	}
 }
 
-// WithStacktrace enables or disables stacktrace
+// WithStacktrace enables or disables stacktrace.
 func WithStacktrace(enabled bool) Option {
 	return func(c *Config) {
 		c.DisableStacktrace = !enabled
 	}
 }
 
-// WithOutputPaths sets the output paths
+// WithOutputPaths sets the output paths.
 func WithOutputPaths(paths ...string) Option {
 	return func(c *Config) {
 		c.OutputPaths = paths
 	}
 }
 
-// WithErrorOutputPaths sets the error output paths
+// WithErrorOutputPaths sets the error output paths.
 func WithErrorOutputPaths(paths ...string) Option {
 	return func(c *Config) {
 		c.ErrorOutputPaths = paths
 	}
 }
 
-// WithInitialFields adds initial fields to every log entry
-func WithInitialFields(fields map[string]interface{}) Option {
+// WithInitialFields adds initial fields to every log entry.
+func WithInitialFields(fields map[string]any) Option {
 	return func(c *Config) {
 		if c.InitialFields == nil {
-			c.InitialFields = make(map[string]interface{})
+			c.InitialFields = make(map[string]any)
 		}
-		for k, v := range fields {
-			c.InitialFields[k] = v
-		}
+
+		maps.Copy(c.InitialFields, fields)
 	}
 }
 
-// WithField adds a single initial field
-func WithField(key string, value interface{}) Option {
+// WithField adds a single initial field.
+func WithField(key string, value any) Option {
 	return func(c *Config) {
 		if c.InitialFields == nil {
-			c.InitialFields = make(map[string]interface{})
+			c.InitialFields = make(map[string]any)
 		}
+
 		c.InitialFields[key] = value
 	}
 }
 
-// WithSampling enables log sampling
+// WithSampling enables log sampling.
 func WithSampling(initial, thereafter int) Option {
 	return func(c *Config) {
 		c.SamplingConfig = &SamplingConfig{
@@ -84,20 +86,22 @@ func WithSampling(initial, thereafter int) Option {
 	}
 }
 
-// NewWithOptions creates a logger with functional options
+// NewWithOptions creates a logger with functional options.
 func NewWithOptions(opts ...Option) (*ZapLogger, error) {
 	config := DefaultConfig()
 	for _, opt := range opts {
 		opt(&config)
 	}
+
 	return New(config)
 }
 
-// MustNewWithOptions creates a logger with options or panics
+// MustNewWithOptions creates a logger with options or panics.
 func MustNewWithOptions(opts ...Option) *ZapLogger {
 	logger, err := NewWithOptions(opts...)
 	if err != nil {
 		panic(err)
 	}
+
 	return logger
 }

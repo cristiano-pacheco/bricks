@@ -21,6 +21,7 @@ func (h *testHandlerUseCase) Execute(_ context.Context, _ string) (string, error
 
 type FactoryTestSuite struct {
 	suite.Suite
+
 	loggerMock     *mocks.MockLogger
 	metricsMock    *mocks.MockUseCaseMetrics
 	translatorMock *mocks.MockErrorTranslator
@@ -32,6 +33,7 @@ func (s *FactoryTestSuite) SetupTest() {
 	s.translatorMock = mocks.NewMockErrorTranslator(s.T())
 }
 
+//nolint:paralleltest // Testify suites keep mutable state and do not support parallel tests.
 func TestFactorySuite(t *testing.T) {
 	suite.Run(t, new(FactoryTestSuite))
 }
@@ -323,29 +325,43 @@ func (s *FactoryTestSuite) TestWrap_DebugMode_TranslationEnabled_Success_DebugDe
 }
 
 func TestToSnakeCase(t *testing.T) {
+	t.Parallel()
+
 	f := ucdecorator.NewTestFactory(ucdecorator.Config{}, nil, nil, nil)
 
 	t.Run("camel case converts to snake case", func(t *testing.T) {
+		t.Parallel()
+
 		require.Equal(t, "create_user", f.ToSnakeCase("CreateUser"))
 	})
 
 	t.Run("consecutive uppercase acronym followed by word", func(t *testing.T) {
+		t.Parallel()
+
 		require.Equal(t, "xml_parser", f.ToSnakeCase("XMLParser"))
 	})
 
 	t.Run("https acronym followed by word", func(t *testing.T) {
+		t.Parallel()
+
 		require.Equal(t, "https_request", f.ToSnakeCase("HTTPSRequest"))
 	})
 
 	t.Run("all lowercase returns unchanged", func(t *testing.T) {
+		t.Parallel()
+
 		require.Equal(t, "simple", f.ToSnakeCase("simple"))
 	})
 
 	t.Run("empty string returns empty string", func(t *testing.T) {
-		require.Equal(t, "", f.ToSnakeCase(""))
+		t.Parallel()
+
+		require.Empty(t, f.ToSnakeCase(""))
 	})
 
 	t.Run("mixed case with id suffix", func(t *testing.T) {
+		t.Parallel()
+
 		require.Equal(t, "user_id", f.ToSnakeCase("UserID"))
 	})
 }
