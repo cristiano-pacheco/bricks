@@ -10,6 +10,8 @@ import (
 	"go.uber.org/fx"
 )
 
+const defaultReadHeaderTimeout = 10 * time.Second
+
 // LifecycleParams contains the dependencies for the metrics listener.
 type LifecycleParams struct {
 	fx.In
@@ -25,7 +27,7 @@ type LifecycleParams struct {
 func NewWithLifecycle(params LifecycleParams) (*Server, error) {
 	cfg := params.Config.Get()
 	if cfg.ReadHeaderTimeout == 0 {
-		cfg.ReadHeaderTimeout = 10 * time.Second
+		cfg.ReadHeaderTimeout = defaultReadHeaderTimeout
 	}
 
 	server, err := New(cfg, params.Gatherer)
@@ -44,17 +46,11 @@ func NewWithLifecycle(params LifecycleParams) (*Server, error) {
 				return startErr
 			}
 
-			if params.Config.Get().Enabled {
-				go func() {
-					if serveErr, ok := <-server.Errors(); ok {
-						logger.ErrorContext(ctx, "metrics server failed", "error", serveErr)
-
-						if shutdownErr := params.Shutdowner.Shutdown(fx.ExitCode(1)); shutdownErr != nil {
-							logger.ErrorContext(ctx, "request shutdown", "error", shutdownErr)
-						}
-					}
-				}()
+			if !params.Config.Get().Enabled {
+				return nil
 			}
+
+			go server.reportServingError(ctx, logger, params.Shutdowner)
 
 			return nil
 		},
@@ -64,6 +60,19 @@ func NewWithLifecycle(params LifecycleParams) (*Server, error) {
 	})
 
 	return server, nil
+}
+
+func (s *Server) reportServingError(ctx context.Context, logger *slog.Logger, shutdowner fx.Shutdowner) {
+	serveErr, ok := <-s.Errors()
+	if !ok {
+		return
+	}
+
+	logger.ErrorContext(ctx, "metrics server failed", "error", serveErr)
+
+	if shutdownErr := shutdowner.Shutdown(fx.ExitCode(1)); shutdownErr != nil {
+		logger.ErrorContext(ctx, "request shutdown", "error", shutdownErr)
+	}
 }
 
 // Module starts an independent metrics listener configured under app.metrics.

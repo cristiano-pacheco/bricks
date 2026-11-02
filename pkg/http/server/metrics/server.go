@@ -15,6 +15,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+const maxPort = 65535
+
 // Config controls the separate administrative metrics listener.
 type Config struct {
 	Enabled           bool          `config:"enabled"`
@@ -49,7 +51,7 @@ func New(config Config, gatherer prometheus.Gatherer) (*Server, error) {
 
 // NewWithHandler creates a metrics server with the supplied scrape handler.
 func NewWithHandler(config Config, handler http.Handler) (*Server, error) {
-	if config.Port > 65535 {
+	if config.Port > maxPort {
 		return nil, fmt.Errorf("invalid metrics port: %d", config.Port)
 	}
 

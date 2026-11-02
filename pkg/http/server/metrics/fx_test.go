@@ -39,6 +39,7 @@ func application(registry *prometheus.Registry, server **metrics.Server, extra .
 	return fx.New(append(options, extra...)...)
 }
 
+//nolint:paralleltest // Configuration uses process-wide environment variables.
 func TestMetricsLifecycle_CustomRegistryAndSequentialInstances(t *testing.T) {
 	writeConfig(t, true, 0)
 
@@ -82,6 +83,7 @@ func TestMetricsLifecycle_CustomRegistryAndSequentialInstances(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest // Configuration uses process-wide environment variables.
 func TestMetricsLifecycle_Disabled(t *testing.T) {
 	writeConfig(t, false, 0)
 
@@ -98,6 +100,7 @@ func TestMetricsLifecycle_Disabled(t *testing.T) {
 	require.NoError(t, app.Stop(context.Background()))
 }
 
+//nolint:paralleltest // Configuration uses process-wide environment variables.
 func TestMetricsLifecycle_OccupiedPort(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
@@ -114,6 +117,7 @@ func TestMetricsLifecycle_OccupiedPort(t *testing.T) {
 	require.ErrorContains(t, err, "bind metrics listener")
 }
 
+//nolint:paralleltest // Configuration uses process-wide environment variables.
 func TestMetricsLifecycle_PartialStartupReleasesPort(t *testing.T) {
 	writeConfig(t, true, 0)
 
