@@ -7,10 +7,12 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/cristiano-pacheco/bricks/pkg/config"
+	metricslistener "github.com/cristiano-pacheco/bricks/pkg/http/server/metrics"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -29,16 +31,15 @@ const (
 
 // Server wraps an HTTP server with Chi router.
 type Server struct {
-	server          *http.Server
-	router          *chi.Mux
-	metricsServer   *http.Server
-	config          Config
-	registry        *RouteRegistry
-	logger          *slog.Logger
-	mu              sync.RWMutex
-	listener        net.Listener
-	metricsListener net.Listener
-	started         bool
+	server        *http.Server
+	router        *chi.Mux
+	metricsServer *metricslistener.Server
+	config        Config
+	registry      *RouteRegistry
+	logger        *slog.Logger
+	mu            sync.RWMutex
+	listener      net.Listener
+	started       bool
 }
 
 // New creates a new HTTP server with Chi router.
@@ -87,17 +88,20 @@ func New(cfg Config) (*Server, error) {
 		IdleTimeout:  cfg.IdleTimeout,
 	}
 
-	var metricsServer *http.Server
+	var metricsServer *metricslistener.Server
 
 	if cfg.EnableMetrics {
-		metricsRouter := chi.NewRouter()
-		metricsRouter.Handle(metricsPath, promhttp.Handler())
-		metricsServer = &http.Server{
-			Addr:         cfg.metricsListenAddress(),
-			Handler:      metricsRouter,
-			ReadTimeout:  cfg.ReadTimeout,
-			WriteTimeout: cfg.WriteTimeout,
-			IdleTimeout:  cfg.IdleTimeout,
+		host, portText, _ := net.SplitHostPort(cfg.metricsListenAddress())
+		port, _ := strconv.ParseUint(portText, 10, 16)
+
+		var err error
+
+		metricsServer, err = metricslistener.NewWithHandler(metricslistener.Config{
+			Enabled: true, Address: host, Port: uint(port),
+			ReadTimeout: cfg.ReadTimeout, WriteTimeout: cfg.WriteTimeout, IdleTimeout: cfg.IdleTimeout,
+		}, promhttp.Handler())
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -115,10 +119,11 @@ func New(cfg Config) (*Server, error) {
 type NewWithLifecycleParams struct {
 	fx.In
 
-	Config config.Config[Config]
-	LC     fx.Lifecycle
-	Routes []Route      `group:"routes"`
-	Logger *slog.Logger `               optional:"true"`
+	Config     config.Config[Config]
+	LC         fx.Lifecycle
+	Shutdowner fx.Shutdowner
+	Routes     []Route      `group:"routes"`
+	Logger     *slog.Logger `               optional:"true"`
 }
 
 // NewWithLifecycle creates a new HTTP server with fx.Lifecycle management.
@@ -139,7 +144,16 @@ func NewWithLifecycle(params NewWithLifecycleParams) (*Server, error) {
 	params.LC.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			server.SetupRoutes()
-			return server.startAsync(ctx)
+
+			if startErr := server.startAsync(ctx); startErr != nil {
+				return startErr
+			}
+
+			if server.metricsServer != nil {
+				go server.monitorMetrics(ctx, params.Shutdowner)
+			}
+
+			return nil
 		},
 		OnStop: func(ctx context.Context) error {
 			shutdownCtx := ctx
@@ -156,6 +170,19 @@ func NewWithLifecycle(params NewWithLifecycleParams) (*Server, error) {
 	})
 
 	return server, nil
+}
+
+func (s *Server) monitorMetrics(ctx context.Context, shutdowner fx.Shutdowner) {
+	serveErr, ok := <-s.metricsServer.Errors()
+	if !ok {
+		return
+	}
+
+	s.logger.ErrorContext(ctx, "metrics server failed", "error", serveErr)
+
+	if shutdownErr := shutdowner.Shutdown(fx.ExitCode(1)); shutdownErr != nil {
+		s.logger.ErrorContext(ctx, "request shutdown", "error", shutdownErr)
+	}
 }
 
 // Router returns the Chi router for registering routes.
@@ -196,13 +223,17 @@ func (s *Server) SetupRoutes() {
 // Start binds the configured listeners and serves the main listener until it is shut down.
 // Use Shutdown to stop the server.
 func (s *Server) Start() error {
-	listener, metricsListener, err := s.bind(context.Background())
+	listener, err := s.bind(context.Background())
 	if err != nil {
 		return err
 	}
 
-	if metricsListener != nil {
-		go s.serve(s.metricsServer, metricsListener)
+	if s.metricsServer != nil {
+		go func() {
+			if serveErr, ok := <-s.metricsServer.Errors(); ok {
+				s.logger.Error("metrics server failed", "error", serveErr)
+			}
+		}()
 	}
 
 	return s.server.Serve(listener)
@@ -217,39 +248,34 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		return nil
 	}
 
-	servers := []*http.Server{s.server, s.metricsServer}
-	listeners := []net.Listener{s.listener, s.metricsListener}
+	listener := s.listener
 	s.mu.RUnlock()
 
-	shutdownErrors := make(chan error, len(servers))
+	const serverCount = 2
+
+	shutdownErrors := make(chan error, serverCount)
 
 	var waitGroup sync.WaitGroup
 
-	for _, server := range servers {
-		if server == nil {
-			continue
-		}
+	waitGroup.Go(func() {
+		shutdownErrors <- s.server.Shutdown(ctx)
+	})
 
-		waitGroup.Add(1)
-		go func(server *http.Server) {
-			defer waitGroup.Done()
-
-			shutdownErrors <- server.Shutdown(ctx)
-		}(server)
+	if s.metricsServer != nil {
+		waitGroup.Go(func() {
+			shutdownErrors <- s.metricsServer.Shutdown(ctx)
+		})
 	}
 
 	waitGroup.Wait()
 	close(shutdownErrors)
 
-	for _, listener := range listeners {
-		if listener != nil {
-			_ = listener.Close()
-		}
+	if listener != nil {
+		_ = listener.Close()
 	}
 
 	s.mu.Lock()
 	s.listener = nil
-	s.metricsListener = nil
 	s.mu.Unlock()
 
 	var errs []error
@@ -281,25 +307,21 @@ func (s *Server) MetricsAddr() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	if s.metricsListener != nil {
-		return s.metricsListener.Addr().String()
-	}
-
 	if s.metricsServer == nil {
 		return ""
 	}
 
-	return s.metricsServer.Addr
+	if addr := s.metricsServer.Addr(); addr != "" {
+		return addr
+	}
+
+	return s.config.metricsListenAddress()
 }
 
 func (s *Server) startAsync(ctx context.Context) error {
-	listener, metricsListener, err := s.bind(ctx)
+	listener, err := s.bind(ctx)
 	if err != nil {
 		return err
-	}
-
-	if metricsListener != nil {
-		go s.serve(s.metricsServer, metricsListener)
 	}
 
 	go s.serve(s.server, listener)
@@ -307,50 +329,55 @@ func (s *Server) startAsync(ctx context.Context) error {
 	return nil
 }
 
-func (s *Server) bind(ctx context.Context) (net.Listener, net.Listener, error) {
+func (s *Server) bind(ctx context.Context) (net.Listener, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if s.started {
-		return nil, nil, ErrServerStarted
+		return nil, ErrServerStarted
 	}
 
 	listenConfig := net.ListenConfig{}
 
 	listener, err := listenConfig.Listen(ctx, "tcp", s.server.Addr)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w: %s: %w", ErrListen, s.server.Addr, err)
+		return nil, fmt.Errorf("%w: %s: %w", ErrListen, s.server.Addr, err)
 	}
 
-	var metricsListener net.Listener
 	if s.metricsServer != nil {
-		metricsListener, err = listenConfig.Listen(ctx, "tcp", s.metricsServer.Addr)
-		if err != nil {
+		if metricsErr := s.metricsServer.StartContext(ctx); metricsErr != nil {
 			_ = listener.Close()
-			return nil, nil, fmt.Errorf("%w: %s: %w", ErrListen, s.metricsServer.Addr, err)
+			return nil, fmt.Errorf("%w: %s: %w", ErrListen, s.config.metricsListenAddress(), metricsErr)
 		}
+	}
+
+	if contextErr := ctx.Err(); contextErr != nil {
+		_ = listener.Close()
+
+		if s.metricsServer != nil {
+			_ = s.metricsServer.Shutdown(ctx)
+		}
+
+		return nil, contextErr
 	}
 
 	s.listener = listener
-	s.metricsListener = metricsListener
 	s.started = true
 
 	s.server.Addr = listener.Addr().String()
-	if metricsListener != nil {
-		s.metricsServer.Addr = metricsListener.Addr().String()
-	}
-
 	if s.config.EnableRouteLogging {
 		s.logServerRoutes(s.router, "HTTP Server", s.server.Addr)
 
-		if metricsListener != nil {
-			if metricsRouter, ok := s.metricsServer.Handler.(*chi.Mux); ok {
-				s.logServerRoutes(metricsRouter, "Metrics Server", s.metricsServer.Addr)
-			}
+		if s.metricsServer != nil {
+			s.logger.InfoContext(ctx, fmt.Sprintf("Metrics Server: http://%s", s.metricsServer.Addr()))
+			s.logger.InfoContext(ctx, "Metrics Server routes:")
+			s.logger.InfoContext(ctx, "==================")
+			s.logger.InfoContext(ctx, fmt.Sprintf("  %-7s %s", "*", metricsPath))
+			s.logger.InfoContext(ctx, "==================")
 		}
 	}
 
-	return listener, metricsListener, nil
+	return listener, nil
 }
 
 func (s *Server) serve(server *http.Server, listener net.Listener) {

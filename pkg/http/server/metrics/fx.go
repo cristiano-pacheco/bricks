@@ -13,6 +13,7 @@ import (
 // LifecycleParams contains the dependencies for the metrics listener.
 type LifecycleParams struct {
 	fx.In
+
 	Lifecycle  fx.Lifecycle
 	Shutdowner fx.Shutdowner
 	Config     config.Config[Config]
@@ -26,35 +27,42 @@ func NewWithLifecycle(params LifecycleParams) (*Server, error) {
 	if cfg.ReadHeaderTimeout == 0 {
 		cfg.ReadHeaderTimeout = 10 * time.Second
 	}
+
 	server, err := New(cfg, params.Gatherer)
 	if err != nil {
 		return nil, err
 	}
+
 	logger := params.Logger
 	if logger == nil {
 		logger = slog.Default()
 	}
+
 	params.Lifecycle.Append(fx.Hook{
-		OnStart: func(context.Context) error {
-			if startErr := server.Start(); startErr != nil {
+		OnStart: func(ctx context.Context) error {
+			if startErr := server.StartContext(ctx); startErr != nil {
 				return startErr
 			}
+
 			if params.Config.Get().Enabled {
 				go func() {
 					if serveErr, ok := <-server.Errors(); ok {
-						logger.Error("metrics server failed", "error", serveErr)
+						logger.ErrorContext(ctx, "metrics server failed", "error", serveErr)
+
 						if shutdownErr := params.Shutdowner.Shutdown(fx.ExitCode(1)); shutdownErr != nil {
-							logger.Error("request shutdown", "error", shutdownErr)
+							logger.ErrorContext(ctx, "request shutdown", "error", shutdownErr)
 						}
 					}
 				}()
 			}
+
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
 			return server.Shutdown(ctx)
 		},
 	})
+
 	return server, nil
 }
 

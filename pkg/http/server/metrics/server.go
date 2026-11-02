@@ -40,14 +40,26 @@ type Server struct {
 // New creates a metrics server. Collectors can be registered with the registerer
 // associated with gatherer before or after construction.
 func New(config Config, gatherer prometheus.Gatherer) (*Server, error) {
-	if config.Port > 65535 {
-		return nil, fmt.Errorf("invalid metrics port: %d", config.Port)
-	}
 	if gatherer == nil {
 		return nil, errors.New("metrics gatherer is required")
 	}
+
+	return NewWithHandler(config, promhttp.HandlerFor(gatherer, promhttp.HandlerOpts{}))
+}
+
+// NewWithHandler creates a metrics server with the supplied scrape handler.
+func NewWithHandler(config Config, handler http.Handler) (*Server, error) {
+	if config.Port > 65535 {
+		return nil, fmt.Errorf("invalid metrics port: %d", config.Port)
+	}
+
+	if handler == nil {
+		return nil, errors.New("metrics handler is required")
+	}
+
 	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.HandlerFor(gatherer, promhttp.HandlerOpts{}))
+	mux.Handle("/metrics", handler)
+
 	return &Server{
 		config: config,
 		server: &http.Server{
@@ -63,41 +75,83 @@ func New(config Config, gatherer prometheus.Gatherer) (*Server, error) {
 
 // Start binds before returning so startup failures are visible to the caller.
 func (s *Server) Start() error {
+	return s.StartContext(context.Background())
+}
+
+// StartContext binds the listener using the startup context.
+func (s *Server) StartContext(ctx context.Context) error {
 	if !s.config.Enabled {
 		return nil
 	}
-	listener, err := net.Listen("tcp", net.JoinHostPort(s.config.Address, strconv.Itoa(int(s.config.Port))))
+
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("bind metrics listener: %w", err)
+	}
+
+	if s.stopping.Load() {
+		return http.ErrServerClosed
+	}
+
+	listenConfig := net.ListenConfig{}
+
+	listener, err := listenConfig.Listen(
+		ctx,
+		"tcp",
+		net.JoinHostPort(s.config.Address, strconv.Itoa(int(s.config.Port))),
+	)
 	if err != nil {
 		return fmt.Errorf("bind metrics listener: %w", err)
 	}
+
 	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if contextErr := ctx.Err(); contextErr != nil {
+		_ = listener.Close()
+		return fmt.Errorf("bind metrics listener: %w", contextErr)
+	}
+
+	if s.stopping.Load() {
+		_ = listener.Close()
+		return http.ErrServerClosed
+	}
+
 	s.address = listener.Addr().String()
 	s.listener = listener
-	s.mu.Unlock()
+
 	go func() {
 		defer close(s.errors)
-		if serveErr := s.server.Serve(listener); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) && !s.stopping.Load() {
+
+		if serveErr := s.server.Serve(
+			listener,
+		); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) &&
+			!s.stopping.Load() {
 			s.errors <- fmt.Errorf("serve metrics: %w", serveErr)
 		}
 	}()
+
 	return nil
 }
 
 // Shutdown stops the listener within the supplied deadline.
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.stopping.Store(true)
+
 	err := s.server.Shutdown(ctx)
 	if err != nil {
 		err = errors.Join(err, s.server.Close())
 	}
+
 	s.mu.RLock()
 	listener := s.listener
 	s.mu.RUnlock()
+
 	if listener != nil {
 		if closeErr := listener.Close(); closeErr != nil && !errors.Is(closeErr, net.ErrClosed) {
 			err = errors.Join(err, closeErr)
 		}
 	}
+
 	return err
 }
 
@@ -105,6 +159,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func (s *Server) Addr() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
 	return s.address
 }
 
