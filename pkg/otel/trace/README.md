@@ -41,6 +41,22 @@ defer span.End()
 
 Pass the returned context to downstream operations. Use the OpenTelemetry propagator for transport boundaries.
 
+## GORM tracing
+
+Declare `trace.GORMModule()` instead of `trace.Module` and provide a `*gorm.DB` through Fx.
+`GORMModule()` includes the tracing module and does not create or close the database client.
+Set `app.database.tracing.enabled: true` to install the GORM tracing plugin at
+startup. The switch defaults to false and is independent of Redis tracing. When enabled,
+a missing client or a client with the plugin already installed rejects startup.
+Register application lifecycle hooks after this module so database work begins after
+instrumentation is installed and drains before the provider shuts down. Do not modify
+GORM callbacks while instrumentation is active. GORM callback registration and removal
+are not safe to run concurrently with database operations.
+
+The plugin disables its metrics and query variables and replaces SQL text with an empty
+string. Third-party error messages recorded in spans may still contain sensitive data;
+these plugin controls do not sanitize those messages.
+
 ## Migration
 
 Bricks delegates provider initialization, span creation and shutdown to `github.com/cristiano-pacheco/go-otel`. Applications using `trace.Module` should remove separate initialization and shutdown calls. Existing direct `Initialize`, `MustInitialize`, `Span`, and `Shutdown` APIs remain available for applications that manage their own lifecycle. Do not combine direct initialization with the module.

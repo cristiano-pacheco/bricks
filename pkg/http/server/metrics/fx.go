@@ -1,0 +1,84 @@
+package metrics
+
+import (
+	"context"
+	"log/slog"
+	"time"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
+	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/fx"
+)
+
+const defaultReadHeaderTimeout = 10 * time.Second
+
+// LifecycleParams contains the dependencies for the metrics listener.
+type LifecycleParams struct {
+	fx.In
+
+	Lifecycle  fx.Lifecycle
+	Shutdowner fx.Shutdowner
+	Config     config.Config[Config]
+	Gatherer   prometheus.Gatherer
+	Logger     *slog.Logger `optional:"true"`
+}
+
+// NewWithLifecycle creates a metrics listener managed by Fx.
+func NewWithLifecycle(params LifecycleParams) (*Server, error) {
+	cfg := params.Config.Get()
+	if cfg.ReadHeaderTimeout == 0 {
+		cfg.ReadHeaderTimeout = defaultReadHeaderTimeout
+	}
+
+	server, err := New(cfg, params.Gatherer)
+	if err != nil {
+		return nil, err
+	}
+
+	logger := params.Logger
+	if logger == nil {
+		logger = slog.Default()
+	}
+
+	params.Lifecycle.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			if startErr := server.StartContext(ctx); startErr != nil {
+				return startErr
+			}
+
+			if !params.Config.Get().Enabled {
+				return nil
+			}
+
+			go server.reportServingError(ctx, logger, params.Shutdowner)
+
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			return server.Shutdown(ctx)
+		},
+	})
+
+	return server, nil
+}
+
+func (s *Server) reportServingError(ctx context.Context, logger *slog.Logger, shutdowner fx.Shutdowner) {
+	serveErr, ok := <-s.Errors()
+	if !ok {
+		return
+	}
+
+	logger.ErrorContext(ctx, "metrics server failed", "error", serveErr)
+
+	if shutdownErr := shutdowner.Shutdown(fx.ExitCode(1)); shutdownErr != nil {
+		logger.ErrorContext(ctx, "request shutdown", "error", shutdownErr)
+	}
+}
+
+// Module starts an independent metrics listener configured under app.metrics.
+// Applications supply a prometheus.Gatherer, typically their own Registry.
+var Module = fx.Module("metrics-listener",
+	config.Provide[Config]("app.metrics"),
+	fx.Provide(NewWithLifecycle),
+	fx.Invoke(func(*Server) {}),
+)
