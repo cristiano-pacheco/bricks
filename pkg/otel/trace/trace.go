@@ -16,6 +16,9 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
+// The package-level API shares one tracer lifecycle across callers.
+//
+//nolint:gochecknoglobals // Global state is required by Initialize, Span, and Shutdown.
 var (
 	globalTracer         oteltrace.Tracer
 	globalTracerProvider *sdktrace.TracerProvider

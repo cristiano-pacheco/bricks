@@ -160,17 +160,7 @@ func resolveEnvValue(value any) (any, error) {
 
 		return resolved, nil
 	case []any:
-		resolved := make([]any, len(typed))
-		for idx, nestedValue := range typed {
-			nextValue, err := resolveEnvValue(nestedValue)
-			if err != nil {
-				return nil, err
-			}
-
-			resolved[idx] = nextValue
-		}
-
-		return resolved, nil
+		return resolveEnvSlice(typed)
 	case string:
 		if after, ok := strings.CutPrefix(typed, envValuePrefix); ok {
 			return os.Getenv(after), nil
@@ -180,6 +170,20 @@ func resolveEnvValue(value any) (any, error) {
 	default:
 		return value, nil
 	}
+}
+
+func resolveEnvSlice(values []any) ([]any, error) {
+	resolved := make([]any, len(values))
+	for idx, value := range values {
+		nextValue, err := resolveEnvValue(value)
+		if err != nil {
+			return nil, err
+		}
+
+		resolved[idx] = nextValue
+	}
+
+	return resolved, nil
 }
 
 func unmarshalKey(k *koanf.Koanf, key string, target any) error {

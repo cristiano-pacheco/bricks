@@ -31,6 +31,7 @@ func (s *ErrorHandlerTestSuite) SetupTest() {
 	s.sut = response.NewErrorHandler(s.v, s.log)
 }
 
+//nolint:paralleltest // Testify suites keep mutable state and do not support parallel tests.
 func TestErrorHandlerSuite(t *testing.T) {
 	suite.Run(t, new(ErrorHandlerTestSuite))
 }

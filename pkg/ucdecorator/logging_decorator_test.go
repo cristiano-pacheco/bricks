@@ -25,6 +25,7 @@ func (s *LoggingDecoratorTestSuite) SetupTest() {
 	s.sut = ucdecorator.WithLogging(s.baseMock, s.loggerMock, "TestUseCase.Execute")
 }
 
+//nolint:paralleltest // Testify suites keep mutable state and do not support parallel tests.
 func TestLoggingDecoratorSuite(t *testing.T) {
 	suite.Run(t, new(LoggingDecoratorTestSuite))
 }

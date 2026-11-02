@@ -17,6 +17,7 @@ type TranslationServiceTestSuite struct {
 	sut *service.TranslationService
 }
 
+//nolint:paralleltest // Testify suites keep mutable state and do not support parallel tests.
 func TestTranslationServiceSuite(t *testing.T) {
 	suite.Run(t, new(TranslationServiceTestSuite))
 }

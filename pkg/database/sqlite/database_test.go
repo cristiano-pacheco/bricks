@@ -19,6 +19,8 @@ import (
 )
 
 func TestNewConfiguresSQLiteConnection(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	path := filepath.Join(t.TempDir(), "workplan.db")
 
@@ -48,6 +50,8 @@ func TestNewConfiguresSQLiteConnection(t *testing.T) {
 }
 
 func TestNewAppliesGORMConfiguration(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	path := filepath.Join(t.TempDir(), "workplan.db")
 	gormConfig := &gorm.Config{
@@ -68,6 +72,8 @@ func TestNewAppliesGORMConfiguration(t *testing.T) {
 }
 
 func TestNewUsesImmediateTransactions(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	path := filepath.Join(t.TempDir(), "workplan.db")
 	first, err := sqlite.New(sqlite.Config{DSN: path, BusyTimeout: 25 * time.Millisecond})
@@ -93,6 +99,8 @@ func TestNewUsesImmediateTransactions(t *testing.T) {
 }
 
 func TestNewRejectsInvalidConfiguration(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	cfg := sqlite.Config{}
 
@@ -106,6 +114,8 @@ func TestNewRejectsInvalidConfiguration(t *testing.T) {
 }
 
 func TestNewPreservesSQLiteOpenError(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	path := filepath.Join(t.TempDir(), "missing", "workplan.db")
 	cfg := sqlite.Config{DSN: "file:" + path + "?mode=ro"}

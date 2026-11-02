@@ -54,7 +54,6 @@ func New(cfg Config) (*Server, error) {
 	router := chi.NewRouter()
 
 	router.Use(middleware.RequestID)
-	router.Use(middleware.RealIP)
 
 	if cfg.EnableRequestLogging {
 		router.Use(middleware.Logger)

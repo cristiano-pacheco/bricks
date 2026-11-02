@@ -104,18 +104,8 @@ func applySQLiteUpMigrations(tx *sql.Tx, migrations []sqliteMigration) error {
 		return versionErr
 	}
 
-	if current.dirty {
-		return fmt.Errorf("%w: version %d", ErrDatabaseDirty, current.version)
-	}
-
-	latest := latestSQLiteUpVersion(migrations)
-	if current.exists && current.version > latest {
-		return fmt.Errorf(
-			"%w: database version %d, latest available version %d",
-			ErrDatabaseNewer,
-			current.version,
-			latest,
-		)
+	if err := validateSQLiteSchemaVersion(current, migrations); err != nil {
+		return err
 	}
 
 	for _, migration := range migrations {
@@ -149,18 +139,8 @@ func applySQLiteDownMigrations(tx *sql.Tx, migrations []sqliteMigration) error {
 		return nil
 	}
 
-	if current.dirty {
-		return fmt.Errorf("%w: version %d", ErrDatabaseDirty, current.version)
-	}
-
-	latest := latestSQLiteUpVersion(migrations)
-	if current.version > latest {
-		return fmt.Errorf(
-			"%w: database version %d, latest available version %d",
-			ErrDatabaseNewer,
-			current.version,
-			latest,
-		)
+	if err := validateSQLiteSchemaVersion(current, migrations); err != nil {
+		return err
 	}
 
 	downMigrations, downErr := matchingSQLiteDownMigrations(migrations, current.version)
@@ -168,6 +148,10 @@ func applySQLiteDownMigrations(tx *sql.Tx, migrations []sqliteMigration) error {
 		return downErr
 	}
 
+	return executeSQLiteDownMigrations(tx, downMigrations)
+}
+
+func executeSQLiteDownMigrations(tx *sql.Tx, downMigrations []sqliteMigration) error {
 	for index, migration := range downMigrations {
 		if executeErr := executeSQLiteMigration(tx, migration); executeErr != nil {
 			return executeErr
@@ -190,6 +174,24 @@ func applySQLiteDownMigrations(tx *sql.Tx, migrations []sqliteMigration) error {
 	return nil
 }
 
+func validateSQLiteSchemaVersion(current sqliteSchemaVersion, migrations []sqliteMigration) error {
+	if current.dirty {
+		return fmt.Errorf("%w: version %d", ErrDatabaseDirty, current.version)
+	}
+
+	latest := latestSQLiteUpVersion(migrations)
+	if current.exists && current.version > latest {
+		return fmt.Errorf(
+			"%w: database version %d, latest available version %d",
+			ErrDatabaseNewer,
+			current.version,
+			latest,
+		)
+	}
+
+	return nil
+}
+
 func (r *Runner) readSQLiteMigrations() ([]sqliteMigration, error) {
 	migrations := make([]sqliteMigration, 0)
 	seen := make(map[sqliteMigrationKey]string)
@@ -205,36 +207,49 @@ func (r *Runner) readSQLiteMigrations() ([]sqliteMigration, error) {
 		}
 
 		for _, migration := range fileSystemMigrations {
-			key := sqliteMigrationKey{version: migration.version, direction: migration.direction}
-			if previousName, exists := seen[key]; exists {
-				return nil, fmt.Errorf(
-					"%w: version %d %s is declared by both %q and %q",
-					ErrInvalidMigration,
-					migration.version,
-					migration.direction,
-					previousName,
-					migration.name,
-				)
+			if err := r.recordSQLiteMigration(seen, migration); err != nil {
+				return nil, err
 			}
 
-			seen[key] = migration.name
 			migrations = append(migrations, migration)
 		}
 	}
 
 	sort.Slice(migrations, func(i, j int) bool {
-		if migrations[i].version != migrations[j].version {
-			return migrations[i].version < migrations[j].version
-		}
-
-		if migrations[i].direction != migrations[j].direction {
-			return migrations[i].direction < migrations[j].direction
-		}
-
-		return migrations[i].name < migrations[j].name
+		return r.sqliteMigrationLess(migrations[i], migrations[j])
 	})
 
 	return migrations, nil
+}
+
+func (r *Runner) sqliteMigrationLess(left, right sqliteMigration) bool {
+	if left.version != right.version {
+		return left.version < right.version
+	}
+
+	if left.direction != right.direction {
+		return left.direction < right.direction
+	}
+
+	return left.name < right.name
+}
+
+func (r *Runner) recordSQLiteMigration(seen map[sqliteMigrationKey]string, migration sqliteMigration) error {
+	key := sqliteMigrationKey{version: migration.version, direction: migration.direction}
+	if previousName, exists := seen[key]; exists {
+		return fmt.Errorf(
+			"%w: version %d %s is declared by both %q and %q",
+			ErrInvalidMigration,
+			migration.version,
+			migration.direction,
+			previousName,
+			migration.name,
+		)
+	}
+
+	seen[key] = migration.name
+
+	return nil
 }
 
 func readSQLiteFilesystem(fileSystemIndex int, fileSystem fs.FS) ([]sqliteMigration, error) {

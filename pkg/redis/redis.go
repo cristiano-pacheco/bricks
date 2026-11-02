@@ -321,17 +321,7 @@ func (c *Client) pingWithRetry(ctx context.Context) error {
 
 		cancel()
 
-		if c.metrics != nil {
-			c.metrics.recordCommand(time.Since(start), err)
-
-			if err != nil {
-				c.metrics.recordConnectionError()
-
-				if attempt < maxRetries {
-					c.metrics.recordRetry()
-				}
-			}
-		}
+		c.recordPingMetrics(start, err, attempt < maxRetries)
 
 		if err == nil {
 			return nil
@@ -356,6 +346,22 @@ func (c *Client) pingWithRetry(ctx context.Context) error {
 		ClientType: c.config.Type,
 		Attempt:    maxRetries,
 		Err:        lastErr,
+	}
+}
+
+func (c *Client) recordPingMetrics(start time.Time, err error, retry bool) {
+	if c.metrics == nil {
+		return
+	}
+
+	c.metrics.recordCommand(time.Since(start), err)
+
+	if err != nil {
+		c.metrics.recordConnectionError()
+
+		if retry {
+			c.metrics.recordRetry()
+		}
 	}
 }
 

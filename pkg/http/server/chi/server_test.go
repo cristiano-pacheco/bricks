@@ -17,11 +17,14 @@ import (
 	bricksconfig "github.com/cristiano-pacheco/bricks/pkg/config"
 	"github.com/cristiano-pacheco/bricks/pkg/http/server/chi"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/fx"
 )
 
 func TestServer_Start_PortZeroReportsEffectiveAddressAndShutsDown(t *testing.T) {
+	t.Parallel()
+
 	server, err := chi.New(testConfig("127.0.0.1:0", false))
 	require.NoError(t, err)
 
@@ -51,16 +54,20 @@ func TestServer_Start_PortZeroReportsEffectiveAddressAndShutsDown(t *testing.T) 
 }
 
 func TestServer_MetricsCanBeDisabledWithoutCreatingAListener(t *testing.T) {
+	t.Parallel()
+
 	server, err := chi.New(testConfig("127.0.0.1:0", false))
 	require.NoError(t, err)
 	require.Empty(t, server.MetricsAddr())
 }
 
 func TestServer_RequestLoggingCanBeDisabled(t *testing.T) {
+	t.Parallel()
+
 	server, err := chi.New(testConfig("127.0.0.1:0", false))
 	require.NoError(t, err)
 	server.Router().Get("/request", func(writer http.ResponseWriter, request *http.Request) {
-		require.Nil(t, middleware.GetLogEntry(request))
+		assert.Nil(t, middleware.GetLogEntry(request))
 		writer.WriteHeader(http.StatusNoContent)
 	})
 
@@ -71,6 +78,8 @@ func TestServer_RequestLoggingCanBeDisabled(t *testing.T) {
 }
 
 func TestServer_MetricsPortZeroReportsEffectiveAddress(t *testing.T) {
+	t.Parallel()
+
 	cfg := testConfig("127.0.0.1:0", true)
 	cfg.MetricsAddress = "127.0.0.1:0"
 	server, err := chi.New(cfg)
@@ -98,6 +107,8 @@ func TestServer_MetricsPortZeroReportsEffectiveAddress(t *testing.T) {
 }
 
 func TestServer_Start_ReturnsErrorForOccupiedAddress(t *testing.T) {
+	t.Parallel()
+
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 
@@ -110,6 +121,7 @@ func TestServer_Start_ReturnsErrorForOccupiedAddress(t *testing.T) {
 	require.ErrorIs(t, server.Start(), chi.ErrListen)
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestServer_FxStart_ReturnsErrorForOccupiedAddress(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
@@ -125,6 +137,7 @@ func TestServer_FxStart_ReturnsErrorForOccupiedAddress(t *testing.T) {
 	_ = app.Stop(context.Background())
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestServer_FxStartRegistersRoutesBeforeServing(t *testing.T) {
 	loaded := loadConfig(t, "127.0.0.1:0", false, false, false)
 	route := routeFunc(func(server *chi.Server) {
@@ -142,6 +155,7 @@ func TestServer_FxStartRegistersRoutesBeforeServing(t *testing.T) {
 	require.NoError(t, app.Stop(context.Background()))
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestServer_FxStartHonorsRouteLogging(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -174,6 +188,8 @@ func TestServer_FxStartHonorsRouteLogging(t *testing.T) {
 }
 
 func TestConfigValidate_AcceptsPortZeroAndRejectsMalformedAddress(t *testing.T) {
+	t.Parallel()
+
 	require.NoError(t, (chi.Config{Port: 0}).Validate())
 
 	server, err := chi.New(chi.Config{Address: "127.0.0.1"})

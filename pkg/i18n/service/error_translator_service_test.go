@@ -15,6 +15,7 @@ type ErrorTranslatorServiceTestSuite struct {
 	suite.Suite
 }
 
+//nolint:paralleltest // Testify suites keep mutable state and do not support parallel tests.
 func TestErrorTranslatorServiceSuite(t *testing.T) {
 	suite.Run(t, new(ErrorTranslatorServiceTestSuite))
 }
@@ -34,6 +35,7 @@ func (s *ErrorTranslatorServiceTestSuite) TestTranslateBricksError() {
 
 	var translatedBricksErr *errs.Error
 	s.Require().ErrorAs(translatedErr, &translatedBricksErr)
+
 	if translatedBricksErr == nil {
 		s.FailNow("translated error must not be nil")
 		return

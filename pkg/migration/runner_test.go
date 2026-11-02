@@ -19,6 +19,8 @@ type migrationFile struct {
 }
 
 func TestRunner_UpSQLite_EmptyFilesystem_Succeeds(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	db := newSQLiteDatabase(t)
 	runner := migration.NewRunner(nil)
@@ -33,6 +35,8 @@ func TestRunner_UpSQLite_EmptyFilesystem_Succeeds(t *testing.T) {
 }
 
 func TestRunner_UpSQLite_OrdersFilesystemContributionsDeterministically(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	db := newSQLiteDatabase(t)
 	first := newMigrationFileSystem(
@@ -78,6 +82,8 @@ func TestRunner_UpSQLite_OrdersFilesystemContributionsDeterministically(t *testi
 }
 
 func TestRunner_UpSQLite_OlderSchemaAppliesAllPendingMigrations(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	db := newSQLiteDatabase(t)
 	initial := newMigrationFileSystem(
@@ -130,6 +136,8 @@ func TestRunner_UpSQLite_OlderSchemaAppliesAllPendingMigrations(t *testing.T) {
 }
 
 func TestRunner_UpSQLite_CurrentSchemaIsNoOp(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	db := newSQLiteDatabase(t)
 	runner := migration.NewRunner([]migration.FileSystem{newMigrationFileSystem(
@@ -167,6 +175,8 @@ func TestRunner_UpSQLite_CurrentSchemaIsNoOp(t *testing.T) {
 }
 
 func TestRunner_UpSQLite_FailedMigrationRollsBackPendingSchema(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	db := newSQLiteDatabase(t)
 	initial := newMigrationFileSystem(
@@ -247,6 +257,8 @@ func TestRunner_UpSQLite_FailedMigrationRollsBackPendingSchema(t *testing.T) {
 }
 
 func TestRunner_UpSQLite_RejectsNewerSchemaBeforeRunningMigrations(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	db := newSQLiteDatabase(t)
 	_, err := db.Exec("CREATE TABLE schema_migrations (version uint64, dirty bool)")
@@ -273,6 +285,8 @@ func TestRunner_UpSQLite_RejectsNewerSchemaBeforeRunningMigrations(t *testing.T)
 }
 
 func TestRunner_DownSQLite_AppliesMatchingMigrationsInReverseOrder(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	db := newSQLiteDatabase(t)
 	runner := migration.NewRunner([]migration.FileSystem{newMigrationFileSystem(
@@ -307,6 +321,8 @@ func TestRunner_DownSQLite_AppliesMatchingMigrationsInReverseOrder(t *testing.T)
 }
 
 func TestRunner_UpSQLite_RejectsDuplicateMigrationVersions(t *testing.T) {
+	t.Parallel()
+
 	// Arrange
 	db := newSQLiteDatabase(t)
 	runner := migration.NewRunner([]migration.FileSystem{

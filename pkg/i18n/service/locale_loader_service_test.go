@@ -19,6 +19,7 @@ type LocaleLoaderServiceTestSuite struct {
 	fsys       fstest.MapFS
 }
 
+//nolint:paralleltest // Testify suites keep mutable state and do not support parallel tests.
 func TestLocaleLoaderServiceSuite(t *testing.T) {
 	suite.Run(t, new(LocaleLoaderServiceTestSuite))
 }

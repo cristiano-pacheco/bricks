@@ -25,6 +25,7 @@ func (s *MetricsDecoratorTestSuite) SetupTest() {
 	s.sut = ucdecorator.WithMetrics(s.baseMock, s.metricsMock, "create_user")
 }
 
+//nolint:paralleltest // Testify suites keep mutable state and do not support parallel tests.
 func TestMetricsDecoratorSuite(t *testing.T) {
 	suite.Run(t, new(MetricsDecoratorTestSuite))
 }

@@ -194,6 +194,7 @@ func TestMissingConfigDir(t *testing.T) {
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestConfigDirNotFound(t *testing.T) {
 	t.Run("should return error when config dir does not exist", func(t *testing.T) {
 		// Arrange
@@ -220,6 +221,7 @@ func TestConfigDirNotFound(t *testing.T) {
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestNewWithPath(t *testing.T) {
 	type DatabaseConfig struct {
 		Host string `config:"host"`
@@ -320,6 +322,7 @@ func TestNewWithPath(t *testing.T) {
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestInvalidYAMLParsing(t *testing.T) {
 	t.Run("should return error on invalid YAML syntax", func(t *testing.T) {
 		// Arrange
@@ -342,6 +345,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestInvalidConfigStructure(t *testing.T) {
 	type StrictConfig struct {
 		RequiredInt int `config:"required_int"`
@@ -388,6 +392,7 @@ database:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestConfigFilePermissionErrors(t *testing.T) {
 	t.Run("should return error when base.yaml is not readable", func(t *testing.T) {
 		// Arrange
@@ -477,6 +482,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestConfigWithSpacesAndTrimming(t *testing.T) {
 	t.Run("should handle config dir with whitespace", func(t *testing.T) {
 		// Arrange
@@ -623,6 +629,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestMultipleOptions(t *testing.T) {
 	t.Run("should handle nil options gracefully", func(t *testing.T) {
 		// Arrange
@@ -644,6 +651,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestConfigGet(t *testing.T) {
 	t.Run("should return same value on multiple Get calls", func(t *testing.T) {
 		// Arrange
@@ -675,6 +683,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestEmptyConfigStructure(t *testing.T) {
 	type EmptyConfig struct{}
 
@@ -698,6 +707,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestDeepNestedConfiguration(t *testing.T) {
 	type DeepConfig struct {
 		Level1 struct {
@@ -820,6 +830,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestConfigDirectoryPermissionError(t *testing.T) {
 	// This test is platform-specific and may not work on all systems
 	if os.Getenv("SKIP_PERMISSION_TESTS") != "" {
@@ -857,6 +868,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestNilTargetUnmarshal(t *testing.T) {
 	// This tests internal behavior that's not directly exposed
 	// but we can test it indirectly through the public API
@@ -881,6 +893,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestYAMLProviderReadBytes(t *testing.T) {
 	t.Run("yamlProvider uses Read; ReadBytes is unused by koanf", func(t *testing.T) {
 		// koanf calls Read() on the provider, not ReadBytes(); config loading works correctly
@@ -901,6 +914,7 @@ app:
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestEdgeCaseYAMLFiles(t *testing.T) {
 	t.Run("should handle empty base.yaml", func(t *testing.T) {
 		// Arrange
@@ -961,6 +975,7 @@ func TestEdgeCaseYAMLFiles(t *testing.T) {
 	})
 }
 
+//nolint:paralleltest // This test changes process-wide environment variables.
 func TestComplexDataTypes(t *testing.T) {
 	type ComplexConfig struct {
 		StringMap   map[string]string   `config:"string_map"`

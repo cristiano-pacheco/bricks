@@ -44,6 +44,7 @@ func (s *ChainTestSuite) SetupTest() {
 	)
 }
 
+//nolint:paralleltest // Testify suites keep mutable state and do not support parallel tests.
 func TestChainSuite(t *testing.T) {
 	suite.Run(t, new(ChainTestSuite))
 }

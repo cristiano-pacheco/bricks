@@ -23,6 +23,7 @@ func (s *TracingDecoratorTestSuite) SetupTest() {
 	s.sut = ucdecorator.WithTracing(s.baseMock, "TestUseCase.Execute")
 }
 
+//nolint:paralleltest // Testify suites keep mutable state and do not support parallel tests.
 func TestTracingDecoratorSuite(t *testing.T) {
 	suite.Run(t, new(TracingDecoratorTestSuite))
 }

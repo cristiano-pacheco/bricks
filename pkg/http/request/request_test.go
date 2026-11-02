@@ -13,7 +13,11 @@ import (
 )
 
 func TestReadJSON(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Valid JSON decodes into struct", func(t *testing.T) {
+		t.Parallel()
+
 		// Arrange
 		type Payload struct {
 			Name string `json:"name"`
@@ -38,6 +42,8 @@ func TestReadJSON(t *testing.T) {
 	})
 
 	t.Run("Invalid Content-Type returns error", func(t *testing.T) {
+		t.Parallel()
+
 		// Arrange
 		type Payload struct {
 			Name string `json:"name"`
@@ -67,6 +73,8 @@ func TestReadJSON(t *testing.T) {
 	})
 
 	t.Run("Malformed JSON returns descriptive error", func(t *testing.T) {
+		t.Parallel()
+
 		// Arrange
 		type Payload struct {
 			Name string `json:"name"`
@@ -96,6 +104,8 @@ func TestReadJSON(t *testing.T) {
 	})
 
 	t.Run("Empty body returns not empty error", func(t *testing.T) {
+		t.Parallel()
+
 		// Arrange
 		type Payload struct {
 			Name string `json:"name"`
@@ -125,6 +135,8 @@ func TestReadJSON(t *testing.T) {
 	})
 
 	t.Run("Unknown field returns unknown field error", func(t *testing.T) {
+		t.Parallel()
+
 		// Arrange
 		type Payload struct {
 			Name string `json:"name"`
@@ -154,6 +166,8 @@ func TestReadJSON(t *testing.T) {
 	})
 
 	t.Run("Request body exceeds max bytes returns size error", func(t *testing.T) {
+		t.Parallel()
+
 		// Arrange
 		type Payload struct {
 			Name string `json:"name"`
@@ -187,6 +201,8 @@ func TestReadJSON(t *testing.T) {
 	})
 
 	t.Run("Multiple JSON values returns single value error", func(t *testing.T) {
+		t.Parallel()
+
 		// Arrange
 		type Payload struct {
 			Name string `json:"name"`

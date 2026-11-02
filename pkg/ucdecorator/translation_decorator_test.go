@@ -25,6 +25,7 @@ func (s *TranslationDecoratorTestSuite) SetupTest() {
 	s.sut = ucdecorator.WithTranslation(s.baseMock, s.translatorMock)
 }
 
+//nolint:paralleltest // Testify suites keep mutable state and do not support parallel tests.
 func TestTranslationDecoratorSuite(t *testing.T) {
 	suite.Run(t, new(TranslationDecoratorTestSuite))
 }

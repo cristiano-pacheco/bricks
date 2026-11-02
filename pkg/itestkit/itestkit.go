@@ -117,21 +117,24 @@ func (k *ITestKit) StartPostgres() error {
 			}).Encode(),
 		}).String()
 
-		for range connectionRetryAttempts {
-			k.db, initErr = gorm.Open(postgres.Open(k.dsn), &gorm.Config{})
-			if initErr == nil {
-				break
-			}
-
-			time.Sleep(retryDelay)
-		}
-
-		if initErr != nil {
-			initErr = fmt.Errorf("connect to database: %w", initErr)
-		}
+		initErr = k.connectPostgres()
 	})
 
 	return initErr
+}
+
+func (k *ITestKit) connectPostgres() error {
+	var err error
+	for range connectionRetryAttempts {
+		k.db, err = gorm.Open(postgres.Open(k.dsn), &gorm.Config{})
+		if err == nil {
+			return nil
+		}
+
+		time.Sleep(retryDelay)
+	}
+
+	return fmt.Errorf("connect to database: %w", err)
 }
 
 // StartRedis starts the Redis container.
@@ -170,21 +173,24 @@ func (k *ITestKit) StartRedis() error {
 		addr := fmt.Sprintf("%s:%s", host, port.Port())
 		k.redis = redis.NewClient(&redis.Options{Addr: addr})
 
-		for range connectionRetryAttempts {
-			_, initErr = k.redis.Ping(ctx).Result()
-			if initErr == nil {
-				break
-			}
-
-			time.Sleep(retryDelay)
-		}
-
-		if initErr != nil {
-			initErr = fmt.Errorf("connect to redis: %w", initErr)
-		}
+		initErr = k.connectRedis(ctx)
 	})
 
 	return initErr
+}
+
+func (k *ITestKit) connectRedis(ctx context.Context) error {
+	var err error
+	for range connectionRetryAttempts {
+		_, err = k.redis.Ping(ctx).Result()
+		if err == nil {
+			return nil
+		}
+
+		time.Sleep(retryDelay)
+	}
+
+	return fmt.Errorf("connect to redis: %w", err)
 }
 
 // RunMigrations applies migrations from the configured path.
@@ -195,16 +201,7 @@ func (k *ITestKit) RunMigrations() error {
 	var initErr error
 
 	k.migrateOnce.Do(func() {
-		migrationsPath := k.config.MigrationsPath
-		if after, ok := strings.CutPrefix(migrationsPath, "file://"); ok {
-			relativePath := after
-			if !filepath.IsAbs(relativePath) {
-				absolutePath := filepath.Join(getProjectRoot(), relativePath)
-				migrationsPath = "file://" + absolutePath
-			}
-		}
-
-		m, err := migrate.New(migrationsPath, k.migrateDSN)
+		m, err := migrate.New(k.migrationsPath(), k.migrateDSN)
 		if err != nil {
 			initErr = fmt.Errorf("create migrate instance: %w", err)
 			return
@@ -226,6 +223,15 @@ func (k *ITestKit) RunMigrations() error {
 	})
 
 	return initErr
+}
+
+func (k *ITestKit) migrationsPath() string {
+	path := k.config.MigrationsPath
+	if relativePath, ok := strings.CutPrefix(path, "file://"); ok && !filepath.IsAbs(relativePath) {
+		return "file://" + filepath.Join(getProjectRoot(), relativePath)
+	}
+
+	return path
 }
 
 func getProjectRoot() string {
@@ -321,33 +327,8 @@ func (k *ITestKit) StopRedis() {
 // Cleanup stops all containers and cleans up resources.
 // This is a convenience method that calls StopPostgres and StopRedis.
 func (k *ITestKit) Cleanup() {
-	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-
-	if k.db != nil {
-		if sqlDB, _ := k.db.DB(); sqlDB != nil {
-			if err := sqlDB.Close(); err != nil {
-				logger.Warn("[itestkit] close postgres sql db", "error", err)
-			}
-		}
-	}
-
-	if k.pgContainer != nil {
-		if err := testcontainers.TerminateContainer(k.pgContainer); err != nil {
-			logger.Warn("[itestkit] terminate postgres container", "error", err)
-		}
-	}
-
-	if k.redis != nil {
-		if err := k.redis.Close(); err != nil {
-			logger.Warn("[itestkit] close redis client", "error", err)
-		}
-	}
-
-	if k.redisContainer != nil {
-		if err := testcontainers.TerminateContainer(k.redisContainer); err != nil {
-			logger.Warn("[itestkit] terminate redis container", "error", err)
-		}
-	}
+	k.StopPostgres()
+	k.StopRedis()
 }
 
 // CleanupAll removes all testcontainers Docker containers.
