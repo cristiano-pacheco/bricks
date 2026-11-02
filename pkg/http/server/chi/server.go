@@ -5,14 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"strings"
 
 	"github.com/cristiano-pacheco/bricks/pkg/config"
+	metricslistener "github.com/cristiano-pacheco/bricks/pkg/http/server/metrics"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samber/lo"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"go.uber.org/fx"
@@ -28,8 +30,9 @@ const (
 // Server wraps an HTTP server with Chi router.
 type Server struct {
 	server        *http.Server
+	listener      net.Listener
 	router        *chi.Mux
-	metricsServer *http.Server
+	metricsServer *metricslistener.Server
 	config        Config
 	registry      *RouteRegistry
 	logger        *slog.Logger
@@ -79,16 +82,12 @@ func New(cfg Config) (*Server, error) {
 		IdleTimeout:  cfg.IdleTimeout,
 	}
 
-	// Create metrics server
-	metricsRouter := chi.NewRouter()
-	metricsRouter.Handle(metricsPath, promhttp.Handler())
-
-	metricsServer := &http.Server{
-		Addr:         fmt.Sprintf("0.0.0.0:%d", cfg.MetricsPort),
-		Handler:      metricsRouter,
-		ReadTimeout:  cfg.ReadTimeout,
-		WriteTimeout: cfg.WriteTimeout,
-		IdleTimeout:  cfg.IdleTimeout,
+	metricsServer, err := metricslistener.New(metricslistener.Config{
+		Enabled: true, Address: "0.0.0.0", Port: cfg.MetricsPort,
+		ReadTimeout: cfg.ReadTimeout, WriteTimeout: cfg.WriteTimeout, IdleTimeout: cfg.IdleTimeout,
+	}, prometheus.DefaultGatherer)
+	if err != nil {
+		return nil, err
 	}
 
 	return &Server{
@@ -104,10 +103,11 @@ func New(cfg Config) (*Server, error) {
 // NewWithLifecycleParams contains dependencies for creating a server with lifecycle.
 type NewWithLifecycleParams struct {
 	fx.In
-	Config config.Config[Config]
-	LC     fx.Lifecycle
-	Routes []Route      `group:"routes"`
-	Logger *slog.Logger `               optional:"true"`
+	Config     config.Config[Config]
+	LC         fx.Lifecycle
+	Shutdowner fx.Shutdowner
+	Routes     []Route      `group:"routes"`
+	Logger     *slog.Logger `               optional:"true"`
 }
 
 // NewWithLifecycle creates a new HTTP server with fx.Lifecycle management.
@@ -129,14 +129,25 @@ func NewWithLifecycle(params NewWithLifecycleParams) (*Server, error) {
 
 	params.LC.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
-			// Setup routes before starting
 			server.SetupRoutes()
-
-			// Start server in background
+			serveErrors, startErr := server.start()
+			if startErr != nil {
+				return startErr
+			}
 			go func() {
-				if startErr := server.Start(); startErr != nil && !errors.Is(startErr, http.ErrServerClosed) {
-					// Log error but don't crash - fx will handle this
-					_ = startErr
+				if serveErr, ok := <-server.metricsServer.Errors(); ok {
+					server.logger.Error("metrics server failed", "error", serveErr)
+					if shutdownErr := params.Shutdowner.Shutdown(fx.ExitCode(1)); shutdownErr != nil {
+						server.logger.Error("request shutdown", "error", shutdownErr)
+					}
+				}
+			}()
+			go func() {
+				if serveErr := <-serveErrors; serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) && !errors.Is(serveErr, net.ErrClosed) {
+					server.logger.Error("http server failed", "error", serveErr)
+					if shutdownErr := params.Shutdowner.Shutdown(fx.ExitCode(1)); shutdownErr != nil {
+						server.logger.Error("request shutdown", "error", shutdownErr)
+					}
 				}
 			}()
 			return nil
@@ -198,13 +209,6 @@ func (s *Server) logRoutes() {
 	s.logServerRoutes(s.router, "HTTP Server", s.server.Addr)
 }
 
-// logMetricsRoutes logs all registered metrics routes to stdout.
-func (s *Server) logMetricsRoutes() {
-	if metricsRouter, ok := s.metricsServer.Handler.(*chi.Mux); ok {
-		s.logServerRoutes(metricsRouter, "Metrics Server", s.metricsServer.Addr)
-	}
-}
-
 // logServerRoutes logs routes for a given router with a custom title and address.
 func (s *Server) logServerRoutes(router *chi.Mux, serverName, addr string) {
 	s.logger.Info(fmt.Sprintf("%s: http://%s", serverName, addr))
@@ -241,28 +245,50 @@ func (s *Server) createRouteWalkFunc() func(method string, route string, _ http.
 // Start begins listening and serving HTTP requests.
 // Starts the metrics server on a separate port.
 func (s *Server) Start() error {
-	// Log metrics server routes
-	s.logMetricsRoutes()
-
-	// Start metrics server
+	serveErrors, err := s.start()
+	if err != nil {
+		return err
+	}
 	go func() {
-		if err := s.metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			_ = err
+		if serveErr, ok := <-s.metricsServer.Errors(); ok {
+			s.logger.Error("metrics server failed", "error", serveErr)
 		}
 	}()
-
-	return s.server.ListenAndServe()
+	err = <-serveErrors
+	shutdownCtx := context.Background()
+	if s.config.ShutdownTimeout > 0 {
+		var cancel context.CancelFunc
+		shutdownCtx, cancel = context.WithTimeout(shutdownCtx, s.config.ShutdownTimeout)
+		defer cancel()
+	}
+	return errors.Join(err, s.metricsServer.Shutdown(shutdownCtx))
 }
 
-// Shutdown gracefully shuts down the server.
-// Also shuts down the metrics server.
-func (s *Server) Shutdown(ctx context.Context) error {
-	// Shutdown metrics server
-	if err := s.metricsServer.Shutdown(ctx); err != nil {
-		_ = err
+func (s *Server) start() (<-chan error, error) {
+	listener, err := net.Listen("tcp", s.server.Addr)
+	if err != nil {
+		return nil, fmt.Errorf("bind HTTP listener: %w", err)
 	}
+	if err := s.metricsServer.Start(); err != nil {
+		return nil, errors.Join(err, listener.Close())
+	}
+	s.listener = listener
+	serveErrors := make(chan error, 1)
+	go func() {
+		serveErrors <- s.server.Serve(listener)
+	}()
+	return serveErrors, nil
+}
 
-	return s.server.Shutdown(ctx)
+// Shutdown gracefully shuts down both servers.
+func (s *Server) Shutdown(ctx context.Context) error {
+	err := s.server.Shutdown(ctx)
+	if s.listener != nil {
+		if closeErr := s.listener.Close(); closeErr != nil && !errors.Is(closeErr, net.ErrClosed) {
+			err = errors.Join(err, closeErr)
+		}
+	}
+	return errors.Join(err, s.metricsServer.Shutdown(ctx))
 }
 
 // Addr returns the server address.
@@ -272,5 +298,8 @@ func (s *Server) Addr() string {
 
 // MetricsAddr returns the metrics server address.
 func (s *Server) MetricsAddr() string {
-	return s.metricsServer.Addr
+	if addr := s.metricsServer.Addr(); addr != "" {
+		return addr
+	}
+	return fmt.Sprintf("0.0.0.0:%d", s.config.MetricsPort)
 }
