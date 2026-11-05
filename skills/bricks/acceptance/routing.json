@@ -1,6 +1,49 @@
 {
   "cases": [
     {
+      "id": "migration-postgresql",
+      "task": "Combine embedded migration contributions and apply them to a PostgreSQL URL using Bricks. Explain duplicate files, dirty state, transactions, and whether rollback is exposed. No GORM connection is needed.",
+      "required": ["references/migration/usage.md", "references/migration/postgresql.md"],
+      "excluded": ["references/migration/sqlite.md", "references/database/usage.md", "references/database/sqlite/usage.md", "recipes/postgresql-migrations.md", "references/local-source.md"],
+      "conditional": [
+        {"when": "The caller requests a complete Fx migration command with embedded SQL and an environment-supplied URL.", "references": ["examples/migration-postgresql/README.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "migration-sqlite",
+      "task": "Run Bricks migrations on my existing SQLite sql.DB and explicitly undo all migrations in development. Explain collisions, version checks, missing down files, and transaction failures.",
+      "required": ["references/migration/usage.md", "references/migration/sqlite.md"],
+      "excluded": ["references/migration/postgresql.md", "references/database/usage.md", "references/database/sqlite/usage.md", "recipes/sqlite-migrations.md", "references/local-source.md"],
+      "conditional": [
+        {"when": "The caller requests a complete caller-owned SQLite connection and migration command.", "references": ["examples/migration-sqlite/README.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "migration-backend-ambiguity",
+      "task": "Set up Bricks SQL migrations. I have not specified the database backend or connection type.",
+      "required": [],
+      "excluded": ["references/migration/postgresql.md", "references/migration/sqlite.md", "references/database/usage.md", "references/local-source.md"],
+      "conditional": [
+        {"when": "The caller chooses PostgreSQL.", "references": ["references/migration/usage.md", "references/migration/postgresql.md"]},
+        {"when": "The caller chooses SQLite.", "references": ["references/migration/usage.md", "references/migration/sqlite.md"]}
+      ],
+      "clarification": "Ask whether the application uses a PostgreSQL URL or a SQLite sql.DB before selecting a backend reference.",
+      "deduplicate": true
+    },
+    {
+      "id": "multigoal-migration-backends",
+      "task": "Compare Bricks PostgreSQL and SQLite migration contributions, version behavior, transactions, rollback, and connection ownership. No full examples or database constructors are needed.",
+      "required": ["references/migration/usage.md", "references/migration/postgresql.md", "references/migration/sqlite.md"],
+      "excluded": ["references/database/usage.md", "references/database/sqlite/usage.md", "references/local-source.md", "examples/migration-postgresql/README.md", "examples/migration-sqlite/README.md"],
+      "conditional": [],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
       "id": "validation-operations",
       "task": "Use validator.Module in Fx, inject validator.Validator into a use case, and validate its tagged input struct at the start of Execute. Propagate validation errors without custom providers or lifecycle validation.",
       "required": ["references/validator/usage.md"],

@@ -1,0 +1,61 @@
+package main
+
+import (
+	"context"
+	"embed"
+	"errors"
+	"io/fs"
+	"log"
+	"os"
+
+	"github.com/cristiano-pacheco/bricks/pkg/migration"
+	"go.uber.org/fx"
+)
+
+//go:embed migrations/*.sql
+var embedded embed.FS
+
+type migrationInputs struct {
+	fx.In
+	Files []migration.FileSystem `group:"application_migrations"`
+}
+
+func migrationFiles() (migration.FileSystem, error) {
+	root, err := fs.Sub(embedded, "migrations")
+	if err != nil {
+		return migration.FileSystem{}, err
+	}
+	return migration.New(root), nil
+}
+
+func provideRunner(in migrationInputs) *migration.Runner {
+	return migration.NewRunner(in.Files)
+}
+
+func registerMigration(lifecycle fx.Lifecycle, runner *migration.Runner) {
+	lifecycle.Append(fx.Hook{
+		OnStart: func(context.Context) error {
+			dsn := os.Getenv("MIGRATION_DSN")
+			if dsn == "" {
+				return errors.New("MIGRATION_DSN is required")
+			}
+			return runner.Up(dsn)
+		},
+	})
+}
+
+func main() {
+	app := fx.New(
+		fx.Provide(
+			fx.Annotate(migrationFiles, fx.ResultTags(`group:"application_migrations"`)),
+			provideRunner,
+		),
+		fx.Invoke(registerMigration),
+	)
+	if err := app.Start(context.Background()); err != nil {
+		log.Fatal(err)
+	}
+	if err := app.Stop(context.Background()); err != nil {
+		log.Fatal(err)
+	}
+}

@@ -1320,6 +1320,16 @@
     },
     {
       "path": "pkg/migration",
+      "documentation_evidence": {
+        "source_revision": "f862043107e9c04944af0fc348e053d7c3fe9e9c",
+        "authored": ["references/migration/usage.md", "references/migration/postgresql.md", "references/migration/sqlite.md"],
+        "source_inspected": ["pkg/migration/filesystem.go", "pkg/migration/runner.go", "pkg/migration/sqlite.go", "pkg/migration/runner_test.go", "github.com/golang-migrate/migrate/v4@v4.20.1/source/iofs/iofs.go", "github.com/golang-migrate/migrate/v4@v4.20.1/source/parse.go", "github.com/golang-migrate/migrate/v4@v4.20.1/migrate.go", "github.com/golang-migrate/migrate/v4@v4.20.1/database/postgres/postgres.go"],
+        "examples": [
+          {"kind": "runnable", "path": "examples/migration-postgresql/main.go", "fx": true, "status": "planned", "checks": []},
+          {"kind": "runnable", "path": "examples/migration-sqlite/main.go", "fx": false, "status": "planned", "checks": []}
+        ],
+        "verification": "Source inspection only. The user waived compilation, Fx graph validation, controlled PostgreSQL/SQLite integration verification, tests, lint, structural/link checks, and code review for ticket 05. Authored branches remain planned, not verified. README removal remains gated. See acceptance/migrations.md."
+      },
       "readme": "pkg/migration/README.md",
       "exports": [
         "ErrDatabaseDirty",
