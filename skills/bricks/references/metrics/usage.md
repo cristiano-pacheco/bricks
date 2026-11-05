@@ -100,7 +100,7 @@ curl -fsS http://127.0.0.1:9090/metrics
 
    Expect `usecase_success_total{name="create_order"} 1` and `usecase_duration_seconds_count{name="create_order"} 1`. The duration sum varies. The error series does not exist until `IncError` runs. Go and process collectors also appear because the default gatherer includes them.
 
-4. Press Ctrl-C in the application terminal. Fx stops the listener. Collectors remain registered for the lifetime of this process. The [distributed example](../../examples/metrics-usecase/main.go) and [configuration](../../examples/metrics-usecase/config/base.yaml) contain these files for copying. No framework checkout is needed.
+4. Press Ctrl-C in the application terminal. Fx stops the listener. Collectors remain registered for the lifetime of this process. Create the Go file from step 1 and copy the [configuration](../../examples/metrics-usecase/config/base.yaml) if preferred. No framework checkout is needed.
 
 ## Direct construction
 

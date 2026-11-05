@@ -74,7 +74,7 @@ For PostgreSQL, supply an escaped connection URL and call `Up`:
 return runner.Up(dsn)
 ```
 
-`Up` opens its own migration connection. It does not require or reuse a Bricks database constructor, GORM, or an existing pool. For a full command with an environment-supplied URL, use the [PostgreSQL example](../../examples/migration-postgresql/README.md). For URL options, dirty state, and collision behavior, read [PostgreSQL execution](postgresql.md).
+`Up` opens its own migration connection. It does not require or reuse a Bricks database constructor, GORM, or an existing pool. For a complete direct application, URL inputs, dirty state, and collision behavior, read [PostgreSQL execution](postgresql.md). The [migration assets](../../examples/migration-postgresql/README.md) retain SQL only.
 
 For SQLite, pass an already opened `*sql.DB`:
 
@@ -83,7 +83,7 @@ For SQLite, pass an already opened `*sql.DB`:
 return runner.UpSQLite(db)
 ```
 
-`UpSQLite` leaves the handle open. For a full command that opens and closes its own SQLite handle, use the [SQLite example](../../examples/migration-sqlite/README.md). For transactions, version validation, and explicit development rollback, read [SQLite execution](sqlite.md).
+`UpSQLite` leaves the handle open. For a complete application that owns its handle, transactions, version validation, and development rollback, read [SQLite execution](sqlite.md). The [migration assets](../../examples/migration-sqlite/README.md) retain SQL only.
 
 Return migration failures to the caller. Apply migrations before starting requests or workers that use the schema. Serialize schema changes in the deployment workflow.
 

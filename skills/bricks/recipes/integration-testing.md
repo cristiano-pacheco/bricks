@@ -6,7 +6,7 @@ You need an application Go module with Bricks selected, compatible local Go tool
 
 ## Connect the application to its fixtures
 
-1. Create `test/integration/combined/application_test.go` and copy the complete file below. The same file is distributed as [the combined example](../examples/integration-testing-combined/application_test.go).
+1. Create `test/integration/combined/application_test.go` and copy the complete file below.
 
 ```go
 //go:build integration
@@ -128,7 +128,7 @@ func TestCombinedApplication(t *testing.T) {
 go test -tags integration -count=1 -v ./test/integration/combined
 ```
 
-Expected result is `PASS`. `TestCombinedApplication` requires `hello Ada` after the database and cache operations, and rejects an empty name. It has not been executed for this documentation change. In a Bricks checkout, run `go test -tags integration -count=1 -v ./skills/bricks/examples/integration-testing-combined`.
+Expected result is `PASS`. `TestCombinedApplication` requires `hello Ada` after the database and cache operations, and rejects an empty name. It has not been executed for this documentation change.
 
 ## Configuration boundary
 

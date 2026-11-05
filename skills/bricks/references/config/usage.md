@@ -165,7 +165,7 @@ func main() {
 
 The invoke demands the provider, so Fx actually loads the configuration. `Provide` provides the wrapper, not `Service` itself. A custom provider returning `config.New[Document]()` is another option.
 
-Two unnamed providers of the same `config.Config[T]` collide, even when their paths differ. Use distinct types or named Fx bindings for those cases. To combine configuration with logger lifecycle and structured errors, follow [the foundations example](../../examples/foundations/README.md).
+Two unnamed providers of the same `config.Config[T]` collide, even when their paths differ. Use distinct types or named Fx bindings for those cases. For logger lifecycle, load [logging usage](../logger/usage.md). For structured-error construction, load [errors usage](../errs/usage.md). The retained [foundations configuration](../../examples/foundations/README.md) contains service and logger YAML only.
 
 ## Defaults and failures
 

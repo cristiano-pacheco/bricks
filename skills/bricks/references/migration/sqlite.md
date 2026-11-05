@@ -83,7 +83,7 @@ CGO_ENABLED=1 go run .
 
 This driver requires CGO and a C toolchain. The first successful run creates `migration_example_accounts` and records version 1 in `schema_migrations`. The second successful run has no pending SQL. Both leave `migration-example.db` on disk and close the connection.
 
-The runner has no YAML configuration type or migration defaults to copy. This example supplies the SQLite DSN in Go. For a complete command with a `-dsn` flag and an explicit development-only `-down` operation, use the [SQLite example](../../examples/migration-sqlite/README.md).
+The runner has no YAML configuration type or migration defaults to copy. This example supplies the SQLite DSN in Go. For Fx startup and an explicit development-only `-down` operation, follow the inline [SQLite startup recipe](../../recipes/sqlite-migrations.md).
 
 ## Alternative: use an existing application connection
 

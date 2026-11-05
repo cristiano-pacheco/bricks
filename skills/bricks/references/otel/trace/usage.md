@@ -89,7 +89,7 @@ APP_CONFIG_DIR=cmd/order-trace/config APP_ENV=local go run ./cmd/order-trace
 
    Expect the program to stop after one operation. The collector debug output should contain a span named `create-order` and the resource attribute `service.name: orders`. There is no HTTP response to scrape. Successful application startup alone does not prove delivery. Export is asynchronous, a receiver outage can drop spans, and export errors may appear through OpenTelemetry's error handler rather than the business operation's return value.
 
-   Copy the [distributed main.go](../../../examples/tracing-span/main.go) and [base.yaml](../../../examples/tracing-span/config/base.yaml) instead of transcribing them if preferred. 
+   Create the Go file from step 3 and copy [base.yaml](../../../examples/tracing-span/config/base.yaml) into its configuration directory. 
 
 ## Select a different scenario
 

@@ -1,5 +1,9 @@
-# Run all decorator integrations
+# Decorator observability assets
 
-Follow the numbered setup in the [consumer guide](../../recipes/decorator-observability.md). Copy this directory's `main.go` into `cmd/quote/main.go` in an application module that depends on Bricks. The factory and observability examples also include configuration to copy into `cmd/quote/config/base.yaml`.
+Follow [the setup guide](../../recipes/decorator-observability.md) and copy the required assets into your application. This directory contains configuration or data, not an executable Go application. Create the Go files from the inline instructions in that guide.
 
-Run with quantity `2` for success or `0` for a returned application error. The guide gives the full command, expected output, and cleanup ownership. These examples have not been compiled or executed in this documentation task because the user waived execution checks.
+For Bricks configuration, keep the required `config/base.yaml`. Select an alternative overlay with `APP_ENV` or copy its values into the base file as the guide directs.
+
+## Files
+
+- [config/base.yaml](config/base.yaml)

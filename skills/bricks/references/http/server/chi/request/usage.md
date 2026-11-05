@@ -86,7 +86,7 @@ curl -i http://127.0.0.1:8080/users/abc
 curl -i 'http://127.0.0.1:8080/users/42?id=99'
 ```
 
-Expect 200 with `{"data":{"id":"42"}}`, `{"data":{"id":"abc"}}`, and `{"data":{"id":"42"}}` respectively. These are source-derived expectations, not executed results. The distributed [parameter example](../../../../../examples/http-input-output-parameters/main.go) contains the same program.
+Expect 200 with `{"data":{"id":"42"}}`, `{"data":{"id":"abc"}}`, and `{"data":{"id":"42"}}` respectively. These are source-derived expectations, not executed results.
 
 ## 3. Stop the server
 
@@ -100,4 +100,4 @@ Parse numeric IDs explicitly with `strconv.ParseInt` and handle its error before
 
 ## Fx alternative
 
-The [complete Fx HTTP example](../../../../../examples/http-input-output/main.go) provides its router as `http.Handler` and uses the same `Param` call inside `/users/{id}`. No Fx provider is needed for the helper. For the Bricks Chi server's route groups and automatic lifecycle integration, load [Chi server usage](../usage.md) only when installing that server. For body decoding, load [JSON requests](../../../request/usage.md) only when the route has a JSON body.
+The helper needs no Fx provider. Call `Param` inside the route handler, as in the complete inline application above. For the Bricks Chi server's route groups and automatic lifecycle integration, load [Chi server usage](../usage.md) only when installing that server. For body decoding, load [JSON requests](../../../request/usage.md) only when the route has a JSON body.

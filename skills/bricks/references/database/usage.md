@@ -71,7 +71,7 @@ go run .
 
 Successful startup means the database opened and `SELECT 1` succeeded. This version remains running until shutdown. Fx closes the underlying `*sql.DB` on normal shutdown. Keep one pool for the application rather than closing it after each request.
 
-For a copyable program that starts, checks the connection, and exits, use the [one-shot connection example](../../examples/postgresql/README.md). For schema migrations before queries or request handling, use the [startup recipe](../../recipes/postgresql-migrations.md).
+Create the application Go file from step 2. The retained [PostgreSQL assets](../../examples/postgresql/README.md) contain YAML configuration only. For schema migrations before queries or request handling, use the [startup recipe](../../recipes/postgresql-migrations.md).
 
 ## 4. Change TLS settings for your deployment
 

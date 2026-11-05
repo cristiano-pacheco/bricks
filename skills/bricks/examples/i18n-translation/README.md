@@ -1,33 +1,19 @@
-# Run message translation
+# I18n translation assets
 
-Load two rooted locale contributions and print configured, interpolated, fallback, and missing-key messages. Use an application Go module with Bricks and its supported Go toolchain.
+Follow [the setup guide](../../references/i18n/usage.md) and copy the required assets into your application. This directory contains configuration or data, not an executable Go application. Create the Go files from the inline instructions in that guide.
 
-1. Copy this entire directory into your application as `cmd/messages`. Keep `main.go`, `config`, `locales`, and `extra` together. The embed patterns need both JSON directories when compiling.
-2. From the application root, run:
+For Bricks configuration, keep the required `config/base.yaml`. Select an alternative overlay with `APP_ENV` or copy its values into the base file as the guide directs.
 
-```sh
-APP_CONFIG_DIR=cmd/messages/config APP_ENV=local go run ./cmd/messages
-```
+Preserve the locale directory names used by the guide. The i18n loader needs `<language>.json` at each contributed filesystem root; embedded files must be rooted with `fs.Sub` as shown in the guide.
 
-3. Expect these application output lines, apart from Fx diagnostics:
+## Files
 
-```text
-Produtos
-Olá Ana
-English fallback
-unknown
-Pago
-```
-
-   `i18n.log` receives fallback warnings. Fx stops before the application flushes its logger. No external service is required.
-
-## Alternative configurations
-
-- `APP_ENV=minimal` selects English through a blank language value.
-- `APP_ENV=full` explicitly selects `pt-BR` and contains every i18n field.
-- `APP_ENV=fallback` requests unavailable `xx` and selects English through loader fallback.
-- `APP_ENV=environment APP_LANGUAGE=pt-BR` demonstrates `env://APP_LANGUAGE` resolution.
-
-Keep `APP_CONFIG_DIR=cmd/messages/config` on each command. The loader always requires `base.yaml` and then merges the named overlay. English output is `Products`, `Hello Ana`, `English fallback`, `unknown`, and `Paid`. Locale JSON is separate from YAML configuration. Changing files does not refresh an already constructed service.
-
-For the numbered setup and API behavior, read [translation usage](../../references/i18n/usage.md). Compilation, configuration loading, Fx assembly, and runtime results were not executed for this change, per the user's waiver.
+- [config/base.yaml](config/base.yaml)
+- [config/environment.yaml](config/environment.yaml)
+- [config/fallback.yaml](config/fallback.yaml)
+- [config/full.yaml](config/full.yaml)
+- [config/minimal.yaml](config/minimal.yaml)
+- [extra/en.json](extra/en.json)
+- [extra/pt-BR.json](extra/pt-BR.json)
+- [locales/en.json](locales/en.json)
+- [locales/pt-BR.json](locales/pt-BR.json)

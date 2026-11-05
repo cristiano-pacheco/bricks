@@ -35,7 +35,7 @@ var Module = fx.Module("checkout-locales",
 
    This fragment belongs at package scope. Add the module to the same Fx application as `i18n.Module`. An ungrouped provider is not a locale contribution. `fs.Sub` removes the directory prefix; wrapping `files` directly would make `en.json` invisible to the loader.
 
-3. For a complete runnable application rather than a module fragment, copy the [distributed two-filesystem example](../../../examples/i18n-translation/README.md) into `cmd/messages`. It includes application configuration, logger ownership, both filesystem providers, and a translation consumer. Run:
+3. For a complete application rather than a module fragment, create `cmd/messages/main.go` from the inline [translation setup](../usage.md). Copy its retained [configuration and locale assets](../../../examples/i18n-translation/README.md) into the directories shown there. The guide includes logger ownership, both filesystem providers, and a translation consumer. Run:
 
 ```sh
 APP_CONFIG_DIR=cmd/messages/config APP_ENV=local go run ./cmd/messages

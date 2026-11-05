@@ -75,7 +75,7 @@ Replace the credentials and database name. URL-escape credentials, use deploymen
 
 The migration package has no YAML configuration type. This command reads `MIGRATION_DSN` directly. If the application already stores connection settings in YAML, build an escaped URL from those settings as shown in the [PostgreSQL startup recipe](../../recipes/postgresql-migrations.md). Do not add an invented `app.migration` configuration block.
 
-For the complete Fx variant with an application-owned filesystem group and explicit startup execution, use the [PostgreSQL example](../../examples/migration-postgresql/README.md). For multiple module contributions and filename conventions, read the [shared guide](usage.md).
+For an Fx variant with an application-owned filesystem group and explicit startup execution, follow the inline [PostgreSQL startup recipe](../../recipes/postgresql-migrations.md). For multiple module contributions and filename conventions, read the [shared guide](usage.md).
 
 ## Connection ownership and timeout limits
 

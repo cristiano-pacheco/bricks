@@ -132,7 +132,7 @@ APP_CONFIG_DIR=cmd/quote/config APP_ENV=local go run ./cmd/quote 2
 cat decorator.log
 ```
 
-   Expect `total_cents=250` and `QuoteUseCase.Execute succeeded` in the log. With input `0`, expect `quantity must be positive`, a failure log, and a nonzero exit after shutdown. It is not prefixed by the translator because translation is disabled. Copy the distributed [main.go](../../examples/decorator-factory/main.go) if preferred.
+   Expect `total_cents=250` and `QuoteUseCase.Execute succeeded` in the log. With input `0`, expect `quantity must be positive`, a failure log, and a nonzero exit after shutdown. It is not prefixed by the translator because translation is disabled.
 
 ## Select a configuration scenario
 
@@ -215,4 +215,4 @@ _, err = quoted.Execute(ctx, QuoteInput{Quantity: 2})
 return err
 ```
 
-`NewFactory` takes four arguments, including `config.Config[ucdecorator.Config]`. The older three-argument README call does not match this API. For missing Fx dependencies, inspect the provider's exact return type. A concrete logger or a structurally compatible translator provider is not automatically registered under the required interface. The supplied examples make those interfaces explicit.
+`NewFactory` takes four arguments, including `config.Config[ucdecorator.Config]`. The older three-argument README call does not match this API. For missing Fx dependencies, inspect the provider's exact return type. A concrete logger or a structurally compatible translator provider is not automatically registered under the required interface. The inline setup makes those interfaces explicit.

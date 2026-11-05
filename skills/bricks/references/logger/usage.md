@@ -17,7 +17,7 @@ app:
       - stderr
 ```
 
-The field names are lowercase, not snake case. `logger.Module` reads `app.logger` and does not merge it with `DefaultConfig()`. This setup leaves sampling disabled. The distributed [minimal file](../../examples/foundations/config/minimal.yaml) also includes the service settings used by the foundations example. See the full configuration below when you need shared fields or sampling.
+The field names are lowercase, not snake case. `logger.Module` reads `app.logger` and does not merge it with `DefaultConfig()`. This setup leaves sampling disabled. The distributed [minimal file](../../examples/foundations/config/minimal.yaml) also includes sample service settings. See the full configuration below when you need shared fields or sampling.
 
 ## 2. Add the module and a consumer
 
@@ -207,4 +207,4 @@ Field helpers include `String`, `Int`, `Int32`, `Int64`, `Uint64`, `Float64`, `B
 
 `DPanic` panics in development mode after logging. `Panic` always panics after logging. `Fatal` exits the process, bypassing deferred cleanup and normal Fx shutdown. Return an error when shutdown hooks must run.
 
-For a complete configuration, logging, and structured-error application with explicit startup and shutdown, follow [the foundations example](../../examples/foundations/README.md).
+For whole-document or subtree loading, use [configuration usage](../config/usage.md). For constructing structured errors to log, use [errors usage](../errs/usage.md). The retained [foundations assets](../../examples/foundations/README.md) contain service and logger YAML only.

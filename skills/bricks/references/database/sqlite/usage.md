@@ -78,7 +78,7 @@ The invoke requests the lazy `*gorm.DB` provider. Construction opens and pings S
 APP_CONFIG_DIR="$PWD/config" APP_ENV=local CGO_ENABLED=1 go run .
 ```
 
-Expect `foreign_keys=1`, Fx lifecycle messages, and exit status zero. The database file remains, but this connection check creates no application tables. The [copyable example](../../../examples/sqlite/README.md) contains the same program and all YAML alternatives below.
+Expect `foreign_keys=1`, Fx lifecycle messages, and exit status zero. The database file remains, but this connection check creates no application tables. Create the Go file from step 2. The retained [SQLite assets](../../../examples/sqlite/README.md) contain the YAML alternatives below.
 
 For real schema SQL, an ordered migration hook, an application query, and explicit development rollback, follow the independently loadable [SQLite migration startup recipe](../../../recipes/sqlite-migrations.md). Opening this module alone never applies SQL migrations.
 

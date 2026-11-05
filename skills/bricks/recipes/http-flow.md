@@ -221,4 +221,4 @@ For malformed bodies, content-type handling, and byte limits beyond these flow c
 
 Press Ctrl-C. The runner stops the Fx app, Chi drains requests, and the logger synchronizes its output files. Startup and shutdown errors are joined and reported at `main` with a nonzero exit status. A response write error is logged in its callback instead of trying to render a second body.
 
-The [distributed program](../examples/http-flow/main.go) and [configuration](../examples/http-flow/config/base.yaml) can be copied together. They need only the application module's Bricks dependency. The request results above describe expected behavior from the implementation, not an executed walkthrough.
+Create the Go file from step 2 and copy the [configuration](../examples/http-flow/config/base.yaml) into the directory shown above. They need only the application module's Bricks dependency. The request results above describe expected behavior from the implementation, not an executed walkthrough.

@@ -91,7 +91,7 @@ APP_CONFIG_DIR=cmd/registry-metrics/config APP_ENV=local go run ./cmd/registry-m
 curl -fsS http://127.0.0.1:9090/metrics
 ```
 
-   Expect `usecase_success_total{name="create_order"} 1`. Ctrl-C stops the listener. It does not unregister collectors. The [distributed program](../examples/metrics-usecase/main.go) and [YAML](../examples/metrics-usecase/config/base.yaml) match this setup. A newly created registry will not contain these global collectors.
+   Expect `usecase_success_total{name="create_order"} 1`. Ctrl-C stops the listener. It does not unregister collectors. Copy the [YAML](../examples/metrics-usecase/config/base.yaml) if preferred; create the Go file from step 1. A newly created registry will not contain these global collectors.
 
 ## Expose an application-owned registry
 
@@ -109,12 +109,12 @@ func ownedGatherer() (prometheus.Gatherer, error) {
 }
 ```
 
-2. Replace the default gatherer provider with `fx.Provide(ownedGatherer)`. Retain `listener.Module` and the same lifecycle code. The [complete alternate main.go](../examples/metrics-listener/main.go) contains this arrangement with the provider named `newGatherer`.
+2. Replace the default gatherer provider with `fx.Provide(ownedGatherer)`. Retain `listener.Module` and the same lifecycle code.
 3. Run with the same YAML and scrape command. Expect `orders_created_total 1` and no global use-case metrics. Register and gather from the same registry. Stop with Ctrl-C. Constructing a fresh registry does not change the global use-case constructor's registration behavior.
 
 ## Expose global and application collectors together
 
-1. Start with the complete [use-case example](../examples/metrics-usecase/main.go). Add the following function to `main.go`. It uses that file's existing `prometheus` import.
+1. Start with the complete inline application under 'Expose Bricks use-case collectors' above. Add the following function to `main.go`. It uses that file's existing `prometheus` import.
 
 ```go
 func combinedGatherer() (prometheus.Gatherer, error) {

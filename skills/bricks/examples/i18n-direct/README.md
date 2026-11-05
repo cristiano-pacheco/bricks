@@ -1,16 +1,10 @@
-# Run direct service construction
+# I18n direct assets
 
-Translate a Portuguese message and a structured error without Fx. This program configures the language in Go and does not read YAML.
+Follow [the setup guide](../../references/i18n/service/usage.md) and copy the required assets into your application. This directory contains configuration or data, not an executable Go application. Create the Go files from the inline instructions in that guide.
 
-1. Copy this directory into an application Go module with Bricks as `cmd/direct-messages`. Retain `main.go` and both `locales/*.json` files.
-2. Run `go run ./cmd/direct-messages` from the application root.
-3. Expect:
+Preserve the locale directory names used by the guide. The i18n loader needs `<language>.json` at each contributed filesystem root; embedded files must be rooted with `fs.Sub` as shown in the guide.
 
-```text
-Olá Ana
-[QUOTE_QUANTITY] A quantidade deve ser positiva.
-```
+## Files
 
-The application constructs the logger, locale loader, translation service, and error translator. It propagates construction errors and joins logger-flush errors before reporting failure. It creates `i18n.log`; no external service or shutdown API is needed for translation services.
-
-Use [the service guide](../../references/i18n/service/usage.md) for the complete inline setup and detailed semantics. Compilation and runtime execution were waived by the user and have not been performed for this example.
+- [locales/en.json](locales/en.json)
+- [locales/pt-BR.json](locales/pt-BR.json)

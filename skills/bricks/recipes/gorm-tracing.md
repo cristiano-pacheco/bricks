@@ -4,7 +4,7 @@ Export a parent application span and a GORM query span to a local OTLP receiver.
 
 ## 1. Create the files
 
-Create a directory inside your existing application Go module. Copy the distributed `main.go` and `config/base.yaml` from [the gorm tracing example](../examples/storage-gorm-tracing/). Keep the filenames shown here. Your application must already select a Bricks dependency; these files do not select or download another framework version. Also copy `collector.yaml` when using the development receiver.
+Create a directory inside your existing application Go module. Create `main.go` from the inline code below and copy [config/base.yaml](../examples/storage-gorm-tracing/config/base.yaml) into that directory. Keep the filenames shown here. Your application must already select a Bricks dependency; these files do not select or download another framework version. Also copy `collector.yaml` when using the development receiver.
 
 ## 2. Configure the components
 
@@ -155,4 +155,4 @@ For direct lifecycle ownership, initialize the provider with `trace.Initialize`,
 
 For full PostgreSQL fields, load the [database guide](../references/database/usage.md). For exporter choices, sampling, and complete tracing fields, load the [tracing guide](../references/otel/trace/usage.md). For a simultaneous Redis client, load [Redis tracing](redis-tracing.md) and use its combined-module arrangement.
 
-Run from the copied example directory or set `APP_CONFIG_DIR` to an absolute path. The loader merges `base.yaml` with the selected environment file. Set `APP_ENV=local` as shown to avoid accidentally selecting a deployment overlay. These examples have not been compiled or executed as part of this documentation change; the results above are expected observations, not recorded test results.
+Run from the application directory where you created `main.go` and `config/`, or set `APP_CONFIG_DIR` to an absolute path. The loader merges `base.yaml` with the selected environment file. Set `APP_ENV=local` as shown to avoid accidentally selecting a deployment overlay. These examples have not been compiled or executed as part of this documentation change; the results above are expected observations, not recorded test results.

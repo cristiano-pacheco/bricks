@@ -159,7 +159,7 @@ Without query parameters, the defaults are page one and size two, so the first p
 
 Press Ctrl-C. The runner waits for Chi shutdown and reports lifecycle errors only after cleanup. No external client or storage cleanup is needed.
 
-Copy the complete [program](../examples/chi-pagination/main.go) and [YAML](../examples/chi-pagination/config/base.yaml) when you want the runnable version. The setup above does not require other guides.
+Create the Go file from step 2 and copy the [YAML](../examples/chi-pagination/config/base.yaml) if preferred. The setup above does not require other guides.
 
 ## Supported alternatives
 

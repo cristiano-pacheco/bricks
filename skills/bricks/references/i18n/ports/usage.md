@@ -20,7 +20,7 @@ func (m *ReceiptMessages) Heading() string {
 }
 ```
 
-2. Register `NewReceiptMessages` with `fx.Provide` in your application and request the consumer through `fx.Invoke` or `fx.Populate`. The normal `i18n.Module` supplies the interface. A complete configuration, filesystem contribution, logger, and runnable consumer are in the [distributed translation example](../../../examples/i18n-translation/README.md). Copy it into `cmd/messages` and run `APP_CONFIG_DIR=cmd/messages/config APP_ENV=local go run ./cmd/messages`. Expect its checkout lookup to print `Pago`.
+2. Register `NewReceiptMessages` with `fx.Provide` in your application and request the consumer through `fx.Invoke` or `fx.Populate`. The normal `i18n.Module` supplies the interface. For the configuration, filesystem contribution, logger, and application runner, follow the complete inline [translation setup](../usage.md). It keeps the supporting configuration and locale assets separately. Its checkout lookup is expected to print `Pago`.
 
 3. To replace a service, provide the interface explicitly and omit the conflicting standard module provider. This fragment belongs inside an application's `fx.New` arguments and needs `go.uber.org/fx`:
 

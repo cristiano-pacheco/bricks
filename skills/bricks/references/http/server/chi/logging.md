@@ -2,9 +2,9 @@
 
 Enable built-in request and route logs, and send server route messages to a JSON slog handler. Bricks' server logger and Bricks' use-case logger are different dependencies.
 
-## 1. Copy the server program and YAML
+## 1. Create the server program and YAML
 
-Copy [main.go](../../../../examples/chi-logging/main.go) to `cmd/logging-api/main.go` in your application module. Create `cmd/logging-api/config/base.yaml`:
+Create `cmd/logging-api/main.go` from the complete inline application in [server usage](usage.md). Step 2 adds the logger provider and replaces that application's `application` function. Create `cmd/logging-api/config/base.yaml`:
 
 ```yaml
 app:
@@ -23,7 +23,7 @@ The [distributed YAML](../../../../examples/chi-logging/config/base.yaml) matche
 
 ## 2. Understand the supplied logger
 
-The copied program imports `log/slog`, `os`, Bricks server `chi`, and `go.uber.org/fx`. It installs this provider alongside its route contribution:
+The basic application already imports `log/slog`, `os`, Bricks server `chi`, and `go.uber.org/fx`. Add this provider alongside its route contribution and replace the `application` function:
 
 ```go
 func provideServerLogger() *slog.Logger {
@@ -39,7 +39,7 @@ func application() *fx.App {
 }
 ```
 
-This provider returns the exact optional `*slog.Logger` type consumed by `NewWithLifecycle`. Its stderr handler owns no file that needs closing. Route registration and the error-preserving Fx runner are already in the copied file.
+This provider returns the exact optional `*slog.Logger` type consumed by `NewWithLifecycle`. Its stderr handler owns no file that needs closing. Keep the basic application's route registration and error-preserving Fx runner unchanged.
 
 The built-in request logger is go-chi's `middleware.Logger`. It does not use this supplied slog instance. A JSON server logger therefore does not turn those text request logs into JSON.
 

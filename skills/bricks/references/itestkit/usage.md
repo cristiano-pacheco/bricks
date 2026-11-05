@@ -6,7 +6,7 @@ You need a consumer Go module with Bricks already selected, compatible local Go 
 
 ## Set up the test
 
-1. Create `test/integration/postgresql/application_test.go` in your application. Copy the complete file below, or copy the matching [distributed example](../../examples/integration-testing-postgresql/application_test.go). Keep the `integration` build tag. The service validates its input before querying PostgreSQL.
+1. Create `test/integration/postgresql/application_test.go` in your application. Copy the complete inline file below. Keep the `integration` build tag. The service validates its input before querying PostgreSQL.
 
 ```go
 //go:build integration
@@ -91,7 +91,7 @@ func TestPostgresApplication(t *testing.T) {
 go test -tags integration -count=1 -v ./test/integration/postgresql
 ```
 
-Expected result is `PASS`. `TestPostgresApplication` expects `hello Ada` and an error for an empty name. These are expected results, not recorded execution results. To run the distributed example in a Bricks checkout instead, use `go test -tags integration -count=1 -v ./skills/bricks/examples/integration-testing-postgresql`.
+Expected result is `PASS`. `TestPostgresApplication` expects `hello Ada` and an error for an empty name. These are expected results, not recorded execution results.
 
 ## What this test covers
 

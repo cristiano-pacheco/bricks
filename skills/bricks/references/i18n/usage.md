@@ -164,7 +164,7 @@ unknown
 Pago
 ```
 
-   The program stops after its lookups. Fallback warnings go to `i18n.log`. Translation services have no shutdown API, and locale data stays in memory. The application flushes its logger after Fx stops. For copying instead of transcribing, use the complete [distributed example directory](../../examples/i18n-translation/README.md). Execution has not been verified for this documentation change.
+   The program stops after its lookups. Fallback warnings go to `i18n.log`. Translation services have no shutdown API, and locale data stays in memory. The application flushes its logger after Fx stops. Copy the retained [configuration and locale assets](../../examples/i18n-translation/README.md) if preferred, and create the Go file from step 4. Execution has not been verified for this documentation change.
 
 ## Select a fallback scenario
 

@@ -4,7 +4,7 @@ Export a parent application span and a Redis command span through a single stand
 
 ## 1. Create the files
 
-Create a directory inside your existing application Go module. Copy the distributed `main.go` and `config/base.yaml` from [the redis tracing example](../examples/storage-redis-tracing/). Keep the filenames shown here. Your application must already select a Bricks dependency; these files do not select or download another framework version. Also copy `collector.yaml` when using the development receiver.
+Create a directory inside your existing application Go module. Create `main.go` from the inline code below and copy [config/base.yaml](../examples/storage-redis-tracing/config/base.yaml) into that directory. Keep the filenames shown here. Your application must already select a Bricks dependency; these files do not select or download another framework version. Also copy `collector.yaml` when using the development receiver.
 
 ## 2. Configure the components
 
@@ -167,4 +167,4 @@ For direct construction, initialize tracing once, instrument an eligible client 
 
 For full client fields and topology limitations, load only [standalone](../references/redis/standalone.md), [Sentinel](../references/redis/sentinel.md), or [failover](../references/redis/failover.md). For exporter options and sampling, load the [tracing guide](../references/otel/trace/usage.md). For the full GORM half of a combined setup, load [GORM tracing](gorm-tracing.md).
 
-Run from the copied example directory or set `APP_CONFIG_DIR` to an absolute path. The loader merges `base.yaml` with the selected environment file. Set `APP_ENV=local` as shown to avoid accidentally selecting a deployment overlay. These examples have not been compiled or executed as part of this documentation change; the results above are expected observations, not recorded test results.
+Run from the application directory where you created `main.go` and `config/`, or set `APP_CONFIG_DIR` to an absolute path. The loader merges `base.yaml` with the selected environment file. Set `APP_ENV=local` as shown to avoid accidentally selecting a deployment overlay. These examples have not been compiled or executed as part of this documentation change; the results above are expected observations, not recorded test results.

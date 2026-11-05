@@ -167,7 +167,7 @@ APP_CONFIG_DIR=cmd/localized-quote/config APP_ENV=local go run ./cmd/localized-q
 
    Expect `[QUOTE_QUANTITY] A quantidade deve ser positiva.` on stderr and a nonzero exit after Fx shutdown and logger flushing. `go run` can also print its exit-status diagnostic. The returned structured error keeps code `QUOTE_QUANTITY` and status 400. This example does not start an HTTP server or expose a metrics endpoint.
 
-   Copy the [distributed directory](../examples/i18n-localized-usecase/README.md) instead of transcribing it. Its locale files include additional message keys, but the `errors` entries above are identical. Results here are expected behavior from source inspection, not recorded runtime proof.
+   Copy the retained [configuration and locale assets](../examples/i18n-localized-usecase/README.md) if preferred, and create the Go file from step 3. The locale assets include additional message keys, but the `errors` entries above are identical. Results here are expected behavior from source inspection, not recorded runtime proof.
 
 ## What the chain does
 

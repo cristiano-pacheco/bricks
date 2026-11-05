@@ -4,7 +4,7 @@ Allow a browser at `https://app.example.com` to call your Chi application with c
 
 ## 1. Copy the application and configuration
 
-In your application module, copy [main.go](../../../../examples/chi-basic/main.go) to `cmd/browser-api/main.go`. It contains the complete Fx runner and a `chi.Route` implementation for `GET /hello`. Create `cmd/browser-api/config/base.yaml`:
+In your application module, create `cmd/browser-api/main.go` from the complete inline application in [server usage](usage.md). It includes the Fx runner and a `chi.Route` implementation for `GET /hello`. Create `cmd/browser-api/config/base.yaml`:
 
 ```yaml
 app:
@@ -40,7 +40,7 @@ func (r *GreetingRoutes) Setup(server *chi.Server) {
 }
 ```
 
-This is the route from the copied program, not an additional replacement file. It uses `net/http`, `log/slog`, and the Bricks `response` and `chi` imports already present there.
+This is the route from the basic inline application, not an additional replacement file. It uses `net/http`, `log/slog`, and the Bricks `response` and `chi` imports already present there.
 
 ## 2. Run and send a browser-style request
 

@@ -96,7 +96,7 @@ go run ./cmd/quote 2
 cat decorator.log
 ```
 
-   Expect `total_cents=250` on stdout and a `QuoteUseCase.Execute succeeded` log entry in `decorator.log`. Fx is not required for this branch. A copy of the complete [main.go](../../examples/decorator-manual/main.go) travels with the skill.
+   Expect `total_cents=250` on stdout and a `QuoteUseCase.Execute succeeded` log entry in `decorator.log`. Fx is not required for this branch.
 
 3. Call the same public operation with invalid input:
 

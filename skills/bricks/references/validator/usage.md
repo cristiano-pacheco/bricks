@@ -117,7 +117,7 @@ Run `go run .` from the directory containing both files. The expected applicatio
 
 Change `Quantity` to `0` and run it again. `Execute` should return a validation error instead of a total. The deferred shutdown runs before `main` prints the error to standard error and exits with status `1`. An application caller should handle validation errors according to its transport contract.
 
-The [distributed validation example](../../examples/validation/README.md) contains the same two-file application pattern. The supplied example also exercises Fx construction, startup, and shutdown. Custom rules and translation need their own checks; this happy-path program does not exercise them.
+The two inline files above include Fx construction, startup, and shutdown. Custom rules and translation need their own checks; this happy-path program does not exercise them.
 
 ## Without Fx
 

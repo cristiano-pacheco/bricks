@@ -86,7 +86,7 @@ curl -fsS http://127.0.0.1:9090/metrics
 
    Expect HTTP 200 and `orders_created_total 1`. This registry does not include `go_goroutines`, process collectors, or Bricks use-case collectors. Register them explicitly if you need them.
 
-4. Press Ctrl-C to stop. `app.Stop` shuts down the HTTP server before main reports errors. The [distributed main.go](../../../../examples/metrics-listener/main.go) and [configuration files](../../../../examples/metrics-listener/config/base.yaml) are ready to copy.
+4. Press Ctrl-C to stop. `app.Stop` shuts down the HTTP server before main reports errors. Create the Go file from step 1 and copy the [configuration](../../../../examples/metrics-listener/config/base.yaml) if preferred.
 
 ## Complete configuration
 

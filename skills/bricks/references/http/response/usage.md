@@ -133,25 +133,22 @@ Expected results, derived from source and not executed:
 
 Object key order is not part of the contract. The enveloped response also has `X-Example: bricks`. Both JSON success routes set `Content-Type: application/json` and a byte `Content-Length`.
 
-The distributed [response example](../../../examples/http-input-output-responses/main.go) contains the same code.
-
 ## 3. Shut down
 
 Press Ctrl-C. The server allows five seconds to drain requests and joins cleanup errors before reporting failure at `main`. The response helpers and validator own no background process.
 
 ## Fx with translated validation messages
 
-Prefer `response.Module` in an Fx application that already uses dependency injection. Copy [the complete Fx HTTP example](../../../examples/http-input-output/main.go) when you need a runnable graph and listener. Its core registration is:
+Prefer `response.Module` in an Fx application that already uses dependency injection. Follow the inline [HTTP flow](../../../recipes/http-flow.md) for the complete graph and listener. For an application that uses `logger.Module`, the dependency fragment is:
 
 ```go
-// Fragment inside fx.New. The distributed example defines both functions.
+// Dependency fragment inside fx.New.
 validator.Module,
+logger.Module,
 response.Module,
-fx.Provide(provideLogger, routes),
-fx.Invoke(serve),
 ```
 
-`response.Module` provides `response.ErrorHandler`, not a standalone `response.Error` function. It requires `validator.Validator` and `logger.Logger`. `validator.Module` provides the first. The example's `provideLogger` calls `logger.NewWithOptions` with empty output paths, returns the logger as its interface, and registers `Sync` on stop. This disables its sinks for the demo, while transport failures use `slog`. Supply a configured production logger for an application that needs persistent logging.
+`response.Module` provides `response.ErrorHandler`, not a standalone `response.Error` function. It requires `validator.Validator` and `logger.Logger`. Import `github.com/cristiano-pacheco/bricks/pkg/logger` for `logger.Module`, which also requires real `app.logger` configuration. The HTTP-flow recipe instead constructs its logger in Go and includes route providers and the runner. Choose one logger provider, not both. The fragment above supplies only dependencies, not a runnable application.
 
 With a validator supplied to `NewErrorHandler`, validation details use its translator. Without one they use `snake_case_field: tag`. Direct construction returns `*response.ErrorHandlerImpl`, which implements `response.ErrorHandler`; no lifecycle hook is needed for the handler itself.
 

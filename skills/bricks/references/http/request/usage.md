@@ -93,7 +93,7 @@ Run `go run ./cmd/json-demo`. In another terminal:
 curl -i -H 'Content-Type: application/json' --data '{"name":"Ada"}' http://127.0.0.1:8080/users
 ```
 
-Expect 201 and `{"data":{"name":"Ada"}}`. The complete source is also distributed as [the JSON example](../../../examples/http-input-output-json/main.go). Copy it instead of typing the code when needed.
+Expect 201 and `{"data":{"name":"Ada"}}`.
 
 Use these independent requests to exercise the boundary:
 
@@ -138,7 +138,7 @@ Press Ctrl-C in the server terminal. The application allows five seconds for act
 
 Replace the decode call with `request.ReadJSON(w, r, &input)` to use `DefaultMaxBodySize`, 1,048,576 bytes. `ReadJSONWithMaxSize` accepts an `int64` byte count and installs `http.MaxBytesReader`. Supply a positive limit appropriate for your endpoint. The helper does not validate the limit as application configuration.
 
-For a validated use case with complete Fx response dependencies, copy [the complete HTTP example](../../../examples/http-input-output/main.go). Its `/decode` route only decodes; `/users` calls `CreateUser.Execute`, which validates before returning a result. It provides `validator.Module`, `response.Module`, an explicit `logger.Logger`, the router, and lifecycle hooks. The request helper itself needs no provider. For custom validation rules, load [validator usage](../../validator/usage.md) only when needed.
+For decoding followed by use-case validation and complete Fx response dependencies, follow [the HTTP flow](../../../recipes/http-flow.md). Its inline application provides the validator, response handler, logger, route contribution, and lifecycle ownership. The request helper itself needs no provider. For custom validation rules, load [validator usage](../../validator/usage.md) only when needed.
 
 ## Decoder behavior and limits
 

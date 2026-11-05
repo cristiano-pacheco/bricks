@@ -4,7 +4,7 @@ Open two independent GORM databases, resolve each by name, run one query against
 
 ## 1. Create the files
 
-Create a directory inside your existing application Go module. Copy the distributed `main.go` and `config/base.yaml` from [the multiple databases example](../examples/storage-multiple-databases/). Keep the filenames shown here. Your application must already select a Bricks dependency; these files do not select or download another framework version.
+Create a directory inside your existing application Go module. Create `main.go` from the inline code below and copy [config/base.yaml](../examples/storage-multiple-databases/config/base.yaml) into that directory. Keep the filenames shown here. Your application must already select a Bricks dependency; these files do not select or download another framework version.
 
 ## 2. Configure the components
 
@@ -132,4 +132,4 @@ The adapter returns the existing handle. It must not close it or create another 
 
 For additional connection settings or TLS scenarios, load the [PostgreSQL guide](../references/database/usage.md). For SQLite DSNs, locking, and complete fields, load the [SQLite guide](../references/database/sqlite/usage.md). For migrations on both connections, use the separate [PostgreSQL](postgresql-migrations.md) and [SQLite](sqlite-migrations.md) recipes and pass the selected connection explicitly.
 
-Run from the copied example directory or set `APP_CONFIG_DIR` to an absolute path. The loader merges `base.yaml` with the selected environment file. Set `APP_ENV=local` as shown to avoid accidentally selecting a deployment overlay. These examples have not been compiled or executed as part of this documentation change; the results above are expected observations, not recorded test results.
+Run from the application directory where you created `main.go` and `config/`, or set `APP_CONFIG_DIR` to an absolute path. The loader merges `base.yaml` with the selected environment file. Set `APP_ENV=local` as shown to avoid accidentally selecting a deployment overlay. These examples have not been compiled or executed as part of this documentation change; the results above are expected observations, not recorded test results.

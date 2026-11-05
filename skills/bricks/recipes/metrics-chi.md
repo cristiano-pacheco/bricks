@@ -98,7 +98,7 @@ curl -fsS http://127.0.0.1:9091/metrics
 
    Run curl in another terminal. Expect `ok` from the health endpoint and `usecase_success_total{name="create_order"} 1` from the metrics endpoint. `/metrics` is not mounted on port 8080.
 
-4. Press Ctrl-C. Chi drains both listeners. The application preserves shutdown errors. The [distributed program](../examples/metrics-chi/main.go) and [YAML](../examples/metrics-chi/config/base.yaml) match this path.
+4. Press Ctrl-C. Chi drains both listeners. The application preserves shutdown errors. Create the Go file from the inline setup above and copy the [YAML](../examples/metrics-chi/config/base.yaml) if preferred.
 
 ## Alternatives and limits
 

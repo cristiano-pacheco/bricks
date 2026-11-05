@@ -64,7 +64,7 @@ Inside a use case, return the constructed pointer as an `error`. Your HTTP adapt
 
 Keep unknown-error handling in the adapter as well. Decide which public response it returns and log private diagnostics separately.
 
-To see a structured error logged inside an Fx application, follow [the foundations example](../../examples/foundations/README.md).
+For Fx logger ownership and flushing, follow [logging usage](../logger/usage.md). Pass the structured error to `logger.Error` at the application logging boundary.
 
 ## Attach a private original error
 

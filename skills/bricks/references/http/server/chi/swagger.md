@@ -2,9 +2,9 @@
 
 Serve Swagger UI at `/swagger/index.html` with a small document for `GET /hello`. Enabling the UI does not create a Swagger document or infer one from registered routes.
 
-## 1. Copy the complete Swagger application
+## 1. Create the Swagger application
 
-Copy [main.go](../../../../examples/chi-swagger/main.go) to `cmd/swagger-api/main.go` in your application module. Create `cmd/swagger-api/config/base.yaml`:
+Create `cmd/swagger-api/main.go` from the complete inline application in [server usage](usage.md). In step 2, add the document type and replace the `application` function. Create `cmd/swagger-api/config/base.yaml`:
 
 ```yaml
 app:
@@ -20,11 +20,11 @@ app:
       path: /swagger/*
 ```
 
-The [distributed configuration](../../../../examples/chi-swagger/config/base.yaml) matches this file. The application contains the same greeting route and cleanup-owning Fx runner as the basic server, plus document registration before constructing the app.
+The [distributed configuration](../../../../examples/chi-swagger/config/base.yaml) matches this file. Keep the basic application's greeting route and cleanup-owning Fx runner. Register the document before constructing the app as shown next.
 
 ## 2. Register the document in Go
 
-The copied program imports `github.com/swaggo/swag` and includes:
+Add the `github.com/swaggo/swag` import, then add the document type and replace `application`:
 
 ```go
 type swaggerDocument struct{}
@@ -42,7 +42,7 @@ func application() *fx.App {
 }
 ```
 
-This is the implementation already present in the copied program. The default document instance is `swagger`. Register it once per process. Duplicate registration may panic in the upstream library, so do not call this application constructor repeatedly or combine it with a generated package that registers the same instance.
+The default document instance is `swagger`. Register it once per process. Duplicate registration may panic in the upstream library, so do not call this application constructor repeatedly or combine it with a generated package that registers the same instance.
 
 ## 3. Run and request the UI and document
 

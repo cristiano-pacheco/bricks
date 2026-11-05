@@ -4,7 +4,7 @@ Choose listener addresses and request deadlines in `config/base.yaml`. This guid
 
 ## 1. Start with a single listener
 
-Use the [server application's complete inline program](usage.md) or copy [its main.go](../../../../examples/chi-basic/main.go) to `cmd/hello/main.go`. Create `cmd/hello/config/base.yaml`:
+Create `cmd/hello/main.go` from the [server application's complete inline program](usage.md). Create `cmd/hello/config/base.yaml`:
 
 ```yaml
 app:

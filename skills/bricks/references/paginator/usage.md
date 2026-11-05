@@ -74,8 +74,6 @@ offset=40 limit=20
 
 Change the query to `page=2&per_page=250`. The normalized size becomes `100`, with offset `100` and limit `100`. Change it to `page=0` or `per_page=0` to see parsing fail before normalization.
 
-The [distributed pagination example](../../examples/pagination/README.md) demonstrates additional boundary cases.
-
 ## 4. Use the parameters in your application
 
 In an HTTP adapter, pass `r.URL.Query()` to `ParseQueryParams`. On a parsing error, reject the request rather than continuing with zero-valued parameters. Use standard-library `errors.Is` to distinguish `paginator.ErrInvalidPage` from `paginator.ErrInvalidPerPage`.

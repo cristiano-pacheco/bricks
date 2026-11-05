@@ -6,7 +6,7 @@ You need a consumer Go module with Bricks selected, compatible local Go tooling,
 
 ## Set up the test
 
-1. Create `test/integration/redis/application_test.go`. Copy this complete file or the matching [distributed example](../../examples/integration-testing-redis/application_test.go). The kit creates its own upstream Redis client. The example type-checks that client, reads its mapped address, and opens a separate client through `bricksredis.NewClient`.
+1. Create `test/integration/redis/application_test.go`. Copy the complete inline file below. The kit creates its own upstream Redis client. The example type-checks that client, reads its mapped address, and opens a separate client through `bricksredis.NewClient`.
 
 ```go
 //go:build integration
@@ -112,7 +112,7 @@ func TestRedisApplication(t *testing.T) {
 go test -tags integration -count=1 -v ./test/integration/redis
 ```
 
-Expected result is `PASS`. The service validates the name, stores `hello Ada` with a one-minute TTL, and reads it back. An empty name must fail before any Redis operation. These results describe the intended assertions, not an executed run. In a Bricks checkout, run the distributed copy with `go test -tags integration -count=1 -v ./skills/bricks/examples/integration-testing-redis`.
+Expected result is `PASS`. The service validates the name, stores `hello Ada` with a one-minute TTL, and reads it back. An empty name must fail before any Redis operation. These results describe the intended assertions, not an executed run.
 
 ## Configuration and constructor coverage
 

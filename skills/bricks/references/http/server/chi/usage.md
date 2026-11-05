@@ -110,11 +110,11 @@ Expect HTTP 200 with `{"data":{"message":"hello"}}` from `/hello`, and HTTP 200 
 
 Press Ctrl-C. The runner calls `app.Stop` with a fresh context. The Chi lifecycle hook drains enabled listeners. A positive `shutdowntimeout` adds an internal deadline, while the caller's earlier deadline still wins. The process reports startup and cleanup errors through stderr and a nonzero exit code.
 
-For copying the complete setup, use [the distributed program](../../../../examples/chi-basic/main.go) and [base YAML](../../../../examples/chi-basic/config/base.yaml). They do not depend on files outside the skill and your existing Bricks dependency.
+Create the Go file from step 2 and copy the [base YAML](../../../../examples/chi-basic/config/base.yaml) if preferred. The setup needs only this skill and your existing Bricks dependency.
 
 ## Supported alternatives
 
-Without Fx, call `chi.New(cfg)`, register handlers on `server.Router()`, call `SetupRoutes()` once, and run the blocking `Start()`. Another goroutine must own `Shutdown(ctx)`. The [complete direct program](../../../../examples/chi-direct/main.go) handles signals, waits for a successful ephemeral bind before shutdown, and preserves serving and cleanup errors. Run its copied directory with `go run ./cmd/hello-direct`, then use the printed address instead of port 8080. It has code-only configuration and no YAML requirement. Normal shutdown makes `Start` return `http.ErrServerClosed`, which the example treats as success.
+Without Fx, call `chi.New(cfg)`, register handlers on `server.Router()`, call `SetupRoutes()` once, and run the blocking `Start()`. Another goroutine must own `Shutdown(ctx)`. Own signal handling in your application and preserve both serving and cleanup errors. With an ephemeral bind, wait for startup before reading `Addr()`. Direct construction has code-only configuration and no YAML requirement. Treat `http.ErrServerClosed` from normal shutdown as success.
 
 `RegisterRoute(route)` and `RegisterRoutes(routes)` append to the server's registry. `SetupRoutes()` delegates to `RouteRegistry.SetupAll(server)` and installs Swagger when enabled. Direct callers must call it before `Start`; Fx does that automatically. `NewRouteRegistry`, `Add`, and `SetupAll` are available when an application owns a separate registry. The registry does not deduplicate entries. Set routes up once, before serving.
 

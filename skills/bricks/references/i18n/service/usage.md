@@ -80,7 +80,7 @@ Olá Ana
 [QUOTE_QUANTITY] A quantidade deve ser positiva.
 ```
 
-   The full [distributed direct example](../../../examples/i18n-direct/README.md) includes equivalent locale files and the complete program. These expected results are source-derived, not an execution record.
+   The retained [locale assets](../../../examples/i18n-direct/README.md) contain equivalent JSON files. Create the Go file from step 2. These expected results are source-derived, not an execution record.
 
 ## Loader constructor and behavior
 

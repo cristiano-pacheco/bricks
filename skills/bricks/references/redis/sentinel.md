@@ -93,7 +93,7 @@ APP_CONFIG_DIR="$PWD/config" APP_ENV=local go run .
 
 Expect `demo:skill:example=hello`, Fx lifecycle messages, and exit status zero. This is expected behavior, not a recorded execution result. A successful connection does not prove automatic failover during a primary failure.
 
-For copying rather than retyping, use [the distributed example](../../examples/redis-sentinel/README.md), its `main.go`, and `config/minimal.yaml` renamed to `config/base.yaml`. It also includes the full configuration and a separate TLS scenario.
+Create `main.go` from step 2. Copy [minimal.yaml](../../examples/redis-sentinel/config/minimal.yaml) to `config/base.yaml` if preferred. The asset directory also retains the full configuration and a separate TLS scenario.
 
 ## Direct construction
 

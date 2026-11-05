@@ -4,7 +4,7 @@ Run a PostgreSQL query and expose its connection-pool statistics on an independe
 
 ## 1. Create the files
 
-Create a directory inside your existing application Go module. Copy the distributed `main.go` and `config/base.yaml` from [the database pool metrics example](../examples/storage-database-pool-metrics/). Keep the filenames shown here. Your application must already select a Bricks dependency; these files do not select or download another framework version.
+Create a directory inside your existing application Go module. Create `main.go` from the inline code below and copy [config/base.yaml](../examples/storage-database-pool-metrics/config/base.yaml) into that directory. Keep the filenames shown here. Your application must already select a Bricks dependency; these files do not select or download another framework version.
 
 ## 2. Configure the components
 
@@ -159,4 +159,4 @@ The module hardcodes the `postgres` collector label and does not select Fx names
 
 For full PostgreSQL YAML and TLS choices, load the [database guide](../references/database/usage.md). For listener timeout and disabled-serving scenarios, load the [independent metrics listener guide](../references/http/server/metrics/usage.md). For named clients, load [multiple databases](multiple-databases.md).
 
-Run from the copied example directory or set `APP_CONFIG_DIR` to an absolute path. The loader merges `base.yaml` with the selected environment file. Set `APP_ENV=local` as shown to avoid accidentally selecting a deployment overlay. These examples have not been compiled or executed as part of this documentation change; the results above are expected observations, not recorded test results.
+Run from the application directory where you created `main.go` and `config/`, or set `APP_CONFIG_DIR` to an absolute path. The loader merges `base.yaml` with the selected environment file. Set `APP_ENV=local` as shown to avoid accidentally selecting a deployment overlay. These examples have not been compiled or executed as part of this documentation change; the results above are expected observations, not recorded test results.

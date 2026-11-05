@@ -1,29 +1,9 @@
-# Supply a slog server logger
+# Chi logging assets
 
-Use this complete application in a Go module that already depends on Bricks. The [usage guide](../../references/http/server/chi/logging.md) explains the wiring and alternatives.
+Follow [the setup guide](../../references/http/server/chi/logging.md) and copy the required assets into your application. This directory contains configuration or data, not an executable Go application. Create the Go files from the inline instructions in that guide.
 
-## 1. Copy the files
+For Bricks configuration, keep the required `config/base.yaml`. Select an alternative overlay with `APP_ENV` or copy its values into the base file as the guide directs.
 
-Copy this entire directory to `cmd/chi-logging` in your application. Keep `main.go` and `config/base.yaml` together. No repository-relative source or other skill files are needed to run it.
+## Files
 
-## 2. Run from your application root
-
-```sh
-APP_CONFIG_DIR=cmd/chi-logging/config APP_ENV=local go run ./cmd/chi-logging
-```
-
-## 3. Send the request in another terminal
-
-```sh
-curl -i http://127.0.0.1:8080/hello
-```
-
-Expect HTTP 200 with the greeting envelope. Startup route messages use JSON slog output; access logs remain go-chi text output.
-
-The optional server dependency is `*slog.Logger`, not Bricks `logger.Logger`. The stderr slog handler owns no file that needs closing.
-
-## 4. Stop
-
-Press Ctrl-C. The Fx runner waits for server shutdown and joins lifecycle errors before reporting failure at `main`. The HTTP-flow example also synchronizes its application-owned logger files.
-
-Execution, compilation, YAML loading, and graph checks were waived for this documentation task. These expected results are source-backed, not observed runtime results.
+- [config/base.yaml](config/base.yaml)

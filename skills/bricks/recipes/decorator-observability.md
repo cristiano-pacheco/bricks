@@ -166,7 +166,7 @@ APP_CONFIG_DIR=cmd/quote/config APP_ENV=local go run ./cmd/quote 0
 
    Expect `quote unavailable: quantity must be positive`, a failure log, and nonzero exit after cleanup. The error counter replaces the success increment for this operation. The span still ends, but the decorator does not automatically record the returned error or set an error status. Translation happens before outer metrics and logging see the result. Debug wrappers include each enabled feature, so the outer debug messages also see the translated error.
 
-   Copy the distributed [main.go](../examples/decorator-observability/main.go) rather than transcribing the program if preferred. Stop the collector with Ctrl-C when finished. Expected output here describes the source-backed contract, not a recorded execution result.
+   Stop the collector with Ctrl-C when finished. Expected output here describes the source-backed contract, not a recorded execution result.
 
 ## Change one part deliberately
 

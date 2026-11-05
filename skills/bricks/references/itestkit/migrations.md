@@ -23,7 +23,7 @@ DROP TABLE users;
 
 The [distributed migration directory](../../examples/integration-testing-migrations/migrations/) contains both files. Keep their numeric version and `.up.sql` and `.down.sql` suffixes.
 
-2. Create `test/integration/migrated/application_test.go` with the following complete test, also distributed as [application_test.go](../../examples/integration-testing-migrations/application_test.go). Go tests run with their package directory as the working directory. `filepath.Abs("migrations")` therefore selects the SQL beside the test. Encoding an absolute file URL avoids the kit's module-root-relative path behavior.
+2. Create `test/integration/migrated/application_test.go` with the following complete inline test. Go tests run with their package directory as the working directory. `filepath.Abs("migrations")` therefore selects the SQL beside the test. Encoding an absolute file URL avoids the kit's module-root-relative path behavior.
 
 ```go
 //go:build integration
@@ -119,7 +119,7 @@ func TestMigratedApplication(t *testing.T) {
 go test -tags integration -count=1 -v ./test/integration/migrated
 ```
 
-Expected result is `PASS`. The service must return `Ada` after inserting it into the migrated table. A second `Ada` must return the database uniqueness error. This establishes the intended migration-readiness boundary rather than checking table metadata alone. It has not been executed as part of this documentation change. In a Bricks checkout, use `go test -tags integration -count=1 -v ./skills/bricks/examples/integration-testing-migrations`.
+Expected result is `PASS`. The service must return `Ada` after inserting it into the migrated table. A second `Ada` must return the database uniqueness error. This establishes the intended migration-readiness boundary rather than checking table metadata alone. It has not been executed as part of this documentation change.
 
 ## Migration behavior and ownership
 

@@ -149,9 +149,9 @@ Only against disposable development data, run:
 APP_CONFIG_DIR="$PWD/config" APP_ENV=local CGO_ENABLED=1 go run . -down
 ```
 
-Expect `development rollback complete`. `DownSQLite` undoes all available applied up versions in descending order, not just one step. It requires their matching down files. Here it drops `bricks_skill_items` and clears the current version while retaining the metadata table. Run normally to recreate the table and sample row. For a command without Fx, use the [direct migration example](../examples/migration-sqlite/README.md).
+Expect `development rollback complete`. `DownSQLite` undoes all available applied up versions in descending order, not just one step. It requires their matching down files. Here it drops `bricks_skill_items` and clears the current version while retaining the metadata table. Run normally to recreate the table and sample row. For direct construction without Fx, use the inline [SQLite migration guide](../references/migration/sqlite.md).
 
-All files above are distributed together in the [SQLite startup example](../examples/sqlite-startup/README.md). It is a copying convenience; the numbered instructions contain the complete setup.
+Copy the retained [SQLite configuration and migration assets](../examples/sqlite-startup/README.md) if preferred. Create the Go file from step 3; the numbered instructions contain the complete setup.
 
 ## Failure behavior and ownership
 

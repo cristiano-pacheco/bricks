@@ -2,9 +2,9 @@
 
 Attach application middleware to a Chi route group without changing built-in routes. This example adds `X-Example: bricks` to `/hello`, but not to `/healthz`.
 
-## 1. Copy the complete application
+## 1. Create the application
 
-Copy [main.go](../../../../examples/chi-middleware/main.go) to `cmd/middleware-api/main.go` in your application module. Create `cmd/middleware-api/config/base.yaml`:
+Create `cmd/middleware-api/main.go` from the complete inline application in [server usage](usage.md). In step 2 below, replace its `GreetingRoutes.Setup` method and add the header middleware. Add the `chiv5 "github.com/go-chi/chi/v5"` import used by that fragment. Create `cmd/middleware-api/config/base.yaml`:
 
 ```yaml
 app:
@@ -21,7 +21,7 @@ The [distributed configuration](../../../../examples/chi-middleware/config/base.
 
 ## 2. Keep middleware registration inside the application route group
 
-The copied program includes the following implementation, using `net/http`, Bricks `response`, Bricks server `chi`, and the router alias `chiv5 "github.com/go-chi/chi/v5"`:
+Replace the basic route setup with the following fragment, using `net/http`, Bricks `response`, Bricks server `chi`, and the router alias `chiv5 "github.com/go-chi/chi/v5"`. Keep the existing `newGreetingRoutes` constructor. It appears below only for context, so do not add it twice:
 
 ```go
 func exampleHeader(next http.Handler) http.Handler {
@@ -45,7 +45,7 @@ func (r *GreetingRoutes) Setup(server *chi.Server) {
 func newGreetingRoutes() chi.Route { return &GreetingRoutes{} }
 ```
 
-The complete program contributes `newGreetingRoutes` to the Fx group named `routes` through a `fx.ResultTags` annotation. Bricks calls `Setup` before serving. The group installs its middleware before its own routes. For authentication, replace the header middleware with your application authenticator and keep rejection responses within that middleware.
+The base application contributes `newGreetingRoutes` to the Fx group named `routes` through a `fx.ResultTags` annotation. Bricks calls `Setup` before serving. The group installs its middleware before its own routes. For authentication, replace the header middleware with your application authenticator and keep rejection responses within that middleware.
 
 `chi.New` has already registered `/healthz` before application routes run. Calling `server.Router().Use(...)` on that root router at this point can panic because Chi requires middleware installation before root routes. Use `Group`, `With`, or a mounted subrouter. Do not recommend root `Use` from an Fx route's `Setup`.
 
@@ -62,7 +62,7 @@ curl -i http://127.0.0.1:8080/hello
 curl -i http://127.0.0.1:8080/healthz
 ```
 
-Expect HTTP 200 with `X-Example: bricks` and `{"data":{"message":"hello"}}` from `/hello`. Expect HTTP 200 with `ok` and no `X-Example` header from `/healthz`. Press Ctrl-C to let the copied Fx runner drain the listener and preserve cleanup errors.
+Expect HTTP 200 with `X-Example: bricks` and `{"data":{"message":"hello"}}` from `/hello`. Expect HTTP 200 with `ok` and no `X-Example` header from `/healthz`. Press Ctrl-C to let the Fx runner drain the listener and preserve cleanup errors.
 
 ## Built-in and optional middleware
 

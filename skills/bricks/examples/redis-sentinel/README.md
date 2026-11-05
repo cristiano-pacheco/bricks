@@ -1,10 +1,11 @@
-# Redis sentinel example
+# Redis sentinel assets
 
-Use [the sentinel guide](../../references/redis/sentinel.md) for the numbered setup, prerequisites, inline program, and field behavior.
+Follow [the setup guide](../../references/redis/sentinel.md) and copy the required assets into your application. This directory contains configuration or data, not an executable Go application. Create the Go files from the inline instructions in that guide.
 
-1. In your application module, copy this directory's `main.go` into a disposable example directory.
-2. Copy `config/minimal.yaml` to that directory's `config/base.yaml` and replace deployment addresses. Use `config/base.yaml` from this distributed directory instead when you need the full-field example. `config/tls.yaml` is a separate TLS scenario requiring real TLS endpoints and the correct certificate server name.
-3. From the copied directory, run `APP_CONFIG_DIR="$PWD/config" APP_ENV=local go run .`.
-4. Expect `demo:skill:example=hello` and exit zero. The program deletes its temporary key and closes the client. It may overwrite an existing key with that name, so use a disposable namespace.
+For Bricks configuration, keep the required `config/base.yaml`. Select an alternative overlay with `APP_ENV` or copy its values into the base file as the guide directs.
 
-Compilation, configuration-loader execution, connectivity, failure handling, failover, and shutdown execution were waived by the user for this change. The output above is expected, not observed.
+## Files
+
+- [config/base.yaml](config/base.yaml)
+- [config/minimal.yaml](config/minimal.yaml)
+- [config/tls.yaml](config/tls.yaml)
