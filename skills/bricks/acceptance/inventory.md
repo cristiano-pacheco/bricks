@@ -40,6 +40,8 @@ Option setters in `pkg/redis/options.go` populate ConnectTimeout, MaxRetries, Re
 
 ## HTTP, validation and pagination
 
+Ticket 04 adds the [validation guide](../references/validator/usage.md) and [pagination guide](../references/paginator/usage.md), with separate complete examples behind conditional pointers. [Acceptance evidence](validation-pagination.md) records source inspection, coverage, routing cases, token estimates, and the user's verification waivers. The affected branches remain planned because compilation and runtime verification did not run. Existing READMEs remain in place.
+
 - JSON request helpers in `pkg/http/request/request.go` default to 1,048,576 bytes, permit a missing Content-Type, accept exact `application/json` after stripping parameters, reject unknown fields and map decoding failures to structured errors. Invalid decode destinations panic. The single-value check uses `Decoder.More`; later request examples must exercise trailing JSON and malformed trailing content before describing its guarantee. Parsing does not invoke a validator. Plan `references/http/request/usage.md` without mandatory server or storage loads.
 - Chi Param in `pkg/http/server/chi/request/request.go` delegates to Chi URLParam. Its own package area is `references/http/server/chi/request/usage.md`, even though it has no README.
 - Validator in `pkg/validator/validator.go` supports struct and scalar validation, Struct/Var aliases, required-struct mode and English translation registration. Returned validation errors remain go-playground errors. Engine and Translator permit custom rules, aliases and translations. The Fx module in `pkg/validator/fx.go` binds the Validator interface. Plan `references/validator/usage.md`.

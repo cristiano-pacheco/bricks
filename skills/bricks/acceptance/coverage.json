@@ -1528,6 +1528,13 @@
     },
     {
       "path": "pkg/paginator",
+      "documentation_evidence": {
+        "source_revision": "702e646e40fe756db90bb25c508839a681e90df5",
+        "authored": "references/paginator/usage.md",
+        "source_inspected": ["pkg/paginator/paginator.go", "pkg/paginator/errs.go", "pkg/paginator/paginator_test.go"],
+        "example": {"kind": "runnable", "path": "examples/pagination/main.go", "fx": false, "status": "planned", "checks": []},
+        "verification": "Static source inspection only. Compilation, pagination boundary execution, tests, lint, structural/link checks, and code review were waived by the user for ticket 04, not passed. Authored branches remain planned until executed verification. The response recipe remains later HTTP-composition work and is unchanged; README removal remains gated. See acceptance/validation-pagination.md."
+      },
       "readme": "pkg/paginator/README.md",
       "exports": [
         "ErrInvalidPage",
@@ -1984,6 +1991,13 @@
     },
     {
       "path": "pkg/validator",
+      "documentation_evidence": {
+        "source_revision": "702e646e40fe756db90bb25c508839a681e90df5",
+        "authored": "references/validator/usage.md",
+        "source_inspected": ["pkg/validator/validator.go", "pkg/validator/fx.go", "pkg/validator/example_test.go", "pkg/validator/validator_test.go", "github.com/go-playground/validator/v10@v10.30.5/validator_instance.go"],
+        "example": {"kind": "runnable", "path": "examples/validation/main.go", "fx": true, "status": "planned", "checks": []},
+        "verification": "Static source inspection only. Compilation, Fx graph, runtime validation/custom-rule/translation integration, lifecycle, tests, lint, structural/link checks, and code review were waived by the user for ticket 04, not passed. Branches remain planned; README removal remains gated. See acceptance/validation-pagination.md."
+      },
       "readme": "pkg/validator/README.md",
       "exports": [
         "Module",

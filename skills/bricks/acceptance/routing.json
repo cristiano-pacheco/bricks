@@ -1,6 +1,48 @@
 {
   "cases": [
     {
+      "id": "validation-operations",
+      "task": "Validate decoded Bricks input structs and scalar values, handle validation errors, and translate English messages. Do not add request parsing or server setup.",
+      "required": ["references/validator/usage.md"],
+      "excluded": ["references/http/request/usage.md", "references/http/server/chi/usage.md", "references/i18n/usage.md", "references/paginator/usage.md", "references/local-source.md"],
+      "conditional": [
+        {"when": "The caller needs a complete Fx application with alias, custom-rule registration, and a custom translation.", "references": ["examples/validation/README.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "validation-extension",
+      "task": "Customize the Bricks validator with an alias and string rule, expose its translated failure, and explain the engine extension points without installing Bricks i18n.",
+      "required": ["references/validator/usage.md"],
+      "excluded": ["references/i18n/usage.md", "references/config/usage.md", "references/http/response/usage.md", "references/local-source.md"],
+      "conditional": [
+        {"when": "The caller requests the full translation callbacks and configured Fx provider as a complete program.", "references": ["examples/validation/README.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "pagination-policy",
+      "task": "Parse Bricks pagination queries strictly, cap valid sizes at 100, and calculate offsets and metadata. Explain invalid defaults and optional trimmed filters without setting up HTTP responses.",
+      "required": ["references/paginator/usage.md"],
+      "excluded": ["references/validator/usage.md", "references/http/server/chi/usage.md", "references/http/response/usage.md", "recipes/pagination-response.md", "references/database/usage.md", "references/local-source.md"],
+      "conditional": [
+        {"when": "The caller requests a complete executable demonstration of parsing boundaries and normalization.", "references": ["examples/pagination/README.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "multigoal-validation-pagination",
+      "task": "Explain Bricks struct and scalar validation, custom-rule translations, strict pagination parsing, and size normalization. No HTTP composition or complete programs are needed.",
+      "required": ["references/validator/usage.md", "references/paginator/usage.md"],
+      "excluded": ["references/http/request/usage.md", "references/http/response/usage.md", "references/i18n/usage.md", "references/local-source.md", "examples/validation/README.md", "examples/pagination/README.md"],
+      "conditional": [],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
       "id": "config-loading",
       "task": "Load Bricks configuration from YAML, choose a whole document or subtree, and explain optional overlays, env references, and load errors. Do not add logging.",
       "required": ["references/config/usage.md"],
