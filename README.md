@@ -1,6 +1,6 @@
 # Bricks
 
-**Bricks** is a framework of reusable components for Go, providing ready-to-use building blocks with native Uber FX support.
+Reusable Go components for HTTP services, databases, and observability, with Uber Fx integration.
 
 ## Installation
 
@@ -8,150 +8,42 @@
 go get github.com/cristiano-pacheco/bricks@latest
 ```
 
-## Usage guides
+## Agent skill
 
-Use the [Bricks skill](skills/bricks/SKILL.md) to select a package guide or composition recipe for your task. Copy `skills/bricks/` into your application's skill directory to use it without a framework checkout. Guides include inline Go setup; `examples/` contains copyable YAML, locale files, and SQL assets rather than standalone Go programs.
+Install the `bricks` skill for package usage guides and integration recipes:
 
-Package READMEs remain available while replacement walkthrough and execution gates are unverified.
+```bash
+npx skills add cristiano-pacheco/bricks --skill=bricks
+```
+
+Run it from your application directory. Add `--global` to install it for your user instead of the current project. Requires Node.js and npm.
+
+For manual browsing, start with the [skill index](skills/bricks/SKILL.md).
 
 ## Available modules
 
-### Config
+Import packages with the prefix `github.com/cristiano-pacheco/bricks/`.
 
-Configuration management with YAML files, environment variable overrides, and Uber FX support.
-
-- **Location**: `pkg/config`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/config`
-- **Documentation**: [configuration guide](skills/bricks/references/config/usage.md)
-
-### Database
-
-PostgreSQL database connection module with GORM and Uber FX integration.
-
-- **Location**: `pkg/database`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/database`
-- **Documentation**: [PostgreSQL guide](skills/bricks/references/database/usage.md)
-
-### SQLite database
-
-SQLite connection construction with GORM, `mattn/go-sqlite3`, and Uber FX lifecycle support.
-
-- **Location**: `pkg/database/sqlite`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/database/sqlite`
-- **Documentation**: [SQLite guide](skills/bricks/references/database/sqlite/usage.md)
-
-### Errors
-
-Structured error handling with HTTP status codes.
-
-- **Location**: `pkg/errs`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/errs`
-- **Documentation**: [structured errors guide](skills/bricks/references/errs/usage.md)
-
-### HTTP Request
-
-JSON request decoding with body limits and parse-error handling for Go HTTP handlers.
-
-- **Location**: `pkg/http/request`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/http/request`
-- **Documentation**: [JSON request guide](skills/bricks/references/http/request/usage.md)
-
-### HTTP Response
-
-Enveloped, raw, empty, and error responses for Go HTTP handlers.
-
-- **Location**: `pkg/http/response`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/http/response`
-- **Documentation**: [HTTP response guide](skills/bricks/references/http/response/usage.md)
-
-### HTTP Server - Chi
-
-HTTP server implementation using Chi router with CORS, configurable listeners, and Uber FX support.
-
-- **Location**: `pkg/http/server/chi`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/http/server/chi`
-- **Documentation**: [Chi setup guide](skills/bricks/references/http/server/chi/usage.md)
-
-### i18n
-
-Internationalization package with locale loading, translation lookups, template interpolation, and error translation with Uber FX integration.
-
-- **Location**: `pkg/i18n`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/i18n`
-- **Documentation**: [translation guide](skills/bricks/references/i18n/usage.md)
-
-### Integration Test Kit
-
-Integration test infrastructure for Docker containers (PostgreSQL and Redis) with automatic cleanup.
-
-- **Location**: `pkg/itestkit`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/itestkit`
-- **Documentation**: [PostgreSQL testkit guide](skills/bricks/references/itestkit/usage.md) or [Redis testkit guide](skills/bricks/references/itestkit/redis.md)
-
-### Logger
-
-Structured logging with slog and Uber FX integration.
-
-- **Location**: `pkg/logger`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/logger`
-- **Documentation**: [logging guide](skills/bricks/references/logger/usage.md)
-
-### Metrics
-
-Prometheus-based metrics collection for use case execution tracking with Uber FX integration.
-
-- **Location**: `pkg/metrics`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/metrics`
-- **Documentation**: [use-case metrics guide](skills/bricks/references/metrics/usage.md)
-
-### Migration
-
-Database migration package with co-located, per-module SQL migration support using embedded filesystems and `golang-migrate`, with Uber FX integration.
-
-- **Location**: `pkg/migration`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/migration`
-- **Documentation**: [migration guide](skills/bricks/references/migration/usage.md)
-
-### OpenTelemetry Trace
-
-Simple and powerful OpenTelemetry tracing integration for Go applications.
-
-- **Location**: `pkg/otel/trace`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/otel/trace`
-- **Documentation**: [tracing guide](skills/bricks/references/otel/trace/usage.md)
-
-### Paginator
-
-Pagination utilities for handling pagination parameters in HTTP requests with validation and metadata generation.
-
-- **Location**: `pkg/paginator`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/paginator`
-- **Documentation**: [pagination guide](skills/bricks/references/paginator/usage.md)
-
-### Redis
-
-Redis client with connection pooling and Uber FX support.
-
-- **Location**: `pkg/redis`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/redis`
-- **Documentation**: [standalone Redis guide](skills/bricks/references/redis/standalone.md). For Cluster, Sentinel, or failover URL setup, select the topology in the [skill router](skills/bricks/SKILL.md#storage).
-
-### Use Case Decorator
-
-Explicit use-case wrapping with logging, metrics, tracing, and error translation, through manual chains or an Fx-provided factory.
-
-- **Location**: `pkg/ucdecorator`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/ucdecorator`
-- **Documentation**: [manual chains](skills/bricks/references/ucdecorator/manual.md) or [configured factories](skills/bricks/references/ucdecorator/factory.md)
-
-### Validator
-
-Struct validation with go-playground/validator and Uber FX integration.
-
-- **Location**: `pkg/validator`
-- **Import**: `github.com/cristiano-pacheco/bricks/pkg/validator`
-- **Documentation**: [validation guide](skills/bricks/references/validator/usage.md)
+| Package | Purpose | Guide |
+| --- | --- | --- |
+| `pkg/config` | YAML configuration and environment overrides | [Configuration](skills/bricks/references/config/usage.md) |
+| `pkg/database` | PostgreSQL with GORM | [PostgreSQL](skills/bricks/references/database/usage.md) |
+| `pkg/database/sqlite` | SQLite with GORM | [SQLite](skills/bricks/references/database/sqlite/usage.md) |
+| `pkg/errs` | Structured errors and HTTP status codes | [Errors](skills/bricks/references/errs/usage.md) |
+| `pkg/http/request` | JSON request decoding and body limits | [Requests](skills/bricks/references/http/request/usage.md) |
+| `pkg/http/response` | JSON, empty, and error responses | [Responses](skills/bricks/references/http/response/usage.md) |
+| `pkg/http/server/chi` | Chi HTTP server and CORS | [Chi](skills/bricks/references/http/server/chi/usage.md) |
+| `pkg/i18n` | Translations and locale loading | [i18n](skills/bricks/references/i18n/usage.md) |
+| `pkg/itestkit` | PostgreSQL and Redis containers for tests | [PostgreSQL](skills/bricks/references/itestkit/usage.md), [Redis](skills/bricks/references/itestkit/redis.md) |
+| `pkg/logger` | Structured logging with slog | [Logging](skills/bricks/references/logger/usage.md) |
+| `pkg/metrics` | Prometheus use-case metrics | [Metrics](skills/bricks/references/metrics/usage.md) |
+| `pkg/migration` | Embedded SQL migrations per module | [Migrations](skills/bricks/references/migration/usage.md) |
+| `pkg/otel/trace` | OpenTelemetry tracing | [Tracing](skills/bricks/references/otel/trace/usage.md) |
+| `pkg/paginator` | Pagination parameters and metadata | [Pagination](skills/bricks/references/paginator/usage.md) |
+| `pkg/redis` | Redis connections and pooling | [Topology selection](skills/bricks/SKILL.md#storage) |
+| `pkg/ucdecorator` | Use-case logging, metrics, tracing, and error translation | [Manual chains](skills/bricks/references/ucdecorator/manual.md), [factories](skills/bricks/references/ucdecorator/factory.md) |
+| `pkg/validator` | Struct validation | [Validation](skills/bricks/references/validator/usage.md) |
 
 ## License
 
-MIT
+[MIT](LICENSE)
