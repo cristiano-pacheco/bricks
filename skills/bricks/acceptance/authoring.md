@@ -23,7 +23,7 @@ Keep a concept's definition, caveats, defaults, errors, and lifecycle instructio
 
 ## Coverage records
 
-`coverage.json` maps each inventoried package and supported public branch to a destination, example classification, and verification evidence. It also records existing package READMEs and exported APIs. A destination string is a plan until its file exists and its checks pass. Do not create empty guides to make planned paths resolve.
+`coverage.json` maps each inventoried package and supported public branch to a destination, example classification, and verification evidence. It also records existing package READMEs and exported APIs. Its `supporting_references` list records non-package guides such as local-source discovery, with classified fragments and verification evidence. A destination string is a plan until its file exists and its checks pass. Do not create empty guides to make planned paths resolve.
 
 Use these states consistently:
 
@@ -49,7 +49,7 @@ The `evaluations` list starts empty. Structural validation and link checks are n
 
 ## Acceptance commands and token budgets
 
-Run `make check-bricks-skill` for utility tests and structural acceptance. CI runs the same target. To run only the dependency-free utility tests, use `python3 -m unittest discover -s scripts -p 'test_check_bricks_skill.py'`.
+Run `make check-bricks-skill` for utility tests, offline local-source scenarios, and structural acceptance. CI runs the same target. Local-source tests require an installed Go toolchain with workspace vendoring support and `rg`. They create temporary consumers and populate a temporary module cache through a fixture-only file proxy before inspection. Discovery uses disabled retrieval, file snapshots, and a local network trap. To run only the dependency-free utility tests, use `python3 -m unittest discover -s scripts -p 'test_check_bricks_skill.py'`.
 
 Run `python3 scripts/check-bricks-skill.py` during authoring. It checks structural records, actual links, example classifications, and token measurements while allowing explicitly planned destinations. Run `python3 scripts/check-bricks-skill.py --final` before declaring replacement coverage complete. Final acceptance requires verified coverage and routing evaluation; planned or unverified work must fail that gate.
 

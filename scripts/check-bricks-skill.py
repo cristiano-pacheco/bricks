@@ -153,6 +153,35 @@ def validate(root, repo, coverage, routing, final=False):
                             errors.append(f"{identity}: runnable example lacks {sorted(required - checks)} proof")
                 if final and status != "verified":
                     errors.append(f"{identity}: final example is not verified")
+    for reference in coverage.get("supporting_references", []):
+        identity = reference.get("id")
+        path = reference.get("reference")
+        destination = local_path(root, path)
+        destinations.add(path)
+        if not identity or identity in ids:
+            errors.append(f"missing or duplicate supporting reference id {identity}")
+        ids.add(identity)
+        state = reference.get("status")
+        if state not in STATES or not reference.get("capability"):
+            errors.append(f"{identity}: invalid supporting reference")
+        if state == "blocked" and not reference.get("blocker"):
+            errors.append(f"{identity}: missing blocker")
+        if state == "verified" and (not destination.is_file() or not passed(reference.get("verification", []))):
+            errors.append(f"{identity}: verified reference needs a real destination and passing evidence")
+        examples = reference.get("examples", [])
+        if not examples:
+            errors.append(f"{identity}: missing example classification")
+        for example in examples:
+            if example.get("kind") != "fragment" or example.get("status") not in STATES:
+                errors.append(f"{identity}: supporting reference examples must be classified fragments")
+            if example.get("status") == "verified" and (not example.get("path")
+                    or not local_path(root, example["path"]).is_file()
+                    or not passed(example.get("checks", []))):
+                errors.append(f"{identity}: verified fragment needs a real path and passing checks")
+            if final and example.get("status") != "verified":
+                errors.append(f"{identity}: final example is not verified")
+        if final and state != "verified":
+            errors.append(f"{identity}: final reference is not verified")
     cases = routing.get("cases", [])
     case_ids = [case.get("id") for case in cases]
     if not cases or None in case_ids or len(case_ids) != len(set(case_ids)):

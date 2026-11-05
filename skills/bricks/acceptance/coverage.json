@@ -1,5 +1,34 @@
 {
   "revision": "eafd28db2b2c4c53046a7d5bd31b1a494d654924",
+  "supporting_references": [
+    {
+      "id": "local-source",
+      "reference": "references/local-source.md",
+      "status": "verified",
+      "capability": "Resolve the consuming application's selected local source without downloads or dependency edits, then inspect only the relevant contract.",
+      "examples": [
+        {
+          "kind": "fragment",
+          "path": "references/local-source.md",
+          "status": "verified",
+          "checks": [
+            {
+              "command": "python3 -m unittest discover -s scripts -p 'test_bricks_local_source.py' -v",
+              "scope": "14 temporary-consumer checks using Go 1.27.3 and rg, covering configured cache, decoy version, replacement, workspace replacement and use, alternate modfile, automatic and explicit vendor modes, explicit readonly override, inconsistent vendor metadata, metadata without source, missing metadata, and incompatible tooling. Snapshots and a local network trap check read-only offline inspection. Fixtures model module selection rather than Bricks runtime behavior.",
+              "result": "passed"
+            }
+          ]
+        }
+      ],
+      "verification": [
+        {
+          "command": "make check-bricks-skill",
+          "scope": "Documented Go commands, bounded rg searches, dependency and source preservation, offline failures, structural navigation, and byte-based token measurements. LLM routing awaits ticket 16 and ticket 17.",
+          "result": "passed"
+        }
+      ]
+    }
+  ],
   "packages": [
     {
       "path": "pkg/config",

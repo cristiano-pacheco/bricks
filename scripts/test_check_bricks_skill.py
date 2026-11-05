@@ -45,6 +45,31 @@ class AcceptanceTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertGreater(report["tasks"]["example"]["tokens"], 0)
 
+    def test_supporting_reference_evidence_and_measurement(self):
+        reference = copy.deepcopy(self.branch())
+        reference["id"] = "local-source"
+        self.coverage["supporting_references"] = [reference]
+        errors, report = self.validate(final=True)
+        self.assertEqual(errors, [])
+        self.assertGreater(report["documents"]["usage.md"], 0)
+        reference["verification"] = []
+        self.assertIn("passing evidence", "\n".join(self.validate()[0]))
+        reference["verification"] = [self.evidence]
+        reference["examples"][0]["checks"] = []
+        self.assertIn("passing checks", "\n".join(self.validate()[0]))
+
+    def test_supporting_reference_planned_and_blocked_states(self):
+        reference = copy.deepcopy(self.branch())
+        reference.update(id="local-source", status="planned", reference="future.md", verification=[])
+        reference["examples"][0].update(status="planned", path=None, checks=[])
+        self.coverage["supporting_references"] = [reference]
+        self.assertEqual(self.validate()[0], [])
+        self.assertIn("final reference is not verified", "\n".join(self.validate(final=True)[0]))
+        reference["status"] = "blocked"
+        self.assertIn("missing blocker", "\n".join(self.validate()[0]))
+        reference["blocker"] = "Source unavailable"
+        self.assertEqual(self.validate()[0], [])
+
     def test_missing_package_and_export_fail(self):
         original = copy.deepcopy(self.coverage)
         self.coverage["packages"] = []

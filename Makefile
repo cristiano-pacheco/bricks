@@ -51,6 +51,7 @@ test:
 .PHONY: check-bricks-skill
 check-bricks-skill:
 	python3 -m unittest discover -s scripts -p 'test_check_bricks_skill.py'
+	python3 -m unittest discover -s scripts -p 'test_bricks_local_source.py'
 	python3 scripts/check-bricks-skill.py
 
 .PHONY: unit-test-coverage
