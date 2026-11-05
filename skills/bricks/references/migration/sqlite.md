@@ -87,6 +87,8 @@ The runner has no YAML configuration type or migration defaults to copy. This ex
 
 ## Alternative: use an existing application connection
 
+For a complete Bricks SQLite module setup with migration-before-query ordering and an explicit rollback command, use the [SQLite startup recipe](../../recipes/sqlite-migrations.md). For connection fields, memory databases, and direct versus Fx ownership, use the [SQLite connection guide](../database/sqlite/usage.md).
+
 Call `gormDB.DB()` to obtain the `*sql.DB` from GORM, then pass it to `runner.UpSQLite`. Keep closure with the application's original lifecycle. `UpSQLite` and `DownSQLite` accept an open handle, not a DSN. Any compatible SQLite driver can provide it.
 
 Neither operation accepts a context. Transactions and SQL use `context.Background()`, so an Fx startup timeout does not cancel them. Run migrations before schema-dependent consumers and serialize calls against the same database. For collecting files from multiple modules or registering Fx groups, read the [shared guide](usage.md).

@@ -1,0 +1,3 @@
+app:
+  sqlite:
+    dsn: 'file:./bricks-skill.db?mode=rwc'
