@@ -1,0 +1,15 @@
+app:
+  ucdecorator:
+    enabled: true
+    debug_mode: true
+    logging: true
+    metrics: true
+    tracing: true
+    translation: true
+  open-telemetry:
+    app_name: quotes
+    trace_enabled: true
+    trace_url: localhost:4318
+    exporter_type: http
+    insecure: true
+    sample_rate: 1.0
