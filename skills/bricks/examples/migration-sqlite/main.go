@@ -5,8 +5,9 @@ import (
 	"embed"
 	"errors"
 	"flag"
+	"fmt"
 	"io/fs"
-	"log"
+	"os"
 
 	"github.com/cristiano-pacheco/bricks/pkg/migration"
 	_ "github.com/mattn/go-sqlite3" // Register the caller's SQLite driver.
@@ -24,7 +25,9 @@ func run(dsn string, down bool) (err error) {
 	if err != nil {
 		return err
 	}
-	defer func() { err = errors.Join(err, db.Close()) }()
+	defer func() {
+		err = errors.Join(err, db.Close())
+	}()
 	db.SetMaxOpenConns(1)
 	db.SetMaxIdleConns(1)
 	if err := db.Ping(); err != nil {
@@ -43,6 +46,7 @@ func main() {
 	down := flag.Bool("down", false, "explicitly undo all migrations on a disposable development database")
 	flag.Parse()
 	if err := run(*dsn, *down); err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }

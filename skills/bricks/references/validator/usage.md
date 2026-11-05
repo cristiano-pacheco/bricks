@@ -1,25 +1,22 @@
-# Validation
+# Validate use-case input
 
-Use `github.com/cristiano-pacheco/bricks/pkg/validator` to validate application input structs at the start of a use case's `Execute` method. JSON decoding checks representation, not application rules. The transport decodes the request and calls the use case. The use case validates its input before performing business work.
+This guide builds a product quote use case that rejects invalid prices and quantities before calculating a total. The transport decodes input. The use case checks application rules at the start of `Execute`.
 
-## Construction and operations
+The validator needs no YAML, external service, or shutdown hook. Its rules live in Go struct tags.
 
-`New() (Validator, error)` builds a go-playground engine with required-struct validation enabled and English translations registered. Handle construction errors. A missing English translator returns `translator not found`; translation-registration errors propagate. There is no configuration file, lifecycle hook, or shutdown operation.
+## 1. Create the use case
 
-Use `validator.Module` once in the Fx process composition. Inject `validator.Validator` into the use case through its constructor. Do not replace the module with a custom validator provider or run application validation in lifecycle hooks.
-
-Composition fragment, with `fx` imported from `go.uber.org/fx`:
+Create `product_quote_usecase.go` in an executable directory of a module that already depends on Bricks and Fx:
 
 ```go
-app := fx.New(
-	validator.Module,
-	fx.Provide(NewProductQuoteUseCase),
+package main
+
+import (
+	"context"
+
+	"github.com/cristiano-pacheco/bricks/pkg/validator"
 )
-```
 
-Use-case fragment, with the standard-library `context` import:
-
-```go
 type ProductQuoteInput struct {
 	UnitPriceInCents int64 `validate:"required,gt=0,lte=1000000000"`
 	Quantity         int64 `validate:"required,gt=0,lte=1000"`
@@ -41,21 +38,127 @@ func (uc *ProductQuoteUseCase) Execute(_ context.Context, input ProductQuoteInpu
 	if err := uc.validator.Validate(input); err != nil {
 		return ProductQuoteOutput{}, err
 	}
-	return ProductQuoteOutput{TotalInCents: input.UnitPriceInCents * input.Quantity}, nil
+	return ProductQuoteOutput{
+		TotalInCents: input.UnitPriceInCents * input.Quantity,
+	}, nil
 }
 ```
 
-For a caller without Fx, the supported direct alternative is `inputValidator, err := validator.New()`. Handle the error, then pass the instance to `NewProductQuoteUseCase`. This does not change where the use case validates its input.
+Both fields must be positive and within their tagged upper bounds. These bounds also keep the multiplication within `int64`. Invalid input returns an empty output and an error before the calculation.
 
-`Validate` and `Struct` are identical struct-validation operations. `ValidateVar` and `Var` are identical scalar-validation operations, for example `inputValidator.Var(17, "gte=18")`. Validation returns nil on success and does not normalize or trim values.
+## 2. Provide the validator and call the use case
 
-The engine checks exported fields and recursively validates nested structs. Apply `required` to a nested value struct when its zero value must fail. Use `dive` for slice or map elements, not for ordinary nested structs. For example, `Tags []string` with `validate:"required,min=1,dive,required"` requires a nonempty slice and nonempty elements. Required-struct mode changes `required` on non-pointer structs; it does not make every untagged field mandatory.
+Create `main.go` beside the first file:
 
-## Errors and translations
+```go
+package main
 
-Methods return the upstream error unchanged. They do not return translated strings despite some source comments saying otherwise. Invalid values produce `validator/v10.ValidationErrors`. Invalid struct arguments, such as nil or a scalar passed to `Struct`, produce `*validator/v10.InvalidValidationError`. Malformed or unknown validation tags can panic and are programming errors, not rejected user values.
+import (
+	"context"
+	"errors"
+	"fmt"
+	"os"
+	"time"
 
-Error-handling fragment, with `errors` from the standard library and `playground` imported from `github.com/go-playground/validator/v10`:
+	"github.com/cristiano-pacheco/bricks/pkg/validator"
+	"go.uber.org/fx"
+)
+
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func run() (runErr error) {
+	var quote *ProductQuoteUseCase
+	app := fx.New(
+		validator.Module,
+		fx.Provide(NewProductQuoteUseCase),
+		fx.Populate(&quote),
+	)
+
+	if err := app.Err(); err != nil {
+		return fmt.Errorf("construct validation application: %w", err)
+	}
+	defer func() {
+		stopCtx, cancelStop := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancelStop()
+		if err := app.Stop(stopCtx); err != nil {
+			runErr = errors.Join(runErr, fmt.Errorf("stop validation application: %w", err))
+		}
+	}()
+
+	startCtx, cancelStart := context.WithTimeout(context.Background(), 5*time.Second)
+	startErr := app.Start(startCtx)
+	cancelStart()
+	if startErr != nil {
+		return fmt.Errorf("start validation application: %w", startErr)
+	}
+
+	output, err := quote.Execute(context.Background(), ProductQuoteInput{
+		UnitPriceInCents: 2500,
+		Quantity:         2,
+	})
+	if err != nil {
+		return err
+	}
+	fmt.Println(output.TotalInCents)
+	return nil
+}
+```
+
+Install `validator.Module` once. It provides `validator.Validator`; the use-case constructor receives that interface. `fx.Populate` requests the use case so Fx constructs it and its dependencies. Keep application validation in `Execute`, not in Fx lifecycle hooks.
+
+## 3. Run the program and try invalid input
+
+Run `go run .` from the directory containing both files. The expected application output is `5000`. Fx may also log lifecycle messages.
+
+Change `Quantity` to `0` and run it again. `Execute` should return a validation error instead of a total. The deferred shutdown runs before `main` prints the error to standard error and exits with status `1`. An application caller should handle validation errors according to its transport contract.
+
+The [distributed validation example](../../examples/validation/README.md) contains the same two-file application pattern. The supplied example also exercises Fx construction, startup, and shutdown. Custom rules and translation need their own checks; this happy-path program does not exercise them.
+
+## Without Fx
+
+Call `validator.New()`, check its error, then pass the result to `NewProductQuoteUseCase`. Use the same `Execute` method. This fragment replaces construction through Fx:
+
+```go
+inputValidator, err := validator.New()
+if err != nil {
+	return err
+}
+quote := NewProductQuoteUseCase(inputValidator)
+```
+
+The fragment belongs inside a function returning `error`. `New()` returns `(Validator, error)`. It creates a go-playground engine with required-struct validation enabled and registers English translations. A missing English translator returns `translator not found`; translation-registration errors propagate.
+
+## Choose struct or scalar validation
+
+| Operation | Use it for |
+| --- | --- |
+| `Validate(input)` or `Struct(input)` | A struct with validation tags. These methods are identical. |
+| `ValidateVar(value, tags)` or `Var(value, tags)` | A scalar, such as `inputValidator.Var(17, "gte=18")`. These methods are identical. |
+| `Engine()` | The shared `*validator/v10.Validate` engine for extensions. |
+| `Translator()` | The configured English translator for rendering errors. |
+
+Validation returns nil on success. It does not trim or normalize values.
+
+The engine checks exported fields and recursively validates nested structs. Use `required` on a nested value struct when its zero value must fail. Required-struct mode does not make every untagged field mandatory. Use `dive` for slice or map elements, not ordinary nested structs. For example:
+
+```go
+type ProductInput struct {
+	Tags []string `validate:"required,min=1,dive,required"`
+}
+```
+
+This requires a nonempty slice whose elements are nonempty strings.
+
+## Handle and translate errors
+
+The methods return upstream errors unchanged. They do not return translated strings. Invalid values produce `validator/v10.ValidationErrors`. Invalid struct arguments, such as nil or a scalar passed to `Struct`, produce `*validator/v10.InvalidValidationError`. Unknown or malformed tags can panic; treat them as programming errors.
+
+Use this fragment after `err := inputValidator.Validate(input)`. It requires standard-library `errors` and `fmt`, plus `playground "github.com/go-playground/validator/v10"`. It belongs inside a function returning `error`:
 
 ```go
 var failures playground.ValidationErrors
@@ -64,8 +167,8 @@ switch {
 case err == nil:
 	// Continue with valid input.
 case errors.As(err, &failures):
-	messages := failures.Translate(inputValidator.Translator())
-	fmt.Println(messages)
+	fmt.Println(failures.Translate(inputValidator.Translator()))
+	return err
 case errors.As(err, &invalid):
 	return fmt.Errorf("invalid validation argument: %w", err)
 default:
@@ -73,28 +176,28 @@ default:
 }
 ```
 
-Import `fmt` for the fragment. Individual failures expose `Field`, `Namespace`, `Tag`, `ActualTag`, and `Param`; `failure.Translate(inputValidator.Translator())` returns one message. Names are Go field names unless you register a tag-name function. English registration does not automatically select a language from HTTP headers. This translator is independent of Bricks i18n message and structured-error translation.
+Each failure exposes `Field`, `Namespace`, `Tag`, `ActualTag`, and `Param`. Call `failure.Translate(inputValidator.Translator())` for one message. Names are Go field names unless you register a tag-name function.
 
-## Engine extension
+The English translator does not select a language from HTTP headers. It is independent of Bricks i18n message and structured-error translation.
 
-`Engine()` returns the shared `*playground.Validate`; `Translator()` returns its English `ut.Translator`. Register extensions once during construction, before validation or concurrent use. Registration mutates the engine; it is not a per-request operation.
+## Add aliases and custom rules
 
-Alias and custom-rule fragment:
+Register extensions once during construction, before validation or concurrent use. Registration mutates the shared engine.
+
+This fragment requires `strings` and `playground "github.com/go-playground/validator/v10"`. It assumes `inputValidator` already exists and belongs inside a function returning `error`:
 
 ```go
 engine := inputValidator.Engine()
 engine.RegisterAlias("account_email", "required,email")
-err = engine.RegisterValidation("sku", func(field playground.FieldLevel) bool {
+if err := engine.RegisterValidation("sku", func(field playground.FieldLevel) bool {
 	return strings.HasPrefix(field.Field().String(), "SKU-")
-})
-if err != nil {
+}); err != nil {
 	return err
 }
-err = inputValidator.Var("bad", "sku")
 ```
 
-Import `strings`. The `sku` rule is string-only; apply it only to string fields. Register its message separately if callers need a translated custom failure. `RegisterTranslation` takes the tag, translator, a registration callback using `translator.Add`, and a rendering callback using `translator.T`. Handle registration errors and return the original field error text if rendering fails.
+Use `validate:"account_email"` for the alias or `validate:"sku"` on a string field. The `sku` rule is string-only. After registration, `inputValidator.Var("bad", "sku")` returns a validation error.
 
-Other supported upstream extension points are `RegisterStructValidation` for cross-field acceptance, `RegisterCustomTypeFunc` for extracting values from custom types, and `RegisterTagNameFunc` for client-facing field names. These are engine APIs, not additional Bricks wrappers. Keep acceptance rules in the validator rather than performing I/O inside a rule. The Bricks interface has no context-taking validation methods; context-aware engine operations require explicit use of `Engine()`.
+To translate a custom failure, also call the engine's `RegisterTranslation`. Supply the tag, translator, a registration callback using `translator.Add`, and a rendering callback using `translator.T`. Handle registration errors. If rendering fails, return the original field error text.
 
-For a complete program with `validator.Module`, constructor injection, and struct validation at the start of `Execute`, read [the validation example](../../examples/validation/README.md). Load it only when a complete example is requested. Short snippets here are fragments, not standalone programs. The complete example is unexecuted; compilation and runtime checks were waived for this documentation ticket.
+Other supported engine extension points are `RegisterStructValidation` for cross-field rules, `RegisterCustomTypeFunc` for extracting custom-type values, and `RegisterTagNameFunc` for client-facing field names. These are upstream engine APIs, not additional Bricks wrappers. Keep rules free of I/O. The Bricks interface has no context-taking validation methods; use `Engine()` explicitly when you need the engine's context-aware operations.

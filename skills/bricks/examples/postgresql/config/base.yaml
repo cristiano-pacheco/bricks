@@ -11,3 +11,15 @@ app:
     applicationname: bricks_skill_connection
     maxopenconnections: 10
     maxidleconnections: 2
+    sslcert: "" # Certificate paths are used only when sslmode is true.
+    sslkey: ""
+    sslrootcert: ""
+    preparestmt: false
+    skipdefaulttransaction: false
+    disableforeignkeyconstraint: false
+    enablelogs: false # Custom Logger implementations must be supplied in Go.
+    timezone: UTC
+    searchpath: public
+    locktimeout: 0 # Milliseconds. Zero leaves server policy in effect.
+    idleintransaction: 0 # Milliseconds. Zero leaves server policy in effect.
+    prefersimpleprotol: false # Exported spelling. Currently has no effect.

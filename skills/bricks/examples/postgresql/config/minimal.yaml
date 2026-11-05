@@ -1,0 +1,9 @@
+# Copy to config/base.yaml for a minimal local PostgreSQL connection.
+# The database and user must already exist.
+app:
+  database:
+    host: localhost
+    port: 5432
+    name: bricks_skill
+    user: bricks_skill
+    password: env://POSTGRES_PASSWORD

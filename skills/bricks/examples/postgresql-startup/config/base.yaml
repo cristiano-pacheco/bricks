@@ -13,3 +13,13 @@ app:
     searchpath: public
     maxopenconnections: 10
     maxidleconnections: 2
+    sslcert: "" # Certificate paths are used only when sslmode is true.
+    sslkey: ""
+    sslrootcert: ""
+    preparestmt: false
+    skipdefaulttransaction: false
+    disableforeignkeyconstraint: false
+    enablelogs: false # Custom Logger implementations must be supplied in Go.
+    timezone: UTC
+    idleintransaction: 0 # Milliseconds. Zero leaves server policy in effect.
+    prefersimpleprotol: false # Exported spelling. Currently has no effect.

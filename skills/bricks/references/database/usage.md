@@ -1,20 +1,181 @@
-# PostgreSQL connections
+# Connect an application to PostgreSQL
 
-Use `github.com/cristiano-pacheco/bricks/pkg/database` for a PostgreSQL `*gorm.DB`. Connections open during construction, not in an Fx `OnStart` hook. Constructors validate configuration, open with retries, and configure the underlying `*sql.DB` pool.
+Use `github.com/cristiano-pacheco/bricks/pkg/database` to provide a PostgreSQL `*gorm.DB`. This guide starts with YAML and Fx. The database and user must already exist. This module opens connections, not databases or schema migrations.
 
-## Construction and ownership
+## 1. Create `config/base.yaml`
 
-- `database.Module` loads `config.Config[database.Config]` from `app.database` and provides one unnamed, lifecycle-managed `*gorm.DB`. Include a consumer or invoke to force Fx's lazy provider to run. Do not also provide that configuration wrapper or an unnamed database yourself.
-- `NewWithLifecycle(cfg, lifecycle)` accepts a typed `database.Config`, connects immediately, and appends an `OnStop` hook that obtains and closes the underlying `*sql.DB`. Use an application provider for programmatically supplied settings instead of installing `Module` too.
-- `New(cfg)` returns the same configured connection without lifecycle registration. The caller owns closing its underlying pool.
+Start with this minimal local-development configuration, also supplied as [minimal.yaml](../../examples/postgresql/config/minimal.yaml). Save it as `config/base.yaml` and set `POSTGRES_PASSWORD` before starting the application.
 
-A complete Fx application, YAML input, startup query, and shutdown are in the [connection example](../../examples/postgresql/README.md). Load it when a complete application is needed. There is no arbitrary `*gorm.Config` constructor parameter or options API. Customize the fields described below, or construct GORM outside this package for settings it cannot express.
+```yaml
+app:
+  database:
+    host: localhost
+    port: 5432
+    name: bricks_skill
+    user: bricks_skill
+    password: env://POSTGRES_PASSWORD
+```
 
-This direct-construction fragment belongs inside a function returning `error`, with `context`, `errors`, and `database` imported:
+This uses plaintext local connections and the default pool policy. For explicit timeouts, pool limits, and all other settings, use the full configuration below. `Logger` and `NamingStrategy` are Go interfaces, not YAML settings. Tracing and pool metrics are optional integrations, not part of this setup.
+
+`host`, `name`, `user`, and a port between 1 and 65535 are required. The constructor does not require a password, but your PostgreSQL authentication policy may. An unset `POSTGRES_PASSWORD` becomes an empty string rather than a configuration-load error. Keep secrets out of logs.
+
+The loader requires `base.yaml`. It uses the `config` directory unless `APP_CONFIG_DIR` selects another directory. For overlays, environment substitution, or loading only a subtree, read the [configuration guide](../config/usage.md).
+
+## 2. Register the module and a database consumer
+
+This complete `main.go` registers a startup query and lets Fx close the pool at shutdown:
 
 ```go
+package main
+
+import (
+    "context"
+    "fmt"
+
+    "github.com/cristiano-pacheco/bricks/pkg/database"
+    "go.uber.org/fx"
+    "gorm.io/gorm"
+)
+
+func registerQuery(lifecycle fx.Lifecycle, db *gorm.DB) {
+    lifecycle.Append(fx.Hook{
+        OnStart: func(ctx context.Context) error {
+            var value int
+            if err := db.WithContext(ctx).Raw("SELECT 1").Scan(&value).Error; err != nil {
+                return fmt.Errorf("query PostgreSQL: %w", err)
+            }
+            return nil
+        },
+    })
+}
+
+func main() {
+    fx.New(database.Module, fx.Invoke(registerQuery)).Run()
+}
+```
+
+`database.Module` reads `app.database` and provides one unnamed `*gorm.DB`. The invoke requests that value, so Fx constructs it. A module with no consumer can remain unused because Fx providers are lazy.
+
+The constructor connects before `OnStart`. Run application queries in startup hooks or later, not in constructors that assume migrations have finished. Do not install another unnamed database provider or another provider for `config.Config[database.Config]` alongside this module.
+
+## 3. Start the application
+
+From the application directory, with the selected Bricks dependency already installed:
+
+```sh
+export POSTGRES_PASSWORD=local-example-password
+export APP_CONFIG_DIR="$PWD/config"
+go run .
+```
+
+Successful startup means the database opened and `SELECT 1` succeeded. This version remains running until shutdown. Fx closes the underlying `*sql.DB` on normal shutdown. Keep one pool for the application rather than closing it after each request.
+
+For a copyable program that starts, checks the connection, and exits, use the [one-shot connection example](../../examples/postgresql/README.md). For schema migrations before queries or request handling, use the [startup recipe](../../recipes/postgresql-migrations.md).
+
+## 4. Change TLS settings for your deployment
+
+Replace the TLS fields in the local configuration when your deployment requires TLS. This is an alternative to `sslmode: false`, not another database connection:
+
+```yaml
+app:
+  database:
+    sslmode: true
+    sslcert: /run/secrets/postgres-client.crt
+    sslkey: /run/secrets/postgres-client.key
+    sslrootcert: /run/secrets/postgres-ca.crt
+```
+
+This overlay is supplied as [tls.yaml](../../examples/postgresql/config/tls.yaml). Keep `base.yaml` and run with `APP_ENV=tls`, or replace the corresponding fields in your base file. `sslmode: true` selects PostgreSQL `require`; false selects `disable`. It does not expose a string setting for other SSL modes. Certificate paths are appended only when TLS is enabled. Choose certificate and verification policy for your deployment rather than treating this example as a complete security policy.
+
+## Configuration reference
+
+The distributed [base.yaml](../../examples/postgresql/config/base.yaml) shows every scalar field. Copy it instead of the minimal file when you want explicit connection policy:
+
+```yaml
+app:
+  database:
+    host: localhost
+    port: 5432
+    name: bricks_skill
+    user: bricks_skill
+    password: env://POSTGRES_PASSWORD
+    sslmode: false
+    sslcert: ""
+    sslkey: ""
+    sslrootcert: ""
+    maxopenconnections: 10
+    maxidleconnections: 2
+    connecttimeout: 5 # Seconds per driver connection attempt.
+    statementtimeout: 5000 # Milliseconds.
+    locktimeout: 0 # Milliseconds. Zero leaves server policy in effect.
+    idleintransaction: 0 # Milliseconds. Zero leaves server policy in effect.
+    timezone: UTC
+    applicationname: bricks_skill_connection
+    searchpath: public
+    preparestmt: false
+    skipdefaulttransaction: false
+    disableforeignkeyconstraint: false
+    enablelogs: false
+    prefersimpleprotol: false # Exported spelling. Currently has no effect.
+```
+
+Omitted fields retain Go zero values. The following constructor behavior applies after loading:
+
+| YAML fields | Requirement, default, or behavior |
+| --- | --- |
+| `host`, `name`, `user` | Required nonempty strings. Validation does not trim them. |
+| `port` | Required unsigned integer from 1 to 65535. |
+| `password` | Optional to Bricks. Defaults to an empty string. |
+| `sslmode` | Defaults to false. True selects `require`; false selects `disable`. |
+| `sslcert`, `sslkey`, `sslrootcert` | Optional paths. Empty values are omitted. Used only with TLS enabled. |
+| `maxopenconnections` | Positive values set the open limit. Zero or negative leaves the `database/sql` default of unlimited open connections. |
+| `maxidleconnections` | Positive values set the idle limit. Zero or negative leaves the standard default of two idle connections, constrained by a positive open limit. To request zero idle connections, call `SetMaxIdleConns(0)` in Go afterward. |
+| `preparestmt` | Defaults to false. Enables GORM's prepared-statement cache. |
+| `skipdefaulttransaction` | Defaults to false. Skips GORM's default write transaction. |
+| `disableforeignkeyconstraint` | Defaults to false. Changes foreign-key creation during GORM migration, not existing constraints or SQL migration files. |
+| `enablelogs` | Defaults to false. True assigns the Go `Logger` field to GORM. False does not install a silent logger. A nil logger leaves GORM's default behavior. |
+| `timezone` | Blank or whitespace-only becomes `UTC` in `DSN()`. |
+| `applicationname`, `searchpath` | Optional strings, omitted when empty. |
+| `statementtimeout`, `locktimeout`, `idleintransaction` | Positive integers become PostgreSQL settings in milliseconds. Zero or negative omits them and leaves server policy in effect. |
+| `connecttimeout` | Positive integer passed to the driver in seconds. Zero or negative omits it. It is not an overall constructor deadline. |
+| `prefersimpleprotol` | Defaults to false. Retains the exported typo and is unused by the constructor. Setting it does not enable simple protocol. |
+
+Bricks always sets maximum connection lifetime to one hour and maximum idle age to ten minutes. There are no `ConnMaxLifetime`, `ConnMaxIdleTime`, `MaxRetries`, or `RetryDelay` configuration fields or constructor options. Obtain the underlying pool through `db.DB()` to override its ages.
+
+## Alternative: supply configuration in Go
+
+Use this when the application needs a GORM logger or naming strategy. Replace `database.Module` with your providers. This fragment belongs in an application's `fx.New` options:
+
+```go
+// Imports: database, go.uber.org/fx, gorm.io/gorm/logger,
+// and gorm.io/gorm/schema. password is supplied by the application.
+fx.Provide(
+    func() database.Config {
+        return database.Config{
+            Host: "localhost", Port: 5432, Name: "bricks_skill",
+            User: "bricks_skill", Password: password,
+            ConnectTimeout: 5, MaxOpenConnections: 10, MaxIdleConnections: 2,
+            EnableLogs: true,
+            Logger: logger.Default.LogMode(logger.Info),
+            NamingStrategy: schema.NamingStrategy{TablePrefix: "app_"},
+        }
+    },
+    database.NewWithLifecycle,
+)
+```
+
+`NewWithLifecycle(cfg, lifecycle)` opens immediately and registers pool closure in `OnStop`. Its logger must implement `gorm.io/gorm/logger.Interface`. The Bricks logger is a different interface and needs an adapter. There is no arbitrary `*gorm.Config` parameter. Construct GORM outside this package if its settings cannot express your requirements.
+
+## Alternative: construct without Fx
+
+This fragment belongs in a function returning `error`. The caller owns pool closure:
+
+```go
+// Imports: context, errors, and the Bricks database package.
+// password is supplied by the application.
 cfg := database.Config{
-    Host: "localhost", Port: 5432, Name: "app", User: "app",
+    Host: "localhost", Port: 5432, Name: "bricks_skill", User: "bricks_skill",
     Password: password, ConnectTimeout: 5,
     MaxOpenConnections: 10, MaxIdleConnections: 2,
 }
@@ -30,46 +191,30 @@ queryErr := sqlDB.PingContext(context.Background())
 return errors.Join(queryErr, sqlDB.Close())
 ```
 
-Use a bounded application context in real operations. Do not close the pool after each request. Lifecycle construction registers shutdown but does not make opening lazy until startup or make constructors context-aware. Fx hook timeouts do not cancel constructor connection attempts. Eagerly opened resources also require care on graph-construction failures before lifecycle startup; do not assume normal shutdown hooks cover every failed build.
+Use a bounded application context for real operations. `sqlDB.Stats()` returns standard-library pool statistics. Exported `ConnectionStats` is only a data structure containing maximum, open, in-use and idle counts, wait count and duration, and idle/lifetime closure counts. Bricks has no accessor that populates it.
 
-## Required settings and errors
+## Configuration helpers and DSNs
 
-`Config.Validate()` checks `Host`, `Name`, `User`, and `Port` in that order. Empty strings fail, zero port fails, and a port above 65535 fails. It does not trim required strings or require a password. `New` wraps validation failures with both `ErrInvalidConfig` and the specific `ErrMissingHost`, `ErrMissingName`, `ErrMissingUser`, `ErrMissingPort`, or `ErrInvalidPortNumber`. Use `errors.Is`.
+`Config.Validate()` checks `Host`, `Name`, `User`, then `Port`. `Config.DSN()` builds the keyword DSN used by `New` but does not validate it. `Config.PostgresDSN()` validates and builds a `postgres://` URL with host/port joining. The latter includes only credentials, database name, SSL mode, time zone, and optional application name. It omits certificate paths, search path, and timeouts. Only an exactly empty time zone becomes UTC in `PostgresDSN()`.
 
-Connection exhaustion and pool-access failures wrap `ErrConnectionFailed`. There are at most three `gorm.Open` attempts with one-second and two-second waits between them. A background ten-second context limits retry waits, but GORM does not receive that context. An individual open can exceed it. Set positive `ConnectTimeout` for the driver's connection timeout in seconds; it is not an overall constructor deadline. Retry counts and delays are not configurable.
+Neither builder escapes interpolated values. Spaces and reserved characters can change parsing or make the result invalid. Never log these strings. Use `net/url` for an escaped migration URL when needed, as the startup example does. Converting with `PostgresDSN()` does not preserve every connection policy.
 
-The exported `ConnectionError` has `Host`, `Port`, `DB`, `Attempt`, and `Err` fields. Its `Error` formats that context; `Unwrap` and `Is` delegate to `Err`. These constructors do not instantiate it. Do not require `errors.As` to find a `*ConnectionError` in ordinary constructor failures.
+`Clone()` copies all fields. Interface-valued `Logger` and `NamingStrategy` still refer to the same implementations. `WithDatabase(name)` returns that copy with a new `Name`, without validating it.
 
-## Configuration and DSNs
+## Errors, retries, and lifecycle limits
 
-The module requires a configuration directory with `base.yaml`, defaulting to `config`, or selected through `APP_CONFIG_DIR`. Supply lowercase field names beneath `app.database`, as shown in the complete example. For overlays, `env://` resolution, and whole-document versus subtree loading, read the [configuration guide](../config/usage.md) only when those behaviors need explanation. YAML supplies data, not interface implementations. Set `Logger` and `NamingStrategy` in Go.
+Use `errors.Is` for constructor failures. Invalid configuration wraps both `ErrInvalidConfig` and the specific `ErrMissingHost`, `ErrMissingName`, `ErrMissingUser`, `ErrMissingPort`, or `ErrInvalidPortNumber`. Connection exhaustion and pool-access failures wrap `ErrConnectionFailed`.
 
-`Config.DSN()` builds the keyword DSN used by `New`. It does not call `Validate`. `SSLMode` defaults to false and selects `disable`; true selects `require`, not a configurable SSL mode string. `SSLCert`, `SSLKey`, and `SSLRootCert` are appended only with SSL enabled. Set deployment-appropriate TLS settings explicitly. A blank or whitespace-only `TimeZone` becomes `UTC`.
+The constructor makes at most three `gorm.Open` attempts, with one-second and two-second waits. A background ten-second context limits retry waits, but GORM does not receive it. An individual open can exceed it. Retry counts and delays are not configurable. Fx hook timeouts do not cancel constructor attempts.
 
-`ApplicationName` and `SearchPath` are appended when nonempty. Positive `StatementTimeout`, `LockTimeout`, and `IdleInTransaction` become PostgreSQL settings in milliseconds. Positive `ConnectTimeout` is in seconds. Zero or negative values omit those parameters and leave server or driver policy in effect. The constructor does not validate them further.
+The exported `ConnectionError` has `Host`, `Port`, `DB`, `Attempt`, and `Err` fields. Its `Error` formats that context; `Unwrap` and `Is` delegate to `Err`. These constructors do not instantiate it, so ordinary failures need not contain a `*ConnectionError`.
 
-`Config.PostgresDSN()` validates and builds a `postgres://` URL with host/port joining. It includes only credentials, database name, SSL mode, time zone, and optional application name. It omits certificate paths, search path, and timeouts. Unlike `DSN`, only an exactly empty time zone becomes UTC. Neither builder escapes interpolated values. Spaces and reserved characters can change parsing or make a DSN invalid. Avoid logging either form, and construct a properly escaped URL with `net/url` when migration credentials contain reserved characters. Do not assume converting to `PostgresDSN` preserves connection policy.
-
-`Clone()` copies every field, but its interface-valued `Logger` and `NamingStrategy` remain shared implementations, not recursively copied objects. `WithDatabase(name)` returns that copy with a different `Name`; it does not validate the new name. `PreferSimpleProtol` retains its exported spelling but is unused when constructing the PostgreSQL driver. It does not enable simple protocol.
-
-## Pool and GORM settings
-
-Only positive `MaxOpenConnections` and `MaxIdleConnections` call `SetMaxOpenConns` and `SetMaxIdleConns`. Zero and negative values leave `database/sql` defaults, rather than setting the pool to zero idle connections. The standard defaults are unlimited open connections and two idle connections, with idle capacity constrained by any positive open limit. Set different policies afterward on the underlying `*sql.DB` when necessary.
-
-Bricks always sets maximum connection lifetime to one hour and maximum idle age to ten minutes. There are no `ConnMaxLifetime`, `ConnMaxIdleTime`, `MaxRetries`, or `RetryDelay` configuration fields. Override pool ages explicitly through `db.DB()` if required. `sqlDB.Stats()` returns live standard-library statistics. Exported `ConnectionStats` is only a data structure, with maximum/open/in-use/idle counts, wait count and duration, and idle/lifetime closure counts; no Bricks accessor populates it.
-
-`PrepareSTMT` enables GORM's prepared-statement cache. `SkipDefaultTransaction` skips GORM's default write transaction. `DisableForeignKeyConstraint` affects foreign-key creation during GORM migration, not existing database constraints or SQL migration files. All default to false. A non-nil `NamingStrategy` replaces GORM's naming strategy.
-
-`EnableLogs` only assigns `Config.Logger` into GORM when true. False does not explicitly install a silent logger. A nil logger leaves GORM's default behavior. Supply a `gorm.io/gorm/logger.Interface` when customizing it; the Bricks logger interface is not that interface. Choose an adapter or GORM logger explicitly.
+Normal lifecycle shutdown owns closure. An eagerly opened connection can still need cleanup if graph construction fails before lifecycle startup. Do not assume shutdown hooks cover every failed build.
 
 ## Optional compositions
 
-For SQL migrations before application readiness, read the [PostgreSQL startup recipe](../../recipes/postgresql-migrations.md). A connection alone does not execute migrations.
+The connection setup above needs no metrics, tracing, or SQLite guide. Ticket 14 owns these planned destinations, which are not yet distributed guides:
 
-Ticket 14 owns these planned destinations. Load them only for the stated task after they exist:
-
-- For pool monitoring, `recipes/database-pool-metrics.md` owns `PoolMetricsModule`, registerer wiring, and collector lifecycle.
-- For GORM instrumentation, `recipes/gorm-tracing.md` owns tracing initialization and shutdown.
-- For simultaneous database connections, `recipes/multiple-databases.md` owns named providers. PostgreSQL and SQLite stock modules both provide unnamed `*gorm.DB` and collide.
-
-Basic connection setup needs none of those integrations. These are planned pointers, not existing guides or verified examples.
+- Pool monitoring will use `recipes/database-pool-metrics.md` for `PoolMetricsModule`, registerer wiring, and collector lifecycle.
+- GORM instrumentation will use `recipes/gorm-tracing.md` for tracing initialization and shutdown.
+- Multiple connections will use `recipes/multiple-databases.md` for named providers. PostgreSQL and SQLite stock modules both provide unnamed `*gorm.DB` and collide.

@@ -2,7 +2,7 @@
 
 Load this reference for source investigation, undocumented behavior, API verification, or a discrepancy between an example and the application's installed Bricks. Ordinary usage does not require source inspection.
 
-## Establish the effective build
+## 1. Check the application's build settings
 
 Work in the consuming application's package directory, with the environment and build flags used by its actual build. Ask for missing build settings if they could change dependency selection. The module path is `github.com/cristiano-pacheco/bricks`.
 
@@ -26,7 +26,7 @@ Determine effective vendor mode before resolving packages:
 
 Use `-mod=vendor` when that is the effective mode. Otherwise use `-mod=readonly` for inspection, even when the build permits `-mod=mod`. This retains module selection while refusing dependency-file updates. If readonly resolution needs changes, report that limitation and stop. Do not repair it with `tidy`, `get`, or `download`.
 
-## Resolve the selected directory
+## 2. Find the source directory Go actually uses
 
 The following shell snippets are fragments. Keep the guards above active and include the application's effective alternate-module or overlay flags in each command.
 
@@ -51,7 +51,7 @@ Check the returned package `Dir`, `Root`, `Module`, and errors. In vendor mode t
 
 Use the returned package directory for package-local investigation. If the build uses `-overlay`, read its JSON mapping and inspect mapped replacement contents for affected files. The physical directory alone does not describe an overlaid build. For cross-package work, resolve each required package the same way. If `Dir` is absent, unreadable, or resolution fails, report the selected version or replacement, effective mode, configured cache, and the exact error. A different cached version is not a substitute. Do not search the machine or fetch missing source. Ask the user to make the intended source or compatible tooling available.
 
-## Inspect only the relevant contract
+## 3. Read the relevant implementation and stop
 
 Set `package_dir` to the exact returned directory. Start with a bounded query for the requested symbol or behavior:
 

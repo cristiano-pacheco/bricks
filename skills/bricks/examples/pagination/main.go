@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 
 	"github.com/cristiano-pacheco/bricks/pkg/paginator"
 )
 
-func main() {
+func run() error {
 	for _, rawQuery := range []string{
 		"",
 		"page=2&per_page=250",
@@ -25,7 +26,7 @@ func main() {
 	} {
 		query, err := url.ParseQuery(rawQuery)
 		if err != nil {
-			panic(err)
+			return fmt.Errorf("parse query %q: %w", rawQuery, err)
 		}
 		params, err := paginator.ParseQueryParams(query, 1, 20)
 		if err != nil {
@@ -41,7 +42,7 @@ func main() {
 
 	uncheckedDefaults, err := paginator.ParseQueryParams(url.Values{}, 0, -1)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("parse empty query with supplied defaults: %w", err)
 	}
 	fmt.Printf("unchecked defaults=%+v\n", uncheckedDefaults)
 	fmt.Printf("fallback and cap=%+v\n", paginator.NormalizeParams(0, -1, 1, 200, 100))
@@ -58,7 +59,7 @@ func main() {
 	}
 	encoded, err := json.Marshal(metadata)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("encode pagination metadata: %w", err)
 	}
 	fmt.Println(string(encoded))
 	fmt.Printf("zero count pages=%d invalid size pages=%d\n",
@@ -67,5 +68,13 @@ func main() {
 	filter := paginator.OptionalTrimmedStringPtr("  active  ")
 	if filter != nil {
 		fmt.Printf("filter=%q\n", *filter)
+	}
+	return nil
+}
+
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }

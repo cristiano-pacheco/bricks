@@ -1,16 +1,65 @@
-# PostgreSQL migration startup example
+# Apply migrations before a PostgreSQL startup query
 
-This complete Fx application opens the application database, runs embedded migrations on a separate connection, queries the migrated table, and stops. Its readiness token establishes migration-hook registration before the application query hook. No queries run in constructors.
+This one-shot Fx application opens the application pool, applies embedded SQL through a separate migration connection, queries the new table, and stops. A migration failure prevents the query hook from starting.
 
-Compilation, graph validation, service-backed execution, failure checks, and shutdown checks were waived by the user for ticket 06. This is complete source, not a verified runtime example. Do not use it as evidence for removing the database README.
+## 1. Copy the application and schema files
 
-## Consumer setup
+Copy [main.go](main.go), [config/base.yaml](config/base.yaml), and both SQL files with this layout:
 
-Copy [main.go](main.go), [config/base.yaml](config/base.yaml), and the [up](migrations/000001_startup_items.up.sql) and [down](migrations/000001_startup_items.down.sql) SQL files with their directory structure intact into a Go application that already depends on Bricks. No framework checkout is needed at runtime. Keep the application's selected dependency version and toolchain.
+```text
+main.go
+config/
+  base.yaml
+migrations/
+  000001_startup_items.up.sql
+  000001_startup_items.down.sql
+```
 
-Provide a disposable PostgreSQL database named `bricks_skill`, a matching user, and localhost port 5432. The user must be able to create tables, including the migration-state table. Use a fresh database for this example rather than mixing its version 1 with another application's migration history. The [basic connection example](../postgresql/README.md) supplies optional local Docker commands only if container setup is needed.
+Use a Go application that already selects the desired Bricks version and toolchain. The copied program needs no framework checkout at runtime.
 
-From the copied example directory, run these operator commands:
+The [up file](migrations/000001_startup_items.up.sql) creates `bricks_skill_startup_items`. The [down file](migrations/000001_startup_items.down.sql) records the reverse SQL, but Bricks exposes no PostgreSQL rollback operation. Shutdown does not run it.
+
+## 2. Configure both connections
+
+The supplied YAML lists every scalar `database.Config` field. The program derives its migration URL from these same settings:
+
+```yaml
+app:
+  database:
+    host: localhost # Required.
+    port: 5432 # Required. Range 1 to 65535.
+    name: bricks_skill # Required. The database must already exist.
+    user: bricks_skill # Required.
+    password: env://POSTGRES_PASSWORD
+    sslmode: false # Local development only.
+    sslcert: "" # Optional certificate paths, used only with TLS enabled.
+    sslkey: ""
+    sslrootcert: ""
+    maxopenconnections: 10
+    maxidleconnections: 2
+    connecttimeout: 5 # Seconds.
+    statementtimeout: 5000 # Milliseconds.
+    locktimeout: 5000 # Milliseconds.
+    idleintransaction: 0 # Milliseconds. Zero leaves server policy in effect.
+    timezone: UTC
+    applicationname: bricks_skill_startup
+    searchpath: public
+    preparestmt: false
+    skipdefaulttransaction: false
+    disableforeignkeyconstraint: false
+    enablelogs: false # Supply custom GORM Logger implementations in Go.
+    prefersimpleprotol: false # Exported spelling. Currently has no effect.
+```
+
+Use a fresh disposable database rather than mixing this example's version 1 with another application's migration history. The database and user must already exist. The user needs table-creation and migration-state permissions. For optional local Docker setup, use step 3 of the [connection example](../postgresql/README.md#3-provide-a-disposable-postgresql-database).
+
+Set deployment-appropriate TLS for remote databases. `Logger` and `NamingStrategy` are Go-only interfaces. For field defaults and behavior, read the [connection configuration reference](../../references/database/usage.md#configuration-reference).
+
+The application constructor builds a keyword DSN without escaping values. Choose credentials that it can represent. The migration URL builder escapes values but cannot fix that application-connection limitation. Never print passwords or either DSN.
+
+## 3. Run the application
+
+From the copied directory:
 
 ```sh
 export POSTGRES_PASSWORD=local-example-password
@@ -18,28 +67,34 @@ export APP_CONFIG_DIR="$PWD/config"
 go run .
 ```
 
-The sample disables TLS for local use. Configure deployment-appropriate TLS for a remote database. The keyword application DSN does not escape values; choose sample credentials that it can represent. The migration URL builder escapes its values but cannot fix limitations of the application's constructor. Never print the password or DSNs.
+Successful startup applies the table migration before the table-count query. The program then shuts down and exits zero. It is not a long-running server.
 
-## Composition
+## 4. Repeat the command
 
-`database.Module` loads typed configuration from `app.database` and provides a lifecycle-managed `*gorm.DB`. `migrationFiles` exposes the embedded SQL through `fs.Sub` and contributes a `migration.FileSystem` to the application-defined `application_migrations` group. `provideRunner` collects the group. The example has one contributor; more contributors must use distinct filenames and versions because group order is unspecified.
+```sh
+go run .
+```
 
-`registerMigrations` consumes the database to force its close-hook registration, constructs an escaped migration URL from the same configuration, and appends `runner.Up` as an `OnStart` hook. It returns `*schemaReady`. `registerApplication` consumes that token before appending its table-count query hook. Successful startup therefore requires schema application before the query. This is application-owned wiring, not automatic Bricks decoration or a built-in migration module.
+With a current schema, migration execution should return nil and the table-count query should succeed again. Use the same configuration and migration files when repeating the command.
 
-The URL carries SSL and certificate settings, normalized time zone, application name, search path, and positive connection/statement/lock/idle-transaction timeouts. Pool sizing and GORM options apply only to the separate application connection. The runner closes its own migration connection after execution and discards deferred close errors. `database.Module` closes the application pool at shutdown.
+## How the startup order works
 
-The program exits zero after starting and stopping. Repeating it should find the schema current and query the same table. It is a one-shot readiness demonstration, not a server. The down file records the reverse SQL, but Bricks exposes no PostgreSQL rollback operation.
+1. `database.Module` loads `app.database` and provides a lifecycle-managed `*gorm.DB`.
+2. `migrationFiles` uses `fs.Sub` to expose SQL at the filesystem root. Its result joins the application-defined `application_migrations` group.
+3. `provideRunner` collects that group. Additional contributors need distinct filenames and versions because Fx group order is unspecified.
+4. `registerMigrations` requests `*gorm.DB`, forcing pool construction and close-hook registration first. It builds an escaped URL and registers `runner.Up` in `OnStart`, then returns `*schemaReady`.
+5. `registerApplication` requests `*schemaReady` before registering its table-count hook. The migration hook therefore starts first. No queries run in constructors.
 
-## Failure expectations and pending verification
+The token orders registration; SQL has not yet run when the token is returned. Keep that dependency if you replace the query with a server or worker. A serving hook must stop accepting work before the database close hook runs.
 
-These expected outcomes come from source inspection and still need execution against controlled PostgreSQL:
+## Connection ownership and failures
 
-- A valid configuration and fresh database apply the table migration before the count query. A second run treats no pending migrations as success.
-- An unreachable database or invalid credentials fail eager database construction before startup. Connection retry limits do not provide a hard constructor deadline.
-- Invalid SQL or insufficient DDL privileges make `runner.Up` fail, prevent the application query hook from starting, and make the program exit nonzero. Earlier successful PostgreSQL versions can remain applied. Inspect dirty state before retrying.
-- A query failure after migration startup fails application startup. `run` still calls `Stop` with a fresh context and preserves start and stop errors.
-- Normal shutdown closes the application pool. Startup failure rolls back previously started hooks. No code path deliberately closes that pool from the migration hook.
+The application pool and migration connection have separate owners. The URL includes SSL and certificate settings, normalized time zone, application name, search path, and positive connection/statement/lock/idle-transaction timeouts. Pool and GORM options apply only to the application pool. The runner closes its own connection after execution and discards deferred close errors. Fx closes the application pool at shutdown.
 
-The start context is not propagated into `runner.Up`. Do not interpret its 30-second deadline as cancellation of migration SQL or advisory locking. Source and driver errors may include connection details; handle diagnostics according to the application's secret-redaction policy.
+An unreachable database or invalid credentials fail eager pool construction. Invalid SQL or insufficient DDL privileges fail the migration hook and prevent the query hook from starting. Earlier successful PostgreSQL versions can remain applied; inspect dirty state before retrying. Startup failure is not schema rollback.
 
-For ordering, ownership, and operational limits, read the [startup recipe](../../recipes/postgresql-migrations.md). For migration contribution or backend details, load the [shared contract](../../references/migration/usage.md) or [PostgreSQL branch](../../references/migration/postgresql.md) only for the behavior in question. Compilation, startup, failure, repeated-run, and closure assertions remain pending, not passed.
+A query failure also fails startup. After a start attempt, `run` calls `Stop` with a fresh context and preserves both errors. Fx rolls back previously started hooks on startup failure. No migration hook deliberately closes the application pool.
+
+The 30-second start context does not reach `runner.Up`, its advisory locking, or its SQL calls. It is not a hard migration deadline. Handle source and driver diagnostics under your application's secret-redaction policy.
+
+For changing hook ordering or using separate migration credentials, read the [startup recipe](../../recipes/postgresql-migrations.md). For file contribution rules, read the [shared migration guide](../../references/migration/usage.md). For dirty state or PostgreSQL transaction behavior, read the [PostgreSQL branch](../../references/migration/postgresql.md).

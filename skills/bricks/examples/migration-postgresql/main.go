@@ -4,8 +4,8 @@ import (
 	"context"
 	"embed"
 	"errors"
+	"fmt"
 	"io/fs"
-	"log"
 	"os"
 
 	"github.com/cristiano-pacheco/bricks/pkg/migration"
@@ -44,7 +44,7 @@ func registerMigration(lifecycle fx.Lifecycle, runner *migration.Runner) {
 	})
 }
 
-func main() {
+func run() (err error) {
 	app := fx.New(
 		fx.Provide(
 			fx.Annotate(migrationFiles, fx.ResultTags(`group:"application_migrations"`)),
@@ -52,10 +52,23 @@ func main() {
 		),
 		fx.Invoke(registerMigration),
 	)
-	if err := app.Start(context.Background()); err != nil {
-		log.Fatal(err)
+	if err := app.Err(); err != nil {
+		return fmt.Errorf("construct migration application: %w", err)
 	}
-	if err := app.Stop(context.Background()); err != nil {
-		log.Fatal(err)
+	defer func() {
+		if stopErr := app.Stop(context.Background()); stopErr != nil {
+			err = errors.Join(err, fmt.Errorf("stop migration application: %w", stopErr))
+		}
+	}()
+	if err := app.Start(context.Background()); err != nil {
+		return fmt.Errorf("start migration application: %w", err)
+	}
+	return nil
+}
+
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }

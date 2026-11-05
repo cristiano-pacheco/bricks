@@ -1,18 +1,172 @@
-# PostgreSQL migrations before readiness
+# Run PostgreSQL migrations before application startup
 
-Use this recipe when an application needs a Bricks PostgreSQL connection and SQL migrations before its serving or worker hooks start. Installing `database.Module` alone does not migrate the schema. Bricks supplies no migration Fx module or automatic migration group.
+Use this recipe when queries, workers, or request handling must wait for SQL migrations. `database.Module` opens the application pool but does not apply SQL. The application registers migration execution and orders it before schema-dependent work.
 
-## Ordered startup
+## 1. Create the connection configuration
 
-The [complete application](../examples/postgresql-startup/README.md) includes YAML, embedded SQL, an application-owned filesystem group, runner construction, a migration readiness dependency, an application query, and shutdown. Load it when reproducing the full wiring.
+Create `config/base.yaml`:
 
-1. Install `database.Module` for the unnamed `*gorm.DB` and its close hook. Its constructor connects eagerly, so the target database must already exist. This recipe migrates tables, not the PostgreSQL database itself.
-2. Each contributor returns `migration.New(rootFS)` through `fx.Annotate` with `fx.ResultTags` naming the same application-defined group. The example uses `fs.Sub` so embedded files appear at the contribution root.
-3. An application provider collects `[]migration.FileSystem` with an `fx.In` group field and calls `migration.NewRunner`. Give contributions unique filenames and versions. Fx value-group order is unspecified; it cannot establish precedence for conflicting contributions.
-4. A provider consumes the runner, `config.Config[database.Config]`, `*gorm.DB`, and `fx.Lifecycle`. Consuming the database forces its constructor and shutdown-hook registration first. Append a migration `OnStart` hook and return an application-owned readiness token.
-5. Serving or worker registration consumes that token and appends its own hook. Construction of the token registers the migration hook first. Fx runs starts in registration order and stops in reverse order. Merely importing modules or receiving a `*gorm.DB` does not establish migration readiness.
+```yaml
+app:
+  database:
+    host: localhost
+    port: 5432
+    name: bricks_skill
+    user: bricks_skill
+    password: env://POSTGRES_PASSWORD
+    sslmode: false
+    connecttimeout: 5 # Seconds per connection attempt.
+    statementtimeout: 5000 # Milliseconds.
+    maxopenconnections: 10
+    maxidleconnections: 2
+    applicationname: bricks_skill_startup
+```
 
-The token orders hook registration; it is not itself proof that migrations ran. Start request handling only in the later `OnStart`, after the earlier migration hook returns nil. Do not query tables in constructors. The complete example performs a startup query instead of starting a server, so it introduces no unrelated transport setup.
+The database and user must already exist. The user needs permissions for application operations. The migration connection also needs DDL and migration-state permissions. TLS is disabled here only for local development. For every connection field, default, TLS alternative, and Go-only option, read the [database configuration reference](../references/database/usage.md#configuration-reference).
+
+This recipe uses a separate `MIGRATION_DSN` environment variable for the migration URL. Point it at the same database and schema. It can use a distinct migration user. The migration package has no YAML configuration provider of its own.
+
+## 2. Add the schema files
+
+Create `migrations/000001_startup_items.up.sql` beside `main.go`:
+
+```sql
+CREATE TABLE bricks_skill_startup_items (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL
+);
+```
+
+Create `migrations/000001_startup_items.down.sql`:
+
+```sql
+DROP TABLE bricks_skill_startup_items;
+```
+
+Use a fresh database for this example. In an existing application, select an unused numeric version. Preserve historical files after deployment.
+
+## 3. Register migrations before the application hook
+
+This complete `main.go` checks the migrated table and then shuts down. Replace the table-count hook with your application startup only after preserving its `*schemaReady` dependency.
+
+```go
+package main
+
+import (
+    "context"
+    "embed"
+    "errors"
+    "fmt"
+    "io/fs"
+    "os"
+    "time"
+
+    "github.com/cristiano-pacheco/bricks/pkg/database"
+    "github.com/cristiano-pacheco/bricks/pkg/migration"
+    "go.uber.org/fx"
+    "gorm.io/gorm"
+)
+
+//go:embed migrations/*.sql
+var embedded embed.FS
+
+type schemaReady struct{}
+
+type migrationInputs struct {
+    fx.In
+    Files []migration.FileSystem `group:"application_migrations"`
+}
+
+func migrationFiles() (migration.FileSystem, error) {
+    root, err := fs.Sub(embedded, "migrations")
+    if err != nil {
+        return migration.FileSystem{}, err
+    }
+    return migration.New(root), nil
+}
+
+func provideRunner(in migrationInputs) *migration.Runner {
+    return migration.NewRunner(in.Files)
+}
+
+func registerMigrations(lifecycle fx.Lifecycle, runner *migration.Runner, _ *gorm.DB) (*schemaReady, error) {
+    dsn := os.Getenv("MIGRATION_DSN")
+    if dsn == "" {
+        return nil, errors.New("MIGRATION_DSN is required")
+    }
+    lifecycle.Append(fx.Hook{
+        OnStart: func(context.Context) error {
+            if err := runner.Up(dsn); err != nil {
+                return fmt.Errorf("apply PostgreSQL migrations: %w", err)
+            }
+            return nil
+        },
+    })
+    return &schemaReady{}, nil
+}
+
+func registerApplication(lifecycle fx.Lifecycle, db *gorm.DB, _ *schemaReady) {
+    lifecycle.Append(fx.Hook{
+        OnStart: func(ctx context.Context) error {
+            var count int64
+            return db.WithContext(ctx).Table("bricks_skill_startup_items").Count(&count).Error
+        },
+    })
+}
+
+func run() error {
+    app := fx.New(
+        database.Module,
+        fx.Provide(
+            fx.Annotate(migrationFiles, fx.ResultTags(`group:"application_migrations"`)),
+            provideRunner,
+            registerMigrations,
+        ),
+        fx.Invoke(registerApplication),
+    )
+    if err := app.Err(); err != nil {
+        return err
+    }
+    startCtx, cancelStart := context.WithTimeout(context.Background(), 30*time.Second)
+    startErr := app.Start(startCtx)
+    cancelStart()
+    stopCtx, cancelStop := context.WithTimeout(context.Background(), 10*time.Second)
+    defer cancelStop()
+    return errors.Join(startErr, app.Stop(stopCtx))
+}
+
+func main() {
+    if err := run(); err != nil {
+        fmt.Fprintln(os.Stderr, err)
+        os.Exit(1)
+    }
+}
+```
+
+`registerMigrations` consumes `*gorm.DB`, which forces the eager connection constructor and its close-hook registration first. It then registers the migration hook and returns `*schemaReady`. `registerApplication` requests that token before registering its own hook. Fx starts hooks in registration order and stops them in reverse order.
+
+The token orders hook registration; it does not mean SQL has already run during construction. Query tables only in the later `OnStart` or afterward. A migration failure prevents that later hook from starting.
+
+## 4. Run against a disposable database
+
+With the application dependencies already selected and PostgreSQL running:
+
+```sh
+export POSTGRES_PASSWORD=local-example-password
+export APP_CONFIG_DIR="$PWD/config"
+export MIGRATION_DSN='postgres://bricks_skill:local-example-password@localhost:5432/bricks_skill?sslmode=disable&connect_timeout=5&statement_timeout=5000'
+go run .
+```
+
+Successful startup applies the table migration before querying it. The program then stops and exits zero. A second successful run has no pending migrations and queries the existing table. The pool closes at shutdown. An Fx start timeout does not cancel migration execution, as explained below.
+
+## Alternative: derive the migration URL from YAML
+
+The [copyable startup example](../examples/postgresql-startup/README.md) uses the same ordering but builds an escaped URL from `config.Config[database.Config]` instead of reading `MIGRATION_DSN`. Its provider consumes that configuration wrapper, the runner, `*gorm.DB`, and `fx.Lifecycle`. Choose this version when one configuration should drive both connections.
+
+## Add more module contributions
+
+Each contributor returns `migration.New(rootFS)` through `fx.Annotate` with the same group tag. `fs.Sub` makes embedded SQL appear at the contribution root. The group name is application-owned; Bricks has no automatic migration group. Fx group order is unspecified. Give all contributions unique filenames and versions rather than relying on precedence.
 
 For contribution layouts, filenames, collision rules, and public operation selection, read the [shared migration contract](../references/migration/usage.md). For PostgreSQL version state, dirty migrations, transaction boundaries, error wrapping, and absent rollback operations, read the [PostgreSQL migration branch](../references/migration/postgresql.md). This recipe owns ordering and connection composition, not those package contracts.
 

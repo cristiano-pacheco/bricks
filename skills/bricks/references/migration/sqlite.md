@@ -1,23 +1,95 @@
-# SQLite migration execution
+# Apply SQLite migrations
 
-Read the [shared contribution contract](usage.md) when assembling filesystems or application-owned Fx wiring. This branch needs no PostgreSQL guide.
+This guide opens a SQLite file, applies embedded SQL, and closes the handle. The migration runner receives a caller-owned `*sql.DB` and never closes it itself.
 
-## Input and ownership
+## 1. Add migration files
 
-`runner.UpSQLite(db)` and `runner.DownSQLite(db)` accept an open, caller-owned `*sql.DB`. They do not accept a DSN, open a connection, or close the supplied database. Any compatible SQLite driver can supply the handle. With the repository's `github.com/mattn/go-sqlite3` driver, compilation requires CGO and a C toolchain. Standard-library `sql.Open` alone does not inherit Bricks SQLite defaults. Configure foreign keys, connection limits, and connection-local settings explicitly.
+Create `migrations/000001_create_accounts.up.sql` beside `main.go`:
 
-If a GORM connection already exists, obtain its handle through `gormDB.DB()`. Ownership stays with the application's original connection lifecycle. For an independently owned standard-library connection and explicit development rollback, load the [complete SQLite example](../../examples/migration-sqlite/README.md).
-
-```go
-// Fragment. The caller owns db and files.
-runner := migration.NewRunner([]migration.FileSystem{files})
-if err := runner.UpSQLite(db); err != nil {
-    return fmt.Errorf("apply SQLite schema: %w", err)
-}
-// db remains open on success and failure.
+```sql
+CREATE TABLE migration_example_accounts (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL
+);
 ```
 
-There is no context parameter. Transactions and SQL calls use `context.Background()`. An Fx startup timeout does not cancel these operations. Arrange execution before schema-dependent consumers and serialize calls against the same database.
+Create `migrations/000001_create_accounts.down.sql`:
+
+```sql
+DROP TABLE migration_example_accounts;
+```
+
+Use a disposable database for the example. Keep explicit `BEGIN` and `COMMIT` out of these files because the runner owns the transaction.
+
+## 2. Open the database and apply the files
+
+This complete `main.go` owns the connection and preserves close errors:
+
+```go
+package main
+
+import (
+    "database/sql"
+    "embed"
+    "errors"
+    "fmt"
+    "io/fs"
+    "os"
+
+    "github.com/cristiano-pacheco/bricks/pkg/migration"
+    _ "github.com/mattn/go-sqlite3"
+)
+
+//go:embed migrations/*.sql
+var embedded embed.FS
+
+func run() (err error) {
+    root, err := fs.Sub(embedded, "migrations")
+    if err != nil {
+        return err
+    }
+    db, err := sql.Open("sqlite3", "file:migration-example.db?_foreign_keys=on&_busy_timeout=5000")
+    if err != nil {
+        return err
+    }
+    defer func() { err = errors.Join(err, db.Close()) }()
+    db.SetMaxOpenConns(1)
+    db.SetMaxIdleConns(1)
+    if err := db.Ping(); err != nil {
+        return err
+    }
+    runner := migration.NewRunner([]migration.FileSystem{migration.New(root)})
+    return runner.UpSQLite(db)
+}
+
+func main() {
+    if err := run(); err != nil {
+        fmt.Fprintln(os.Stderr, err)
+        os.Exit(1)
+    }
+}
+```
+
+The DSN enables foreign keys and a 5,000-millisecond busy timeout. The pool uses one open and one idle connection. `sql.Open` does not inherit Bricks SQLite constructor defaults, so these settings are explicit.
+
+## 3. Run and repeat
+
+With the selected Bricks and `github.com/mattn/go-sqlite3` dependencies already installed:
+
+```sh
+CGO_ENABLED=1 go run .
+CGO_ENABLED=1 go run .
+```
+
+This driver requires CGO and a C toolchain. The first successful run creates `migration_example_accounts` and records version 1 in `schema_migrations`. The second successful run has no pending SQL. Both leave `migration-example.db` on disk and close the connection.
+
+The runner has no YAML configuration type or migration defaults to copy. This example supplies the SQLite DSN in Go. For a complete command with a `-dsn` flag and an explicit development-only `-down` operation, use the [SQLite example](../../examples/migration-sqlite/README.md).
+
+## Alternative: use an existing application connection
+
+Call `gormDB.DB()` to obtain the `*sql.DB` from GORM, then pass it to `runner.UpSQLite`. Keep closure with the application's original lifecycle. `UpSQLite` and `DownSQLite` accept an open handle, not a DSN. Any compatible SQLite driver can provide it.
+
+Neither operation accepts a context. Transactions and SQL use `context.Background()`, so an Fx startup timeout does not cancel them. Run migrations before schema-dependent consumers and serialize calls against the same database. For collecting files from multiple modules or registering Fx groups, read the [shared guide](usage.md).
 
 ## Contribution validation
 

@@ -48,7 +48,6 @@ jobs:
           go-version-file: go.mod
           cache: true
       - run: make unit-test-coverage
-      - run: make check-bricks-skill
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v7
         with:

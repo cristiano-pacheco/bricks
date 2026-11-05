@@ -1,23 +1,87 @@
-# PostgreSQL migration execution
+# Apply PostgreSQL migrations
 
-Read the [shared contribution contract](usage.md) when assembling filesystems or application-owned Fx wiring. This branch needs no SQLite guide.
+This command applies embedded SQL to an existing PostgreSQL database. It opens its own migration connection and does not need GORM or a Bricks database provider.
 
-## Input and ownership
+## 1. Add migration files
 
-Call `runner.Up(dsn)` with a PostgreSQL URL, such as `postgres://user:password@localhost:5432/app?sslmode=disable`. Use deployment-appropriate TLS settings and URL-escape credentials. Do not log a DSN containing secrets. Bricks passes this string to golang-migrate's registered PostgreSQL driver, not to the Bricks database constructor. An existing GORM or `*sql.DB` connection is neither required nor reused.
+Create `migrations/000001_create_accounts.up.sql` beside `main.go`:
 
-The driver opens its own database connection. After successful migrate-instance construction, `Up` defers `m.Close()` to close the source and database driver. Close errors are discarded, so a nil result is not proof that close succeeded. The method has no context argument or application-level timeout option. Configure supported connection parameters in the URL; an Fx hook's context is not propagated into `Up`. The pinned driver accepts `x-statement-timeout` in milliseconds, defaulting to zero without a statement deadline. It uses PostgreSQL advisory locking; a blocked database lock is not cancelled by the Fx hook context.
+```sql
+CREATE TABLE migration_example_accounts (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL
+);
+```
 
-Direct execution is this fragment:
+Create `migrations/000001_create_accounts.down.sql`:
+
+```sql
+DROP TABLE migration_example_accounts;
+```
+
+Use a fresh database for this example. In an existing application, choose an unused numeric version instead of reusing version 1.
+
+## 2. Create the migration command
+
+This complete direct-construction `main.go` embeds the SQL directory and returns migration failures:
 
 ```go
-runner := migration.NewRunner([]migration.FileSystem{files})
-if err := runner.Up(dsn); err != nil {
-    return fmt.Errorf("apply PostgreSQL schema: %w", err)
+package main
+
+import (
+    "embed"
+    "errors"
+    "fmt"
+    "io/fs"
+    "os"
+
+    "github.com/cristiano-pacheco/bricks/pkg/migration"
+)
+
+//go:embed migrations/*.sql
+var embedded embed.FS
+
+func run() error {
+    dsn := os.Getenv("MIGRATION_DSN")
+    if dsn == "" {
+        return errors.New("MIGRATION_DSN is required")
+    }
+    root, err := fs.Sub(embedded, "migrations")
+    if err != nil {
+        return err
+    }
+    runner := migration.NewRunner([]migration.FileSystem{migration.New(root)})
+    return runner.Up(dsn)
+}
+
+func main() {
+    if err := run(); err != nil {
+        fmt.Fprintln(os.Stderr, err)
+        os.Exit(1)
+    }
 }
 ```
 
-For a complete Fx command with embedded files, an environment-supplied DSN, and explicit startup execution, load the [PostgreSQL example](../../examples/migration-postgresql/README.md). It does not install a Bricks database module.
+## 3. Set the connection URL and run
+
+With PostgreSQL running and the selected Bricks dependency already installed:
+
+```sh
+export MIGRATION_DSN='postgres://user:password@localhost:5432/disposable?sslmode=disable'
+go run .
+```
+
+Replace the credentials and database name. URL-escape credentials, use deployment-appropriate TLS outside local development, and never print a secret-bearing URL. A first successful run creates the table. A second successful run leaves the schema unchanged and returns nil.
+
+The migration package has no YAML configuration type. This command reads `MIGRATION_DSN` directly. If the application already stores connection settings in YAML, build an escaped URL from those settings as shown in the [PostgreSQL startup recipe](../../recipes/postgresql-migrations.md). Do not add an invented `app.migration` configuration block.
+
+For the complete Fx variant with an application-owned filesystem group and explicit startup execution, use the [PostgreSQL example](../../examples/migration-postgresql/README.md). For multiple module contributions and filename conventions, read the [shared guide](usage.md).
+
+## Connection ownership and timeout limits
+
+Bricks passes the URL to golang-migrate's registered PostgreSQL driver, not the Bricks database constructor. An existing GORM or `*sql.DB` connection is neither required nor reused. After successful migrate-instance construction, `Up` defers `m.Close()` to close the source and database driver. Close errors are discarded, so nil is not proof that close succeeded.
+
+`Up` has no context argument or application-level timeout option. An Fx hook's context does not reach it. Configure supported connection parameters in the URL. The pinned driver accepts `x-statement-timeout` in milliseconds, defaulting to zero without a statement deadline. It uses PostgreSQL advisory locking; a blocked database lock is not cancelled by the Fx hook context.
 
 ## Contributions and versions
 

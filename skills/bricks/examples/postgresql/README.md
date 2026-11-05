@@ -1,14 +1,56 @@
-# PostgreSQL connection example
+# Check a PostgreSQL connection with Fx
 
-This complete Fx program installs `database.Module`, forces construction through an invoke consuming `*gorm.DB`, runs `SELECT 1` on startup, and stops the application. The module owns pool closure. It needs no logger module, interface adapter, filesystem group, or migration provider.
+This example opens a Bricks PostgreSQL connection, runs `SELECT 1`, and shuts down. It is a one-shot check, not a server. Fx owns pool closure.
 
-The program and its YAML are complete source, not verified execution evidence. Compilation, Fx graph validation, PostgreSQL startup/failure/shutdown checks, lint, and repository suites were waived by the user for ticket 06. Retain the existing package README until those replacement gates pass.
+## 1. Copy the application files
 
-## Run in a consumer application
+Copy [main.go](main.go) and [config/base.yaml](config/base.yaml) into a directory of a Go application that already selects the desired Bricks version. Keep this layout:
 
-Copy [main.go](main.go) and [config/base.yaml](config/base.yaml) together into a directory of a Go application that already depends on the desired Bricks version. The example uses that application's dependency declarations and Go toolchain. It needs no Bricks checkout at runtime. If package imports need adding, manage them through the application's normal dependency workflow rather than silently fetching another Bricks version.
+```text
+main.go
+config/
+  base.yaml
+```
 
-Create a disposable PostgreSQL instance with an existing `bricks_skill` database and `bricks_skill` user, reachable on localhost port 5432. For a local Docker instance, these are optional operator commands, not commands executed during authoring:
+The program installs `database.Module` and an invoke that requests `*gorm.DB`. That request forces connection construction. The invoke registers the query as an `OnStart` hook rather than querying in the constructor. No logger module, migration provider, interface adapter, or filesystem group is needed.
+
+## 2. Configure the connection
+
+The supplied `config/base.yaml` lists every scalar `database.Config` field:
+
+```yaml
+app:
+  database:
+    host: localhost # Required.
+    port: 5432 # Required. Range 1 to 65535.
+    name: bricks_skill # Required. The database must already exist.
+    user: bricks_skill # Required.
+    password: env://POSTGRES_PASSWORD
+    sslmode: false # Local development only.
+    sslcert: "" # Optional certificate paths, used only with TLS enabled.
+    sslkey: ""
+    sslrootcert: ""
+    maxopenconnections: 10
+    maxidleconnections: 2
+    connecttimeout: 5 # Seconds per connection attempt.
+    statementtimeout: 5000 # Milliseconds.
+    locktimeout: 0 # Milliseconds. Zero leaves server policy in effect.
+    idleintransaction: 0 # Milliseconds. Zero leaves server policy in effect.
+    timezone: UTC
+    applicationname: bricks_skill_connection
+    searchpath: public
+    preparestmt: false
+    skipdefaulttransaction: false
+    disableforeignkeyconstraint: false
+    enablelogs: false # Supply custom GORM Logger implementations in Go.
+    prefersimpleprotol: false # Exported spelling. Currently has no effect.
+```
+
+Change the host, port, database, and user for your instance. A missing `POSTGRES_PASSWORD` becomes an empty string, not a configuration-load error. Use deployment-appropriate TLS outside a disposable local environment. `Logger` and `NamingStrategy` are Go interfaces and cannot be configured in YAML. For omitted-field defaults and each field's behavior, read the [configuration reference](../../references/database/usage.md#configuration-reference).
+
+## 3. Provide a disposable PostgreSQL database
+
+Use an existing disposable instance with the configured database and user, or create this local container:
 
 ```sh
 docker run --name bricks-skill-postgres --rm -d \
@@ -16,7 +58,11 @@ docker run --name bricks-skill-postgres --rm -d \
   -e POSTGRES_PASSWORD=local-example-password -p 5432:5432 postgres:17
 ```
 
-Wait until PostgreSQL accepts connections. From the copied example directory:
+Wait until PostgreSQL accepts connections. The program does not create the database or user. These are operator commands, not recorded execution evidence.
+
+## 4. Run the check
+
+From the copied application directory:
 
 ```sh
 export POSTGRES_PASSWORD=local-example-password
@@ -24,12 +70,20 @@ export APP_CONFIG_DIR="$PWD/config"
 go run .
 ```
 
-A successful program exits zero after starting and stopping. It does not remain running as a service. Stop only the container you created with `docker stop bricks-skill-postgres` when finished. Do not apply broad container cleanup to shared Docker infrastructure. The sample disables TLS for local use; select deployment-appropriate TLS settings outside a disposable local environment.
+A successful run exits zero after `SELECT 1` and shutdown. `run` uses separate start and stop contexts, calls `Stop` after a start error, and joins start and stop errors.
 
-## Configuration and lifecycle
+Connections open during construction, before the start context exists. Constructor attempts do not accept that context, so the start timeout is not a connection deadline. The positive `connecttimeout` configures the driver timeout for an individual connection attempt.
 
-The supplied YAML includes all required connection fields, a password reference, explicit pool limits, and positive driver and statement timeouts. Change host and port when PostgreSQL is not reachable at the sample address. `APP_CONFIG_DIR` points to the copied directory, and `base.yaml` is mandatory. `env://POSTGRES_PASSWORD` reads an existing environment variable; an absent value becomes empty, not a loader error.
+## 5. Clean up the container you created
 
-`registerQuery` consumes the database before appending its hook. That forces the eager constructor and its close-hook registration first. `run` gives start and stop separate contexts, calls stop after a start error, and joins their errors. Constructor attempts happen before these contexts and do not accept them. Start timeout does not establish a constructor deadline. No migrations or application tables are involved.
+If you used the Docker command above:
 
-For connection options and a direct-construction fragment, read the [database guide](../../references/database/usage.md). For SQL migrations before application queries, load the [separate startup example](../postgresql-startup/README.md) only when that ordering is required.
+```sh
+docker stop bricks-skill-postgres
+```
+
+Stop only your container. Do not run broad cleanup on shared Docker infrastructure.
+
+## Next changes
+
+For direct construction, a custom GORM logger, or other connection options, read the [database guide](../../references/database/usage.md). For SQL migrations before application queries, use the [startup example](../postgresql-startup/README.md). This connection check does not create application tables or run migrations.
