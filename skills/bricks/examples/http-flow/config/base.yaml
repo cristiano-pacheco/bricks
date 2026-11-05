@@ -1,0 +1,8 @@
+app:
+  http:
+    address: 127.0.0.1:8080
+    enablemetrics: false
+    readtimeout: 15s
+    writetimeout: 15s
+    idletimeout: 60s
+    shutdowntimeout: 10s

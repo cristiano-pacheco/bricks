@@ -1,0 +1,5 @@
+app:
+  http:
+    swagger:
+      enabled: true
+      path: /swagger/*

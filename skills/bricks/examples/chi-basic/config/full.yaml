@@ -1,0 +1,25 @@
+app:
+  http:
+    address: 127.0.0.1:8080
+    port: 8080
+    readtimeout: 15s
+    writetimeout: 15s
+    idletimeout: 60s
+    shutdowntimeout: 10s
+    enablemetrics: true
+    metricsaddress: 127.0.0.1:9091
+    metricsport: 9091
+    enablerequestlogging: true
+    enableroutelogging: true
+    cors:
+      allowedorigins: ["https://app.example.com"]
+      allowedmethods: ["GET", "POST", "OPTIONS"]
+      allowedheaders: ["Accept", "Authorization", "Content-Type"]
+      exposedheaders: ["X-Example"]
+      allowcredentials: true
+      maxage: 300
+      optionspassthrough: false
+      debug: false
+    swagger:
+      enabled: false
+      path: /swagger/*

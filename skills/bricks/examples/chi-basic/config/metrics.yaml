@@ -1,0 +1,4 @@
+app:
+  http:
+    enablemetrics: true
+    metricsaddress: 127.0.0.1:9091
