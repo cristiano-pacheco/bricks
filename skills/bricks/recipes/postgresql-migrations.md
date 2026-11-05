@@ -188,4 +188,4 @@ If a serving hook starts successfully, its `OnStop` must stop accepting work bef
 
 ## Optional integrations
 
-Only for pool monitoring, consult the planned `recipes/database-pool-metrics.md` after ticket 14 authors it. Only for tracing, consult the planned `recipes/gorm-tracing.md` after ticket 14 authors it. Only for simultaneous database connections, consult the planned `recipes/multiple-databases.md` after ticket 14 authors it. Those destinations are not yet distributed guides. Their absence does not block this startup recipe; do not load unrelated branches for basic migrations.
+For pool monitoring, use [database pool metrics](database-pool-metrics.md). For GORM instrumentation, use [GORM tracing](gorm-tracing.md). For simultaneous database connections, use [multiple databases](multiple-databases.md). Basic migrations need none of these integrations.

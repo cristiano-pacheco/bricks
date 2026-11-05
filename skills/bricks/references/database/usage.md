@@ -213,8 +213,8 @@ Normal lifecycle shutdown owns closure. An eagerly opened connection can still n
 
 ## Optional compositions
 
-The connection setup above needs no metrics, tracing, or SQLite guide. Ticket 14 owns these planned destinations, which are not yet distributed guides:
+The connection setup above needs no metrics, tracing, or SQLite guide. Load an integration recipe only for its task:
 
-- Pool monitoring will use `recipes/database-pool-metrics.md` for `PoolMetricsModule`, registerer wiring, and collector lifecycle.
-- GORM instrumentation will use `recipes/gorm-tracing.md` for tracing initialization and shutdown.
-- Multiple connections will use `recipes/multiple-databases.md` for named providers. PostgreSQL and SQLite stock modules both provide unnamed `*gorm.DB` and collide.
+- For pool monitoring, use [database pool metrics](../../recipes/database-pool-metrics.md) for `PoolMetricsModule`, registerer wiring, and collector lifecycle.
+- For GORM instrumentation, use [GORM tracing](../../recipes/gorm-tracing.md) for tracing initialization and shutdown.
+- For simultaneous connections, use [multiple databases](../../recipes/multiple-databases.md) for named providers. PostgreSQL and SQLite stock modules both provide unnamed `*gorm.DB` and collide.

@@ -169,4 +169,4 @@ For direct construction, use `sqlite.New`, obtain `db.DB()`, and defer closing t
 
 For several migration contributors, return `migration.FileSystem` values into an application-owned Fx group, collect the group in a runner provider, and keep the same readiness dependency. Group order does not define migration order. The shared migration contract gives the complete group pattern.
 
-Multiple database connections, pool metrics, and GORM tracing remain separate integrations planned for ticket 14. Their recipes are not yet distributed. In particular, adding both database modules without naming their `*gorm.DB` results causes an Fx collision. Do not add instrumentation or a second database just to run these migrations.
+For simultaneous connections, use [multiple databases](multiple-databases.md). For pool monitoring, use [database pool metrics](database-pool-metrics.md). For GORM instrumentation, use [GORM tracing](gorm-tracing.md). Adding both database modules without naming their `*gorm.DB` results causes an Fx collision. These migrations need neither instrumentation nor a second database.
