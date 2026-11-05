@@ -42,7 +42,9 @@ import (
 
 type GreetingRoutes struct{}
 
-func newGreetingRoutes() chi.Route { return &GreetingRoutes{} }
+func newGreetingRoutes() *GreetingRoutes {
+	return &GreetingRoutes{}
+}
 
 func (r *GreetingRoutes) Setup(server *chi.Server) {
 	server.Router().Get("/hello", func(w http.ResponseWriter, request *http.Request) {
@@ -55,7 +57,7 @@ func (r *GreetingRoutes) Setup(server *chi.Server) {
 func application() *fx.App {
 	return fx.New(
 		chi.Module,
-		fx.Provide(fx.Annotate(newGreetingRoutes, fx.ResultTags(`group:"routes"`))),
+		fx.Provide(fx.Annotate(newGreetingRoutes, fx.As(new(chi.Route)), fx.ResultTags(`group:"routes"`))),
 	)
 }
 
@@ -85,7 +87,7 @@ func main() {
 }
 ```
 
-`newGreetingRoutes` returns the `chi.Route` interface and contributes it to the Fx `routes` group. A provider returning only `*GreetingRoutes` must instead add `fx.As(new(chi.Route))` to its annotation. `chi.Module` collects that group, calls each route's `Setup` during startup, and binds the listener before startup succeeds.
+`newGreetingRoutes` returns the concrete `*GreetingRoutes`. Its Fx annotation publishes that instance as `chi.Route` in the `routes` group. `chi.Module` collects that group, calls each route's `Setup` during startup, and binds the listener before startup succeeds.
 
 The callback logs response-write errors because it cannot return an error to `net/http`. It does not try to write a second response after a write failure. Application startup and shutdown errors reach `main` only after cleanup.
 
@@ -136,5 +138,5 @@ Fx startup binds both enabled listeners synchronously. If the metrics bind fails
 - For request logs, route logs, or a supplied slog logger, use [logging](logging.md).
 - For an API documentation UI and its required document registration, use [Swagger](swagger.md).
 - For the separate default-registry metrics listener, use [Chi metrics](../../../../recipes/metrics-chi.md). For custom gatherers, use the independent listener recipe linked there.
-- For body decoding, use-case validation, explicit decoration, and error responses together, use [the HTTP flow](../../../../recipes/http-flow.md).
+- For body decoding, use-case validation, direct execution, and error responses together, use [the HTTP flow](../../../../recipes/http-flow.md).
 - For list-query policy and response metadata, use [pagination and responses](../../../../recipes/pagination-response.md).

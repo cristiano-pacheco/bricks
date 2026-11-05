@@ -42,14 +42,54 @@ import (
 	"go.uber.org/fx"
 )
 
-type ListOutput struct {
+type ProductListInput struct {
+	Offset int
+	Limit int
+}
+
+type ProductListOutput struct {
+	Items []string
+	Total int64
+}
+
+type ProductListUseCase struct {
+	products []string
+}
+
+func newProductListUseCase() *ProductListUseCase {
+	return &ProductListUseCase{products: []string{"coffee", "tea", "cocoa"}}
+}
+
+func (operation *ProductListUseCase) Execute(ctx context.Context, input ProductListInput) (ProductListOutput, error) {
+	if err := ctx.Err(); err != nil {
+		return ProductListOutput{}, err
+	}
+	if input.Offset < 0 || input.Limit < 1 || input.Limit > 2 {
+		return ProductListOutput{}, errors.New("invalid product page")
+	}
+	start := input.Offset
+	if start > len(operation.products) {
+		start = len(operation.products)
+	}
+	end := start + input.Limit
+	if end > len(operation.products) {
+		end = len(operation.products)
+	}
+	return ProductListOutput{Items: operation.products[start:end], Total: int64(len(operation.products))}, nil
+}
+
+type ListResponse struct {
 	Items []string `json:"items"`
 	Pagination paginator.Metadata `json:"pagination"`
 }
 
-type ProductRoutes struct{}
+type ProductRoutes struct {
+	productListUseCase *ProductListUseCase
+}
 
-func newProductRoutes() chi.Route { return &ProductRoutes{} }
+func newProductRoutes(productListUseCase *ProductListUseCase) *ProductRoutes {
+	return &ProductRoutes{productListUseCase: productListUseCase}
+}
 
 func (routes *ProductRoutes) Setup(server *chi.Server) {
 	handler := response.NewErrorHandler(nil, nil)
@@ -65,19 +105,16 @@ func (routes *ProductRoutes) Setup(server *chi.Server) {
 			return
 		}
 		params = paginator.NormalizeParams(params.Page, params.PerPage, 1, 2, 2)
-		all := []string{"coffee", "tea", "cocoa"}
-		start := params.Offset()
-		if start > len(all) {
-			start = len(all)
+		page, err := routes.productListUseCase.Execute(r.Context(), ProductListInput{Offset: params.Offset(), Limit: params.Limit()})
+		if err != nil {
+			slog.ErrorContext(r.Context(), "list products", "error", err)
+			handler.Error(w, err)
+			return
 		}
-		end := start + params.Limit()
-		if end > len(all) {
-			end = len(all)
-		}
-		output := ListOutput{
-			Items: all[start:end],
-			Pagination: paginator.Metadata{TotalCount: int64(len(all)), Page: params.Page,
-				PerPage: params.PerPage, TotalPages: paginator.TotalPages(int64(len(all)), params.PerPage)},
+		output := ListResponse{
+			Items: page.Items,
+			Pagination: paginator.Metadata{TotalCount: page.Total, Page: params.Page,
+				PerPage: params.PerPage, TotalPages: paginator.TotalPages(page.Total, params.PerPage)},
 		}
 		if err := response.JSON(w, http.StatusOK, output, nil); err != nil {
 			slog.ErrorContext(r.Context(), "write products", "error", err)
@@ -86,7 +123,10 @@ func (routes *ProductRoutes) Setup(server *chi.Server) {
 }
 
 func application() *fx.App {
-	return fx.New(chi.Module, fx.Provide(fx.Annotate(newProductRoutes, fx.ResultTags(`group:"routes"`))))
+	return fx.New(chi.Module, fx.Provide(
+		newProductListUseCase,
+		fx.Annotate(newProductRoutes, fx.As(new(chi.Route)), fx.ResultTags(`group:"routes"`)),
+	))
 }
 
 func run(app *fx.App) error {
@@ -117,7 +157,7 @@ func main() {
 
 `ParseQueryParams` rejects supplied zero, negative, noninteger, and overflowing integer values. Defaults apply to blank or absent values. The next normalization step caps valid sizes at two. It is an application policy, not behavior supplied by the strict parser. This example also limits page numbers before calculating offsets to avoid unchecked integer multiplication.
 
-The slice adapter applies `Offset()` and `Limit()`. A database adapter would use those same normalized values for its query and obtain an independent total count without the page limit. Metadata uses that total count, not the number of rows in this page. An out-of-range page returns an empty list and preserves the requested page number.
+The route maps `Offset()` and `Limit()` into application primitives and calls one concrete use case. The operation returns items and a total without HTTP or paginator types. A database adapter would apply those values to its query and obtain an independent total count without the page limit. Metadata uses that total count, not the number of rows in this page. An out-of-range page returns an empty list and preserves the requested page number.
 
 `response.NewErrorHandler(nil, nil)` is a supported direct-construction fallback here because no validation errors need translations and no Bricks logger is required. It uses slog if writing an error response itself fails. Do not assume this removes the dependencies of `response.Module` in a different application.
 
@@ -165,4 +205,4 @@ Create the Go file from step 2 and copy the [YAML](../examples/chi-pagination/co
 
 Choose your own positive defaults and cap. Set `maxPerPage` to zero or a negative number only when you deliberately want no cap. If you accept unchecked internal pagination values instead of an HTTP query, normalization can supply fallbacks, but it does not validate those fallback arguments or protect offset multiplication.
 
-`paginator.Metadata` is an application payload. Bricks does not automatically insert it into `response.JSON`. The explicit `ListOutput` puts it under `data.pagination`; `response.JSONRaw` would omit only the outer `data` envelope. For other API contracts, use [HTTP responses](../references/http/response/usage.md). For scalar filters, overflow behavior, aliases, and helper details, use [pagination usage](../references/paginator/usage.md).
+`paginator.Metadata` is an application payload. Bricks does not automatically insert it into `response.JSON`. The explicit `ListResponse` puts it under `data.pagination`; `response.JSONRaw` would omit only the outer `data` envelope. For other API contracts, use [HTTP responses](../references/http/response/usage.md). For scalar filters, overflow behavior, aliases, and helper details, use [pagination usage](../references/paginator/usage.md).

@@ -42,10 +42,12 @@ func (r *GreetingRoutes) Setup(server *chi.Server) {
     })
 }
 
-func newGreetingRoutes() chi.Route { return &GreetingRoutes{} }
+func newGreetingRoutes() *GreetingRoutes {
+    return &GreetingRoutes{}
+}
 ```
 
-The base application contributes `newGreetingRoutes` to the Fx group named `routes` through a `fx.ResultTags` annotation. Bricks calls `Setup` before serving. The group installs its middleware before its own routes. For authentication, replace the header middleware with your application authenticator and keep rejection responses within that middleware.
+The base application contributes `newGreetingRoutes` to the Fx group named `routes` through `fx.As(new(chi.Route))` and `fx.ResultTags` annotations. Bricks calls `Setup` before serving. The group installs its middleware before its own routes. For authentication, replace the header middleware with your application authenticator and keep rejection responses within that middleware.
 
 `chi.New` has already registered `/healthz` before application routes run. Calling `server.Router().Use(...)` on that root router at this point can panic because Chi requires middleware installation before root routes. Use `Group`, `With`, or a mounted subrouter. Do not recommend root `Use` from an Fx route's `Setup`.
 

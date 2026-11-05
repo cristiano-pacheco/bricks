@@ -1,6 +1,8 @@
 # Decode, validate, execute, and respond
 
-Build `POST /orders` with Chi's real listener, JSON decoding, validation at the use-case boundary, an explicitly decorated use case, and HTTP error mapping. The example uses an in-memory catalog so the complete flow needs no external service. Start in an application module that already depends on Bricks.
+Build `POST /orders` with Bricks' Chi server, bounded JSON decoding, use-case validation, and error responses. The use case runs directly. This example has no database or decorators.
+
+Start in an application module that already depends on Bricks. Project conventions may require separate files and packages. The single file below keeps the framework setup visible without prescribing that layout.
 
 ## 1. Create the configuration
 
@@ -17,7 +19,7 @@ app:
     shutdowntimeout: 10s
 ```
 
-This is the real server configuration. Parsing, validator rules, decorator dependencies, and response rendering are Go-only here. This manual decorator chain needs no decorator YAML. For additional server fields, load [the complete field reference](../references/http/server/chi/configuration.md) only when changing those settings.
+These are explicit server settings. Validation and response wiring are Go-only. For other server fields, read [server configuration](../references/http/server/chi/configuration.md).
 
 ## 2. Create the application
 
@@ -27,156 +29,178 @@ Create `cmd/orders/main.go`:
 package main
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"log/slog"
-	"net/http"
-	"os"
-	"time"
+    "context"
+    "errors"
+    "fmt"
+    "log/slog"
+    "net/http"
+    "os"
+    "time"
 
-	"github.com/cristiano-pacheco/bricks/pkg/errs"
-	"github.com/cristiano-pacheco/bricks/pkg/http/request"
-	"github.com/cristiano-pacheco/bricks/pkg/http/response"
-	"github.com/cristiano-pacheco/bricks/pkg/http/server/chi"
-	"github.com/cristiano-pacheco/bricks/pkg/logger"
-	"github.com/cristiano-pacheco/bricks/pkg/ucdecorator"
-	"github.com/cristiano-pacheco/bricks/pkg/validator"
-	"go.uber.org/fx"
+    "github.com/cristiano-pacheco/bricks/pkg/errs"
+    "github.com/cristiano-pacheco/bricks/pkg/http/request"
+    "github.com/cristiano-pacheco/bricks/pkg/http/response"
+    "github.com/cristiano-pacheco/bricks/pkg/http/server/chi"
+    "github.com/cristiano-pacheco/bricks/pkg/logger"
+    "github.com/cristiano-pacheco/bricks/pkg/validator"
+    "go.uber.org/fx"
 )
 
+type OrderRequest struct {
+    SKU      string `json:"sku"`
+    Quantity int    `json:"quantity"`
+}
+
 type OrderInput struct {
-	SKU      string `json:"sku" validate:"required"`
-	Quantity int `json:"quantity" validate:"gte=1,lte=100"`
+    SKU      string `validate:"required"`
+    Quantity int    `validate:"gte=1,lte=100"`
 }
 
 type OrderOutput struct {
-	TotalCents int `json:"total_cents"`
+    TotalCents int
+}
+
+type OrderResponse struct {
+    TotalCents int `json:"total_cents"`
 }
 
 type Catalog interface {
-	Price(context.Context, string) (int, error)
+    Price(context.Context, string) (int, error)
 }
 
 type memoryCatalog struct{}
 
-func (memoryCatalog) Price(ctx context.Context, sku string) (int, error) {
-	if err := ctx.Err(); err != nil {
-		return 0, err
-	}
-	if sku == "broken" {
-		return 0, errors.New("private catalog connection failure")
-	}
-	if sku != "coffee" {
-		return 0, errs.New("PRODUCT_NOT_FOUND", "product not found", http.StatusNotFound, nil)
-	}
-	return 250, nil
+func newMemoryCatalog() *memoryCatalog {
+    return &memoryCatalog{}
+}
+
+func (catalog *memoryCatalog) Price(ctx context.Context, sku string) (int, error) {
+    if err := ctx.Err(); err != nil {
+        return 0, err
+    }
+    if sku == "broken" {
+        return 0, errors.New("private catalog connection failure")
+    }
+    if sku != "coffee" {
+        return 0, errs.New("PRODUCT_NOT_FOUND", "product not found", http.StatusNotFound, nil)
+    }
+    return 250, nil
 }
 
 type CreateOrder struct {
-	validate validator.Validator
-	catalog  Catalog
+    inputValidator validator.Validator
+    catalog        Catalog
 }
 
-func (uc *CreateOrder) Execute(ctx context.Context, input OrderInput) (OrderOutput, error) {
-	if err := uc.validate.Validate(input); err != nil {
-		return OrderOutput{}, err
-	}
-	price, err := uc.catalog.Price(ctx, input.SKU)
-	if err != nil {
-		return OrderOutput{}, err
-	}
-	return OrderOutput{TotalCents: price * input.Quantity}, nil
+func newCreateOrder(inputValidator validator.Validator, catalog Catalog) *CreateOrder {
+    return &CreateOrder{inputValidator: inputValidator, catalog: catalog}
 }
 
-func provideOrder(v validator.Validator, catalog Catalog, log logger.Logger) ucdecorator.UseCase[OrderInput, OrderOutput] {
-	base := &CreateOrder{validate: v, catalog: catalog}
-	// Explicit manual wrapping. Metrics and translation are deliberately absent.
-	// The tracing wrapper uses the global no-op provider until tracing is installed.
-	return ucdecorator.Chain[OrderInput, OrderOutput](base, log, nil, nil, "create_order", "CreateOrder.Execute")
+func (operation *CreateOrder) Execute(ctx context.Context, input OrderInput) (OrderOutput, error) {
+    if err := operation.inputValidator.Validate(input); err != nil {
+        return OrderOutput{}, err
+    }
+    price, err := operation.catalog.Price(ctx, input.SKU)
+    if err != nil {
+        return OrderOutput{}, err
+    }
+    return OrderOutput{TotalCents: price * input.Quantity}, nil
 }
 
-func provideLogger(lc fx.Lifecycle) (logger.Logger, error) {
-	cfg := logger.DefaultConfig()
-	cfg.OutputPaths = []string{"orders.log"}
-	cfg.ErrorOutputPaths = []string{"orders-errors.log"}
-	log, err := logger.New(cfg)
-	if err != nil {
-		return nil, err
-	}
-	lc.Append(fx.Hook{OnStop: func(context.Context) error { return log.Sync() }})
-	return log, nil
+func provideLogger(lifecycle fx.Lifecycle) (logger.Logger, error) {
+    cfg := logger.DefaultConfig()
+    cfg.OutputPaths = []string{"orders.log"}
+    cfg.ErrorOutputPaths = []string{"orders-errors.log"}
+    applicationLogger, err := logger.New(cfg)
+    if err != nil {
+        return nil, err
+    }
+    lifecycle.Append(fx.Hook{OnStop: func(context.Context) error {
+        return applicationLogger.Sync()
+    }})
+    return applicationLogger, nil
 }
 
 type OrderRoutes struct {
-	create ucdecorator.UseCase[OrderInput, OrderOutput]
-	errors response.ErrorHandler
+    createOrder  *CreateOrder
+    errorHandler response.ErrorHandler
 }
 
-func newOrderRoutes(create ucdecorator.UseCase[OrderInput, OrderOutput], handler response.ErrorHandler) chi.Route {
-	return &OrderRoutes{create: create, errors: handler}
+func newOrderRoutes(createOrder *CreateOrder, errorHandler response.ErrorHandler) *OrderRoutes {
+    return &OrderRoutes{createOrder: createOrder, errorHandler: errorHandler}
 }
 
 func (routes *OrderRoutes) Setup(server *chi.Server) {
-	server.Router().Post("/orders", func(w http.ResponseWriter, r *http.Request) {
-		var input OrderInput
-		if err := request.ReadJSON(w, r, &input); err != nil {
-			routes.errors.Error(w, err)
-			return
-		}
-		output, err := routes.create.Execute(r.Context(), input)
-		if err != nil {
-			routes.errors.Error(w, err)
-			return
-		}
-		if err := response.JSON(w, http.StatusCreated, output, nil); err != nil {
-			// The response may already have started. Do not render a second body.
-			slog.ErrorContext(r.Context(), "write order", "error", err)
-		}
-	})
+    server.Router().Post("/orders", routes.handleCreate)
+}
+
+func (routes *OrderRoutes) handleCreate(w http.ResponseWriter, r *http.Request) {
+    var body *OrderRequest
+    if err := request.ReadJSON(w, r, &body); err != nil {
+        routes.errorHandler.Error(w, err)
+        return
+    }
+    if body == nil {
+        routes.errorHandler.Error(w, errs.New("BAD_REQUEST", "request body must be an object", http.StatusBadRequest, nil))
+        return
+    }
+    output, err := routes.createOrder.Execute(r.Context(), OrderInput{SKU: body.SKU, Quantity: body.Quantity})
+    if err != nil {
+        // This example reports operation failures here. No decorator logs them.
+        slog.ErrorContext(r.Context(), "create order", "error", err)
+        routes.errorHandler.Error(w, err)
+        return
+    }
+    result := OrderResponse{TotalCents: output.TotalCents}
+    if err := response.JSON(w, http.StatusCreated, result, nil); err != nil {
+        // The response may have started. Do not render another body.
+        slog.ErrorContext(r.Context(), "write order", "error", err)
+    }
 }
 
 func application() *fx.App {
-	return fx.New(
-		chi.Module, validator.Module, response.Module,
-		fx.Provide(provideLogger, func() Catalog { return memoryCatalog{} }, provideOrder),
-		fx.Provide(fx.Annotate(newOrderRoutes, fx.ResultTags(`group:"routes"`))),
-	)
+    return fx.New(
+        chi.Module, validator.Module, response.Module,
+        fx.Provide(
+            provideLogger,
+            fx.Annotate(newMemoryCatalog, fx.As(new(Catalog))),
+            newCreateOrder,
+            fx.Annotate(newOrderRoutes, fx.As(new(chi.Route)), fx.ResultTags(`group:"routes"`)),
+        ),
+    )
 }
 
 func run(app *fx.App) error {
-	if err := app.Err(); err != nil {
-		return err
-	}
-	startCtx, cancelStart := context.WithTimeout(context.Background(), 10*time.Second)
-	err := app.Start(startCtx)
-	cancelStart()
-	if err == nil {
-		signal := <-app.Wait()
-		if signal.ExitCode != 0 {
-			err = fmt.Errorf("application requested exit code %d", signal.ExitCode)
-		}
-	}
-	stopCtx, cancelStop := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancelStop()
-	return errors.Join(err, app.Stop(stopCtx))
+    if err := app.Err(); err != nil {
+        return err
+    }
+    startCtx, cancelStart := context.WithTimeout(context.Background(), 10*time.Second)
+    err := app.Start(startCtx)
+    cancelStart()
+    if err == nil {
+        signal := <-app.Wait()
+        if signal.ExitCode != 0 {
+            err = fmt.Errorf("application requested exit code %d", signal.ExitCode)
+        }
+    }
+    stopCtx, cancelStop := context.WithTimeout(context.Background(), 10*time.Second)
+    defer cancelStop()
+    return errors.Join(err, app.Stop(stopCtx))
 }
 
 func main() {
-	if err := run(application()); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+    if err := run(application()); err != nil {
+        fmt.Fprintln(os.Stderr, err)
+        os.Exit(1)
+    }
 }
 ```
 
-The `Catalog` interface is an application port. Its controlled adapter returns 250 cents for `coffee`, a structured 404 for an unknown product, and an unstructured error for the reserved `broken` product. Replace that provider with your own adapter without changing the HTTP route.
+The route maps HTTP fields into application input and maps output into a response DTO. `CreateOrder.Execute` validates before calling its catalog. The catalog is an application port. Its controlled adapter returns 250 cents for `coffee`, a safe structured 404 for an unknown product, and an unstructured error for `broken`.
 
-`CreateOrder.Execute` validates before accessing the catalog. Successful JSON decoding alone does not validate `quantity` or require `sku`. The route passes `r.Context()` into the decorated use case, so cancellation reaches its adapter.
+Application constructors return concrete instances. Fx publishes the catalog and routes under their interfaces. `provideLogger` is a bridge to the framework's interface-returning factory. `response.Module` consumes that logger and the validator. The runner preserves shutdown errors before exiting.
 
-`provideOrder` explicitly returns the manually wrapped use-case interface. The chain logs outcomes and starts a span using the current global tracing provider. Metrics and translation are deliberately omitted with nil dependencies. No exporter is installed, so this example does not promise visible spans. Installing modules alone would not wrap the use case. For configured factories or optional integrations, load the [manual chain](../references/ucdecorator/manual.md) or [decorator observability recipe](decorator-observability.md) only when needed.
-
-`response.Module` receives the exact `validator.Validator` and Bricks `logger.Logger` dependencies it needs. That logger writes use-case messages to `orders.log`; it is not the optional `*slog.Logger` used by Chi. The logger's stop hook synchronizes its files after server shutdown because the route depends on it. Failures propagate to the runner, which preserves cleanup errors before exiting.
+This operation calculates an order total. It does not persist an order. No factory, decorator interface, metrics collector, or tracing exporter is required. For requested decoration, select [manual chains](../references/ucdecorator/manual.md) or [decorator factories](../references/ucdecorator/factory.md).
 
 ## 3. Run and create an order
 
@@ -192,33 +216,26 @@ curl -i http://127.0.0.1:8080/orders \
   -d '{"sku":"coffee","quantity":2}'
 ```
 
-Expect HTTP 201 and `{"data":{"total_cents":500}}`. The success envelope comes from `response.JSON`. This example calculates a quote-like order total. It does not persist an order or claim transactional database behavior.
+Expect HTTP 201 and `{"data":{"total_cents":500}}`.
 
-## 4. Send invalid and failing inputs
+## 4. Check failures
 
-Use the same URL and JSON header for these bodies:
+Send these bodies to the same URL with the same JSON header:
 
-| Request body | Expected status | Expected JSON body |
-| --- | --- | --- |
-| `{"sku":"coffee","quantity":0}` | 422 | `{"error":{"code":"INVALID_ARGUMENT","message":"request has invalid fields","details":[{"field":"quantity","message":"Quantity must be 1 or greater"}]}}` |
-| `{"sku":"missing","quantity":1}` | 404 | `{"error":{"code":"PRODUCT_NOT_FOUND","message":"product not found"}}` |
-| `{"sku":"broken","quantity":1}` | 500 | `{"error":{"code":"internal_server_error","message":"Internal server error"}}` |
-| `{"sku":"coffee","quantity":1,"extra":true}` | 400 | `{"error":{"code":"BAD_REQUEST","message":"request body contains unknown field \"extra\""}}` |
+| Body | Expected result |
+| --- | --- |
+| `{"sku":"coffee","quantity":0}` | 422 with `INVALID_ARGUMENT` and a quantity detail |
+| `{"sku":"missing","quantity":1}` | 404 with `PRODUCT_NOT_FOUND` |
+| `{"sku":"broken","quantity":1}` | 500 with `internal_server_error` and `Internal server error` |
+| `{"sku":"coffee","quantity":1,"extra":true}` | 400 with `BAD_REQUEST` |
+| `null` | 400 with `BAD_REQUEST`; the operation does not run |
 
-For example:
+The private catalog failure must not appear in the 500 response. Structured errors expose their messages, so use client-safe text. The handler reports operation failures through slog. The Bricks logger supplied above handles the error renderer's own failures. Neither is a use-case decorator.
 
-```sh
-curl -i http://127.0.0.1:8080/orders \
-  -H 'Content-Type: application/json' \
-  -d '{"sku":"broken","quantity":1}'
-```
+For byte limits, trailing JSON behavior, and content types, read [JSON requests](../references/http/request/usage.md). For custom validation or response formats, load [validation](../references/validator/usage.md) or [responses](../references/http/response/usage.md) only for that change.
 
-The private catalog connection message must not appear in the 500 response. Structured errors intentionally expose their code and message, so give them client-safe text. The logging decorator records failures separately. The response error handler does not automatically log every unknown use-case error.
+## 5. Stop the application
 
-For malformed bodies, content-type handling, and byte limits beyond these flow cases, load [JSON parsing](../references/http/request/usage.md). For custom rules, scalar validation, or translated validation messages, load [validation](../references/validator/usage.md). For envelope alternatives and every error-mapping branch, load [HTTP responses](../references/http/response/usage.md). These are optional deeper references, not setup prerequisites.
+Press Ctrl-C. Fx stops Chi and synchronizes the logger's files. Startup and shutdown failures reach `main` after cleanup. A response-write failure never triggers another response or another operation call.
 
-## 5. Shut down cleanly
-
-Press Ctrl-C. The runner stops the Fx app, Chi drains requests, and the logger synchronizes its output files. Startup and shutdown errors are joined and reported at `main` with a nonzero exit status. A response write error is logged in its callback instead of trying to render a second body.
-
-Create the Go file from step 2 and copy the [configuration](../examples/http-flow/config/base.yaml) into the directory shown above. They need only the application module's Bricks dependency. The request results above describe expected behavior from the implementation, not an executed walkthrough.
+The [base configuration](../examples/http-flow/config/base.yaml) is also available as an asset. Record the application's actual command, responses, and shutdown result separately.
