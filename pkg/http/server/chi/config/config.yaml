@@ -1,11 +1,13 @@
+# Values shown are examples (mostly matching chi.Default()); omitted fields use
+# Go zero values when loaded through the Fx module, not chi.Default().
 app:
   http:
     address: ""                    # (optional) Complete server listen address; falls back to 0.0.0.0:port
-    port: 9000                      # (optional) Server port, default: 8080 (if using Default())
+    port: 9000                      # Server port; 0 selects an available port
     readtimeout: 15s                # (optional) Read timeout (e.g., 15s, 1m), default: 15s
     writetimeout: 15s               # (optional) Write timeout (e.g., 15s, 1m), default: 15s
     idletimeout: 60s                # (optional) Idle timeout (e.g., 60s, 5m), default: 60s
-    shutdowntimeout: 15s            # (optional) Graceful shutdown timeout (e.g., 15s, 30s), default: 10s
+    shutdowntimeout: 15s            # Graceful shutdown timeout
     enablemetrics: true             # (optional) Start the metrics listener, default: true
     metricsaddress: ""              # (optional) Complete metrics listen address; falls back to 0.0.0.0:metricsport
     metricsport: 9090               # (optional) Metrics server port, default: 9090
@@ -13,8 +15,8 @@ app:
     enableroutelogging: true        # (optional) Write route logs to the console, default: true
     
     # CORS configuration (optional)
-    # Set to null or omit entirely to disable CORS
-    cors:                           # (optional) default: null (CORS disabled)
+    # This example enables CORS. Set to null or omit entirely to disable it.
+    cors:
       allowedorigins:               # (optional) Allowed origins, default: [] (empty)
         - "*"
       allowedmethods:               # (optional) Allowed HTTP methods, default: [] (empty)

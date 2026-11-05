@@ -77,7 +77,7 @@ func main() {
 
 ### With Uber FX
 
-Config is loaded automatically from `app.redis` in your config files — no manual `fx.Provide` needed.
+Config is loaded automatically from `app.redis` in your config files — no manual `fx.Provide` needed. Copy the [configuration skeleton](config/config.yaml) into your application's `config/base.yaml` and set its connection values.
 
 ```go
 package main

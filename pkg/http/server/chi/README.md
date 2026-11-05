@@ -28,6 +28,12 @@ app.Run()
 
 ## Configuration
 
+Copy [config/config.yaml](config/config.yaml)'s `app.http` section into your
+application's `config/base.yaml` (or the directory selected by `APP_CONFIG_DIR`).
+The Fx module loads that section automatically. The loader does not merge in
+`Default()`: omitted fields have Go zero values, so include the fields you need.
+`Default()` provides defaults for direct construction.
+
 ```go
 type Config struct {
     Address               string        // complete listen address; empty uses 0.0.0.0:Port
@@ -66,13 +72,11 @@ if err := server.Start(); err != nil {
 **1. Server module (app):**
 
 ```go
-fx.Module(
-    "httpserver",
-    config.Provide[chi.Config]("app.http"),
-    chi.Module,
-    fx.Invoke(func(*chi.Server) {}), // forces construction
-)
+fx.New(chi.Module).Run()
 ```
+
+The module provides the configuration and forces server construction; do not
+provide `config.Config[chi.Config]` or invoke the server a second time.
 
 **2. Router implements `chi.Route`:**
 
@@ -100,7 +104,7 @@ fx.Annotate(
 **4. Main app:**
 
 ```go
-fx.New(httpserver.Module, monitor.Module).Run()
+fx.New(chi.Module, monitor.Module).Run()
 ```
 
 Routes from the `"routes"` group are collected automatically; the server starts on OnStart and shuts down on OnStop.

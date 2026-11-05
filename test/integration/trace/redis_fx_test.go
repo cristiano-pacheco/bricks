@@ -247,10 +247,7 @@ func TestRedisInstrumentation_BricksClusterRejectedBeforeDial(t *testing.T) {
 			require.NoError(t, err)
 			defer listener.Close()
 			configureTracing(t, "localhost:4318", "  redis:\n    type: cluster\n    clusteraddrs:\n      - "+listener.Addr().String()+"\n    tracing:\n      enabled: true\n")
-			app := fx.New(brickstrace.RedisModule(), brickstrace.Module, tc.module,
-				fx.Provide(func() bricksredis.Config {
-					return bricksredis.Config{Type: bricksredis.ClientTypeCluster, ClusterAddrs: []string{listener.Addr().String()}}
-				}), fx.NopLogger)
+			app := fx.New(brickstrace.RedisModule(), brickstrace.Module, tc.module, fx.NopLogger)
 			require.ErrorContains(t, app.Err(), "cluster clients are not supported")
 			tcp := listener.(*net.TCPListener)
 			require.NoError(t, tcp.SetDeadline(time.Now().Add(200*time.Millisecond)))

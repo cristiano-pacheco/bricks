@@ -26,7 +26,7 @@ const defaultFxTimeout = 30 * time.Second
 //	)
 var Module = fx.Module("redis",
 	config.Provide[Config]("app.redis"),
-	fx.Provide(NewUniversalClientWithFx),
+	fx.Provide(configValue, NewUniversalClientWithFx),
 )
 
 // ClientModule provides the Redis *Client with automatic config loading and fx lifecycle.
@@ -45,8 +45,12 @@ var Module = fx.Module("redis",
 //	)
 var ClientModule = fx.Module("redis-client",
 	config.Provide[Config]("app.redis"),
-	fx.Provide(NewWithFx),
+	fx.Provide(configValue, NewWithFx),
 )
+
+func configValue(value config.Config[Config]) Config {
+	return value.Get()
+}
 
 // TracingEnabled is supplied by the tracing module to validate framework-owned clients.
 type TracingEnabled struct{}

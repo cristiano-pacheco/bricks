@@ -77,6 +77,19 @@ func main() {
 
 ### With Uber Fx
 
+Declare `database.Module` to load `app.database` from your configuration and provide
+a lifecycle-managed `*gorm.DB`. Copy the [configuration skeleton](config/config.yaml)
+into your application's `config/base.yaml` and set its connection values.
+
+```go
+app := fx.New(
+    database.Module,
+    fx.Invoke(func(db *gorm.DB) { /* use db */ }),
+)
+```
+
+Alternatively, supply a config directly:
+
 ```go
 package main
 
