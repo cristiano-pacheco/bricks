@@ -128,6 +128,9 @@ func TestModule_ConfigSkeleton_StartsServer(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, app.Stop(context.Background())) })
 
 	// Assert
+	if server == nil {
+		t.Fatal("Fx did not populate the server")
+	}
 	client := &http.Client{Timeout: time.Second}
 	response, err := client.Get("http://" + server.Addr() + "/healthz")
 	require.NoError(t, err)
