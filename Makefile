@@ -48,6 +48,10 @@ nilaway:
 test:
 	CGO_ENABLED=1 go test ./...
 
+.PHONY: check-bricks-local-source
+check-bricks-local-source:
+	python3 -m unittest discover -s scripts -p 'test_bricks_local_source.py'
+
 .PHONY: unit-test-coverage
 unit-test-coverage:
 	CGO_ENABLED=1 go test ./... -coverprofile=coverage.txt

@@ -1,0 +1,15 @@
+app:
+  open-telemetry:
+    app_name: orders
+    app_version: "1.0.0"
+    tracer_vendor: otlp
+    trace_enabled: true
+    trace_url: localhost:4318
+    exporter_type: http
+    insecure: true
+    sample_rate: 1.0
+    batch_timeout: 5s
+    max_batch_size: 512
+    max_queue_size: 2048
+    export_timeout: 10s
+    shutdown_timeout: 10s

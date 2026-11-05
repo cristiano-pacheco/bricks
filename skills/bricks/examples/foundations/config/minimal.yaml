@@ -1,0 +1,12 @@
+# Copy to config/base.yaml for the foundations application's minimal setup.
+app:
+  service:
+    name: orders
+    port: 8080
+  logger:
+    level: info
+    encoding: json
+    outputpaths:
+      - application.log
+    erroroutputpaths:
+      - stderr

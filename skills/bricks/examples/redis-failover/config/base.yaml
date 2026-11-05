@@ -1,0 +1,31 @@
+app:
+  redis:
+    type: failover
+    url: redis://localhost:26379
+    mastername: mymaster
+    db: 0
+    password: ""
+    maxretries: 3
+    minretrybackoff: 8ms
+    maxretrybackoff: 512ms
+    dialtimeout: 5s
+    readtimeout: 3s
+    writetimeout: 3s
+    contexttimeoutenabled: true
+    poolfifo: false
+    poolsize: 10
+    pooltimeout: 4s
+    minidleconns: 2
+    maxidleconns: 0
+    connmaxidletime: 30m
+    connmaxlifetime: 1h
+    enabletls: false
+    tlsskipverify: false
+    tlsservername: ""
+    protocol: 3
+    disableindentity: false
+    identitysuffix: ""
+    namespace: demo
+    enablemetrics: false
+    commandtimeout: 5s
+    unstablemode: false

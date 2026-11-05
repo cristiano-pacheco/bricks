@@ -12,9 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cristiano-pacheco/bricks/pkg/http/server/chi"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/fx"
+
+	"github.com/cristiano-pacheco/bricks/pkg/http/server/chi"
 )
 
 func TestLegacyMetricsLifecycle_ReadTimeout(t *testing.T) {
@@ -131,6 +132,7 @@ func TestModule_ConfigSkeleton_StartsServer(t *testing.T) {
 	if server == nil {
 		t.Fatal("Fx did not populate the server")
 	}
+
 	client := &http.Client{Timeout: time.Second}
 	response, err := client.Get("http://" + server.Addr() + "/healthz")
 	require.NoError(t, err)

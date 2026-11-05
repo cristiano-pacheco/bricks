@@ -1,0 +1,10 @@
+app:
+  redis:
+    type: single_node
+    url: redis://localhost:6379
+    metrics:
+      enabled: true
+  metrics:
+    enabled: true
+    address: 127.0.0.1
+    port: 9092

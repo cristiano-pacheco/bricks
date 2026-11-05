@@ -1,8 +1,9 @@
 package sqlite
 
 import (
-	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"go.uber.org/fx"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
 )
 
 // Module provides a GORM SQLite database with Fx lifecycle management.

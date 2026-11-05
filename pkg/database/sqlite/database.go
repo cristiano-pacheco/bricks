@@ -5,11 +5,12 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"go.uber.org/fx"
 	gormsqlite "gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
 )
 
 // New opens a GORM database backed by mattn/go-sqlite3.

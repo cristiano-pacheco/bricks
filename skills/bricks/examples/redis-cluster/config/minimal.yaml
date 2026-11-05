@@ -1,0 +1,8 @@
+app:
+  redis:
+    type: cluster
+    clusteraddrs:
+      - localhost:7000
+      - localhost:7001
+      - localhost:7002
+    namespace: demo

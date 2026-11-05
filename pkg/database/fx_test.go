@@ -5,11 +5,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cristiano-pacheco/bricks/pkg/config"
-	"github.com/cristiano-pacheco/bricks/pkg/database"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/fx"
 	"gorm.io/gorm"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
+	"github.com/cristiano-pacheco/bricks/pkg/database"
 )
 
 func TestModule_LoadsConfigAndProvidesDatabase(t *testing.T) {

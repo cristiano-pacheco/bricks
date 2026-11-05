@@ -1,8 +1,9 @@
 package logger
 
 import (
-	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"go.uber.org/fx"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
 )
 
 var Module = fx.Module(

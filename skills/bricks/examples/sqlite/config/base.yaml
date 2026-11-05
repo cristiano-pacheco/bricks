@@ -1,0 +1,13 @@
+app:
+  sqlite:
+    path: ./bricks-skill.db
+    foreign_keys: true
+    journal_mode: WAL
+    busy_timeout: 5s
+    tx_lock: immediate
+    max_open_connections: 1
+    max_idle_connections: 1
+    prepare_stmt: false
+    skip_default_transaction: false
+    disable_foreign_key_constraint_when_migrating: false
+    enable_logs: false

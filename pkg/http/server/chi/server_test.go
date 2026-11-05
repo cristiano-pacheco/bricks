@@ -14,12 +14,13 @@ import (
 	"testing"
 	"time"
 
-	bricksconfig "github.com/cristiano-pacheco/bricks/pkg/config"
-	"github.com/cristiano-pacheco/bricks/pkg/http/server/chi"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/fx"
+
+	bricksconfig "github.com/cristiano-pacheco/bricks/pkg/config"
+	"github.com/cristiano-pacheco/bricks/pkg/http/server/chi"
 )
 
 func TestServer_Start_PortZeroReportsEffectiveAddressAndShutsDown(t *testing.T) {

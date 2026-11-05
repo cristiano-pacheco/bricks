@@ -6,10 +6,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/cristiano-pacheco/bricks/pkg/errs"
-	"github.com/cristiano-pacheco/bricks/pkg/http/request"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cristiano-pacheco/bricks/pkg/errs"
+	"github.com/cristiano-pacheco/bricks/pkg/http/request"
 )
 
 func TestReadJSON(t *testing.T) {

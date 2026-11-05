@@ -1,0 +1,6 @@
+app:
+  redis:
+    type: single_node
+    url: redis://localhost:6379
+    db: 0
+    namespace: demo

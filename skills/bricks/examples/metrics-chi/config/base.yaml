@@ -1,0 +1,9 @@
+app:
+  http:
+    address: 127.0.0.1:8080
+    enablemetrics: true
+    metricsaddress: 127.0.0.1:9091
+    readtimeout: 15s
+    writetimeout: 15s
+    idletimeout: 60s
+    shutdowntimeout: 10s

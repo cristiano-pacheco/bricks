@@ -1,12 +1,13 @@
 package i18n
 
 import (
+	"go.uber.org/fx"
+
 	bricksconfig "github.com/cristiano-pacheco/bricks/pkg/config"
 	"github.com/cristiano-pacheco/bricks/pkg/i18n/config"
 	"github.com/cristiano-pacheco/bricks/pkg/i18n/ports"
 	"github.com/cristiano-pacheco/bricks/pkg/i18n/service"
 	"github.com/cristiano-pacheco/bricks/pkg/ucdecorator"
-	"go.uber.org/fx"
 )
 
 var Module = fx.Module(

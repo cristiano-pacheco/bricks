@@ -1,0 +1,10 @@
+# Optional development overlay. Keep base.yaml alongside this file.
+# Select it with APP_ENV=development.
+app:
+  logger:
+    level: debug
+    encoding: console
+    development: true
+    outputpaths:
+      - stdout
+    samplingconfig: null

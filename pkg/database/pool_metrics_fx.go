@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"go.uber.org/fx"
 	"gorm.io/gorm"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
 )
 
 // PoolMetricsModule registers PostgreSQL pool metrics when app.database.metrics.enabled is true.

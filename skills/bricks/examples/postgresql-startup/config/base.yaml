@@ -1,0 +1,25 @@
+app:
+  database:
+    host: localhost
+    port: 5432
+    name: bricks_skill
+    user: bricks_skill
+    password: env://POSTGRES_PASSWORD
+    sslmode: false
+    connecttimeout: 5
+    statementtimeout: 5000
+    locktimeout: 5000
+    applicationname: bricks_skill_startup
+    searchpath: public
+    maxopenconnections: 10
+    maxidleconnections: 2
+    sslcert: "" # Certificate paths are used only when sslmode is true.
+    sslkey: ""
+    sslrootcert: ""
+    preparestmt: false
+    skipdefaulttransaction: false
+    disableforeignkeyconstraint: false
+    enablelogs: false # Custom Logger implementations must be supplied in Go.
+    timezone: UTC
+    idleintransaction: 0 # Milliseconds. Zero leaves server policy in effect.
+    prefersimpleprotol: false # Exported spelling. Currently has no effect.

@@ -5,9 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cristiano-pacheco/bricks/pkg/redis"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/fx"
+
+	"github.com/cristiano-pacheco/bricks/pkg/redis"
 )
 
 func TestModules_LoadConfigAndProvideClients(t *testing.T) {

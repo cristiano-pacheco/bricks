@@ -1,0 +1,9 @@
+{
+  "catalog": {
+    "title": "Produtos",
+    "welcome": "Olá {{.Name}}"
+  },
+  "errors": {
+    "QUOTE_QUANTITY": "A quantidade deve ser positiva."
+  }
+}

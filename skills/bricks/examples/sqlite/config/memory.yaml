@@ -1,0 +1,4 @@
+app:
+  sqlite:
+    dsn: 'file:bricks-skill-memory?mode=memory&cache=shared'
+    journal_mode: MEMORY

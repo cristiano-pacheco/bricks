@@ -1,0 +1,7 @@
+app:
+  http:
+    address: ""
+    port: 8080
+    enablemetrics: true
+    metricsaddress: ""
+    metricsport: 9091

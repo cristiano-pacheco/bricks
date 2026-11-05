@@ -1,0 +1,35 @@
+# Complete service and logger configuration.
+# Copy this file to config/base.yaml to use it as your application's base.
+# These are example values, not defaults merged by the YAML loader.
+app:
+  service:
+    name: orders
+    port: 8080
+  logger:
+    # string. DefaultConfig uses info. Accepted values are lowercase.
+    level: info
+    # string. DefaultConfig uses json. Alternative: console.
+    encoding: json
+    # bool. DefaultConfig uses false.
+    development: false
+    # bool. DefaultConfig uses false, so caller information is enabled.
+    disablecaller: false
+    # bool. DefaultConfig uses false, so automatic stacktraces are enabled.
+    disablestacktrace: false
+    # List of strings. DefaultConfig uses [stdout]. This example uses a file.
+    outputpaths:
+      - application.log
+    # List of strings. DefaultConfig uses [stderr]. Internal logger errors only.
+    erroroutputpaths:
+      - stderr
+    # Map of string keys to values. DefaultConfig uses an empty map.
+    initialfields:
+      application: foundations
+      environment: local
+    # Optional map. DefaultConfig uses nil, so sampling is disabled.
+    # Use samplingconfig: null instead of this map to disable sampling in YAML.
+    samplingconfig:
+      # int. Keep this many entries per level/message per second.
+      initial: 100
+      # int. After the initial allowance, keep every Nth entry.
+      thereafter: 100

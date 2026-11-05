@@ -1,0 +1,7 @@
+app:
+  redis:
+    type: sentinel
+    sentineladdrs:
+      - localhost:26379
+    mastername: mymaster
+    namespace: demo

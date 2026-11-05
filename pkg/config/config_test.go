@@ -6,9 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
 )
 
 type TestConfig struct {

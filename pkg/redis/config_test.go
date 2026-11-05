@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cristiano-pacheco/bricks/pkg/redis"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cristiano-pacheco/bricks/pkg/redis"
 )
 
 // TestConfigValidation tests configuration validation.

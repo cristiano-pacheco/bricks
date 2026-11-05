@@ -1,8 +1,9 @@
 package chi
 
 import (
-	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"go.uber.org/fx"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
 )
 
 // Module provides the Chi HTTP server with automatic lifecycle management.

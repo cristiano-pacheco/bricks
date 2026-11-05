@@ -1,0 +1,4 @@
+app:
+  http:
+    enablerequestlogging: true
+    enableroutelogging: true

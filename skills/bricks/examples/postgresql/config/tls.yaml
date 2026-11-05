@@ -1,0 +1,9 @@
+# Overlay for a TLS-enabled deployment: APP_ENV=tls.
+# Keep base.yaml and replace the paths with readable deployment certificate files.
+# sslmode: true selects PostgreSQL require, not verify-full.
+app:
+  database:
+    sslmode: true
+    sslcert: /run/secrets/postgres-client.crt
+    sslkey: /run/secrets/postgres-client.key
+    sslrootcert: /run/secrets/postgres-ca.crt

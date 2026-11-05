@@ -3,8 +3,9 @@ package ucdecorator_test
 import (
 	"testing"
 
-	"github.com/cristiano-pacheco/bricks/pkg/ucdecorator"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cristiano-pacheco/bricks/pkg/ucdecorator"
 )
 
 func TestDefaultConfig(t *testing.T) {

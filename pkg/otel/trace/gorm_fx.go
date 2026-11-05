@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/fx"
 	"gorm.io/gorm"
 	"gorm.io/plugin/opentelemetry/tracing"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
 )
 
 // GORMModule manages tracing and instruments the supplied GORM client when

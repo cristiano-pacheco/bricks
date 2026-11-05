@@ -1,0 +1,7 @@
+app:
+  redis:
+    type: failover
+    url: redis://localhost:26379
+    mastername: mymaster
+    db: 0
+    namespace: demo

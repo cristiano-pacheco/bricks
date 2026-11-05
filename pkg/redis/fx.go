@@ -5,8 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"go.uber.org/fx"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
 )
 
 const defaultFxTimeout = 30 * time.Second

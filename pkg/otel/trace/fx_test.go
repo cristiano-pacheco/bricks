@@ -16,7 +16,6 @@ import (
 	"testing"
 	"time"
 
-	brickstrace "github.com/cristiano-pacheco/bricks/pkg/otel/trace"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -25,6 +24,8 @@ import (
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"go.uber.org/fx"
 	"google.golang.org/protobuf/proto"
+
+	brickstrace "github.com/cristiano-pacheco/bricks/pkg/otel/trace"
 )
 
 type traceReceiver struct {

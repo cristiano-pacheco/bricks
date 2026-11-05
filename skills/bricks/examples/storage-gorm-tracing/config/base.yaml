@@ -1,0 +1,17 @@
+app:
+  database:
+    host: localhost
+    port: 5432
+    name: bricks_skill
+    user: bricks_skill
+    password: env://POSTGRES_PASSWORD
+    sslmode: false
+    tracing:
+      enabled: true
+  open-telemetry:
+    app_name: storage-demo
+    trace_enabled: true
+    trace_url: localhost:4318
+    exporter_type: http
+    insecure: true
+    sample_rate: 1.0

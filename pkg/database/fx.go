@@ -1,9 +1,10 @@
 package database
 
 import (
-	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"go.uber.org/fx"
 	"gorm.io/gorm"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
 )
 
 // Module loads app.database and provides a lifecycle-managed *gorm.DB.
