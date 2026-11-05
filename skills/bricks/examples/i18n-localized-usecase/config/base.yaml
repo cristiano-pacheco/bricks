@@ -1,0 +1,13 @@
+app:
+  i18n:
+    language: pt-BR
+  ucdecorator:
+    enabled: true
+    debug_mode: false
+    logging: true
+    metrics: true
+    tracing: true
+    translation: true
+  open-telemetry:
+    app_name: localized-quotes
+    trace_enabled: false

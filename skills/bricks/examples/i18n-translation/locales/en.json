@@ -1,0 +1,10 @@
+{
+  "catalog": {
+    "title": "Products",
+    "welcome": "Hello {{.Name}}",
+    "only_en": "English fallback"
+  },
+  "errors": {
+    "QUOTE_QUANTITY": "Quantity must be positive."
+  }
+}

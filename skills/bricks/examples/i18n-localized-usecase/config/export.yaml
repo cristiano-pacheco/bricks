@@ -1,0 +1,8 @@
+app:
+  open-telemetry:
+    app_name: localized-quotes
+    trace_enabled: true
+    trace_url: localhost:4318
+    exporter_type: http
+    insecure: true
+    sample_rate: 1.0
