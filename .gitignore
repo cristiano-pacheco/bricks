@@ -4,6 +4,7 @@
 # Test coverage
 *.out
 coverage.html
+__pycache__/
 
 # IDE
 .vscode/

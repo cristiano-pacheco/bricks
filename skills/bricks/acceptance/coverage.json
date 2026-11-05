@@ -1,0 +1,1983 @@
+{
+  "revision": "eafd28db2b2c4c53046a7d5bd31b1a494d654924",
+  "packages": [
+    {
+      "path": "pkg/config",
+      "readme": "pkg/config/README.md",
+      "exports": [
+        "Config",
+        "Config.Get",
+        "ErrConfigDirNotFound",
+        "ErrConfigFileNotFound",
+        "ErrMissingConfigDir",
+        "ErrUnmarshalFailed",
+        "New",
+        "Option",
+        "Provide",
+        "WithPath"
+      ],
+      "branches": [
+        {
+          "id": "config-whole",
+          "capability": "Load Config[T] with New and Get; required base.yaml, optional environment overlay, config tags, APP_ENV and APP_CONFIG_DIR, errors.",
+          "reference": "references/config/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "config-subtree",
+          "capability": "Use WithPath and Provide[T] for subtree loading and Fx providers; missing paths and unmarshal errors.",
+          "reference": "references/config/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "config-env",
+          "capability": "Resolve env:// references recursively in YAML maps and lists before overlay merge; missing environment variables become empty strings.",
+          "reference": "references/config/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/database",
+      "readme": "pkg/database/README.md",
+      "exports": [
+        "Config",
+        "Config.ApplicationName",
+        "Config.Clone",
+        "Config.ConnectTimeout",
+        "Config.DSN",
+        "Config.DisableForeignKeyConstraint",
+        "Config.EnableLogs",
+        "Config.Host",
+        "Config.IdleInTransaction",
+        "Config.LockTimeout",
+        "Config.Logger",
+        "Config.MaxIdleConnections",
+        "Config.MaxOpenConnections",
+        "Config.Name",
+        "Config.NamingStrategy",
+        "Config.Password",
+        "Config.Port",
+        "Config.PostgresDSN",
+        "Config.PreferSimpleProtol",
+        "Config.PrepareSTMT",
+        "Config.SSLCert",
+        "Config.SSLKey",
+        "Config.SSLMode",
+        "Config.SSLRootCert",
+        "Config.SearchPath",
+        "Config.SkipDefaultTransaction",
+        "Config.StatementTimeout",
+        "Config.TimeZone",
+        "Config.User",
+        "Config.Validate",
+        "Config.WithDatabase",
+        "ConnectionError",
+        "ConnectionError.Attempt",
+        "ConnectionError.DB",
+        "ConnectionError.Err",
+        "ConnectionError.Error",
+        "ConnectionError.Host",
+        "ConnectionError.Is",
+        "ConnectionError.Port",
+        "ConnectionError.Unwrap",
+        "ConnectionStats",
+        "ConnectionStats.Idle",
+        "ConnectionStats.InUse",
+        "ConnectionStats.MaxIdleClosed",
+        "ConnectionStats.MaxLifetimeClosed",
+        "ConnectionStats.MaxOpenConnections",
+        "ConnectionStats.OpenConnections",
+        "ConnectionStats.WaitCount",
+        "ConnectionStats.WaitDuration",
+        "ErrConnectionFailed",
+        "ErrInvalidConfig",
+        "ErrInvalidPortNumber",
+        "ErrMissingHost",
+        "ErrMissingName",
+        "ErrMissingPort",
+        "ErrMissingUser",
+        "Module",
+        "New",
+        "NewWithLifecycle",
+        "PoolMetricsModule"
+      ],
+      "branches": [
+        {
+          "id": "postgres-connect",
+          "capability": "Validate PostgreSQL connection settings; New, NewWithLifecycle and Module at app.database, eager connection, retries and close ownership.",
+          "reference": "references/database/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "postgres-config",
+          "capability": "Configure DSN and PostgresDSN, SSL, timezone, GORM, logger, naming, timeout units, Clone and WithDatabase; distinguish ineffective PreferSimpleProtol.",
+          "reference": "references/database/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "postgres-pool",
+          "capability": "Configure positive open/idle limits, fixed lifetime and idle age; ConnectionStats data type and underlying sql.DB stats.",
+          "reference": "references/database/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "postgres-errors",
+          "capability": "Interpret validation sentinels, connection failures and ConnectionError helpers without assuming all constructors return ConnectionError.",
+          "reference": "references/database/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "postgres-migrations",
+          "capability": "Connect PostgreSQL and run embedded migration contributions with DSN and startup ordering.",
+          "reference": "recipes/postgresql-migrations.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "database-pool-metrics",
+          "capability": "Register PostgreSQL pool collectors with application registerer, app.database.metrics.enabled and lifecycle ownership.",
+          "reference": "recipes/database-pool-metrics.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/database/sqlite",
+      "readme": "pkg/database/sqlite/README.md",
+      "exports": [
+        "Config",
+        "Config.BusyTimeout",
+        "Config.DSN",
+        "Config.DisableForeignKeyConstraint",
+        "Config.DisableForeignKeyConstraintWhenMigrating",
+        "Config.EnableLogs",
+        "Config.ForeignKeys",
+        "Config.GORMConfig",
+        "Config.JournalMode",
+        "Config.Logger",
+        "Config.MaxIdleConnections",
+        "Config.MaxOpenConnections",
+        "Config.NamingStrategy",
+        "Config.Path",
+        "Config.PrepareSTMT",
+        "Config.PrepareStmt",
+        "Config.SkipDefaultTransaction",
+        "Config.TxLock",
+        "Config.Validate",
+        "DefaultBusyTimeout",
+        "DefaultConfig",
+        "DefaultJournalMode",
+        "DefaultMaxIdleConnections",
+        "DefaultMaxOpenConnections",
+        "DefaultTxLock",
+        "ErrConnectionFailed",
+        "ErrInvalidBusyTimeout",
+        "ErrInvalidConfig",
+        "ErrInvalidDSN",
+        "ErrInvalidJournalMode",
+        "ErrInvalidMaxIdleConnections",
+        "ErrInvalidMaxOpenConnections",
+        "ErrInvalidTxLock",
+        "ErrMissingDSN",
+        "ErrMultipleDSNs",
+        "Module",
+        "New",
+        "NewWithLifecycle"
+      ],
+      "branches": [
+        {
+          "id": "sqlite-connect",
+          "capability": "Choose DSN or Path; DefaultConfig, Validate, New, Module at app.sqlite and lifecycle-managed close; requires CGO.",
+          "reference": "references/database/sqlite/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "sqlite-config",
+          "capability": "Configure WAL, immediate transactions, busy timeout, forced foreign keys, one-connection pool and GORM overrides; aliases and config exclusions.",
+          "reference": "references/database/sqlite/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "sqlite-errors",
+          "capability": "Handle missing/conflicting DSNs, malformed query, invalid timing/mode/lock/pool settings and connection errors.",
+          "reference": "references/database/sqlite/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "sqlite-migrations",
+          "capability": "Run SQLite migrations on the caller-owned sql.DB with startup ordering.",
+          "reference": "recipes/sqlite-migrations.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "multiple-databases",
+          "capability": "Name and bind simultaneous PostgreSQL and SQLite GORM connections to avoid unnamed Fx provider collisions.",
+          "reference": "recipes/multiple-databases.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/errs",
+      "readme": null,
+      "exports": [
+        "Detail",
+        "Detail.Field",
+        "Detail.Message",
+        "ErrRecordNotFound",
+        "Error",
+        "Error.Code",
+        "Error.Details",
+        "Error.Error",
+        "Error.Message",
+        "Error.OriginalError",
+        "Error.Status",
+        "New"
+      ],
+      "branches": [
+        {
+          "id": "errs-structured",
+          "capability": "Construct Error and Detail with status, code and message; ErrRecordNotFound, JSON omissions and Error formatting.",
+          "reference": "references/errs/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "errs-original",
+          "capability": "Set OriginalError as metadata; no Unwrap method or automatic cause traversal exists.",
+          "reference": "references/errs/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/http/request",
+      "readme": "pkg/http/request/README.md",
+      "exports": [
+        "DefaultMaxBodySize",
+        "ReadJSON",
+        "ReadJSONWithMaxSize"
+      ],
+      "branches": [
+        {
+          "id": "json-decode",
+          "capability": "ReadJSON and ReadJSONWithMaxSize; 1 MiB default, Content-Type handling, unknown fields, single-value check and body-size limit.",
+          "reference": "references/http/request/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "json-errors",
+          "capability": "Map malformed/type/empty/unknown/oversize JSON errors; invalid destinations panic; parsing does not validate application input.",
+          "reference": "references/http/request/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/http/response",
+      "readme": "pkg/http/response/README.md",
+      "exports": [
+        "Envelope",
+        "ErrorHandler",
+        "ErrorHandler.Error",
+        "ErrorHandlerImpl",
+        "ErrorHandlerImpl.Error",
+        "JSON",
+        "JSONRaw",
+        "Module",
+        "NewEnvelope",
+        "NewErrorHandler",
+        "NoContent"
+      ],
+      "branches": [
+        {
+          "id": "json-response",
+          "capability": "JSON and NewEnvelope versus JSONRaw; headers, marshal/write errors, Content-Length and NoContent.",
+          "reference": "references/http/response/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "response-errors",
+          "capability": "NewErrorHandler and Module bindings; validation 422, structured status/default 500, unknown error redaction and logger fallback.",
+          "reference": "references/http/response/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/http/server/chi",
+      "readme": "pkg/http/server/chi/README.md",
+      "exports": [
+        "CORSConfig",
+        "CORSConfig.AllowCredentials",
+        "CORSConfig.AllowedHeaders",
+        "CORSConfig.AllowedMethods",
+        "CORSConfig.AllowedOrigins",
+        "CORSConfig.Debug",
+        "CORSConfig.ExposedHeaders",
+        "CORSConfig.MaxAge",
+        "CORSConfig.OptionsPassthrough",
+        "Config",
+        "Config.Address",
+        "Config.CORS",
+        "Config.EnableMetrics",
+        "Config.EnableRequestLogging",
+        "Config.EnableRouteLogging",
+        "Config.IdleTimeout",
+        "Config.MetricsAddress",
+        "Config.MetricsPort",
+        "Config.Port",
+        "Config.ReadTimeout",
+        "Config.ShutdownTimeout",
+        "Config.Swagger",
+        "Config.Validate",
+        "Config.WithDefaultCORS",
+        "Config.WriteTimeout",
+        "Default",
+        "DefaultIdleTimeout",
+        "DefaultReadTimeout",
+        "DefaultShutdownTimeout",
+        "DefaultWriteTimeout",
+        "ErrInvalidAddress",
+        "ErrInvalidConfig",
+        "ErrInvalidMetricsAddress",
+        "ErrInvalidMetricsPort",
+        "ErrInvalidPort",
+        "ErrListen",
+        "ErrPortsEqual",
+        "ErrServerStarted",
+        "Module",
+        "New",
+        "NewRouteRegistry",
+        "NewWithLifecycle",
+        "NewWithLifecycleParams",
+        "NewWithLifecycleParams.Config",
+        "NewWithLifecycleParams.In",
+        "NewWithLifecycleParams.LC",
+        "NewWithLifecycleParams.Logger",
+        "NewWithLifecycleParams.Routes",
+        "NewWithLifecycleParams.Shutdowner",
+        "Option",
+        "Route",
+        "Route.Setup",
+        "RouteRegistry",
+        "RouteRegistry.Add",
+        "RouteRegistry.SetupAll",
+        "Server",
+        "Server.Addr",
+        "Server.MetricsAddr",
+        "Server.RegisterRoute",
+        "Server.RegisterRoutes",
+        "Server.Router",
+        "Server.SetupRoutes",
+        "Server.Shutdown",
+        "Server.Start",
+        "SwaggerConfig",
+        "SwaggerConfig.Enabled",
+        "SwaggerConfig.Path",
+        "WithAddress",
+        "WithCORS",
+        "WithDefaultCORS",
+        "WithIdleTimeout",
+        "WithMetrics",
+        "WithMetricsAddress",
+        "WithMetricsPort",
+        "WithPort",
+        "WithReadTimeout",
+        "WithRequestLogging",
+        "WithRouteLogging",
+        "WithShutdownTimeout",
+        "WithSwagger",
+        "WithWriteTimeout"
+      ],
+      "branches": [
+        {
+          "id": "chi-routes",
+          "capability": "Route.Setup, RouteRegistry, RegisterRoute/RegisterRoutes, Router and SetupRoutes; Fx routes group and actual setup before serving.",
+          "reference": "references/http/server/chi/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "chi-lifecycle",
+          "capability": "New versus NewWithLifecycle/Module, app.http, Default, Addr and Shutdown; listener binding errors, context and one-start restriction.",
+          "reference": "references/http/server/chi/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "chi-config",
+          "capability": "Address/port precedence, timeout durations, Validate, option functions applied to Config and logger interface distinctions.",
+          "reference": "references/http/server/chi/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "chi-middleware",
+          "capability": "RequestID, Recoverer, healthz and request/route logging; custom router middleware and CORS settings.",
+          "reference": "references/http/server/chi/middleware.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "chi-swagger",
+          "capability": "Enable Swagger UI, path normalization and application-generated docs registration; no Dir field.",
+          "reference": "references/http/server/chi/swagger.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "chi-metrics",
+          "capability": "Enable separate Chi-owned metrics listener, MetricsAddr and default global gatherer; distinguish independent metrics Module.",
+          "reference": "references/http/server/chi/metrics.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "http-flow",
+          "capability": "Compose listening Chi server, route group, JSON decode, validation, use-case execution and response/error mapping.",
+          "reference": "recipes/http-flow.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/http/server/chi/request",
+      "readme": null,
+      "exports": [
+        "Param"
+      ],
+      "branches": [
+        {
+          "id": "chi-param",
+          "capability": "Read named Chi URL parameters through Param from route context; absent values and integration with registered routes.",
+          "reference": "references/http/server/chi/request/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/http/server/metrics",
+      "readme": null,
+      "exports": [
+        "Config",
+        "Config.Address",
+        "Config.Enabled",
+        "Config.IdleTimeout",
+        "Config.Port",
+        "Config.ReadHeaderTimeout",
+        "Config.ReadTimeout",
+        "Config.WriteTimeout",
+        "LifecycleParams",
+        "LifecycleParams.Config",
+        "LifecycleParams.Gatherer",
+        "LifecycleParams.In",
+        "LifecycleParams.Lifecycle",
+        "LifecycleParams.Logger",
+        "LifecycleParams.Shutdowner",
+        "Module",
+        "New",
+        "NewWithHandler",
+        "NewWithLifecycle",
+        "Server",
+        "Server.Addr",
+        "Server.Errors",
+        "Server.Shutdown",
+        "Server.Start",
+        "Server.StartContext"
+      ],
+      "branches": [
+        {
+          "id": "metrics-listener",
+          "capability": "Independent listener New/NewWithHandler, Config address and port, /metrics route and supplied gatherer or handler; no registry unification.",
+          "reference": "references/http/server/metrics/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "metrics-listener-lifecycle",
+          "capability": "Module at app.metrics or NewWithLifecycle, Start/StartContext, Addr, Errors and Shutdown; disabled state and bind/serve failures.",
+          "reference": "references/http/server/metrics/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/i18n",
+      "readme": "pkg/i18n/README.md",
+      "exports": [
+        "Module"
+      ],
+      "branches": [
+        {
+          "id": "i18n-fx",
+          "capability": "Use Module for message translation with configured language, English fallback and interpolation; app.i18n, service port bindings, locale_filesystems group and logger dependencies.",
+          "reference": "references/i18n/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "i18n-composition",
+          "capability": "Contribute locale filesystems, translate errors by code and bind optional use-case error translation explicitly.",
+          "reference": "recipes/localized-usecase.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/i18n/config",
+      "readme": null,
+      "exports": [
+        "Config",
+        "Config.Language"
+      ],
+      "branches": [
+        {
+          "id": "i18n-language",
+          "capability": "Config.Language config tag, app.i18n.language selection and blank language fallback to en.",
+          "reference": "references/i18n/config/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/i18n/dto",
+      "readme": null,
+      "exports": [
+        "Locale",
+        "Locale.Code",
+        "Locale.Domains"
+      ],
+      "branches": [
+        {
+          "id": "locale-dto",
+          "capability": "Locale.Code and Locale.Domains JSON DTO; distinguish DTO format from files consumed by locale loader.",
+          "reference": "references/i18n/dto/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/i18n/locale",
+      "readme": null,
+      "exports": [
+        "FileSystem",
+        "FileSystem.FS",
+        "New"
+      ],
+      "branches": [
+        {
+          "id": "locale-filesystem",
+          "capability": "New and FileSystem.FS wrapper, fs.Sub root and locale_filesystems Fx contribution group.",
+          "reference": "references/i18n/locale/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/i18n/ports",
+      "readme": null,
+      "exports": [
+        "ErrorTranslatorService",
+        "ErrorTranslatorService.TranslateError",
+        "LocaleLoaderService",
+        "LocaleLoaderService.Load",
+        "TranslationService",
+        "TranslationService.GetAllForDomain",
+        "TranslationService.Translate",
+        "TranslationService.TranslateWithData"
+      ],
+      "branches": [
+        {
+          "id": "i18n-contracts",
+          "capability": "LocaleLoaderService.Load, TranslationService lookup/interpolation/domain methods and ErrorTranslatorService contract for alternate providers.",
+          "reference": "references/i18n/ports/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/i18n/service",
+      "readme": null,
+      "exports": [
+        "ErrorTranslatorService",
+        "ErrorTranslatorService.TranslateError",
+        "LocaleLoaderService",
+        "LocaleLoaderService.FileSystems",
+        "LocaleLoaderService.Load",
+        "NewErrorTranslatorService",
+        "NewLocaleLoaderService",
+        "NewTranslationService",
+        "TranslationService",
+        "TranslationService.GetAllForDomain",
+        "TranslationService.Translate",
+        "TranslationService.TranslateWithData"
+      ],
+      "branches": [
+        {
+          "id": "i18n-service-construction",
+          "capability": "Construct concrete locale-loader, translation and error-translator services directly or bind alternate service contracts; dependency and failure ownership.",
+          "reference": "references/i18n/service/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "locale-loading",
+          "capability": "NewLocaleLoaderService, FileSystems and Load; <locale>.json domain/key maps, merge order, skipped read/parse failures and en fallback.",
+          "reference": "references/i18n/service/locale-loading.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "translation-lookup",
+          "capability": "NewTranslationService; configured locale and mandatory English fallback, missing-key behavior and GetAllForDomain copy.",
+          "reference": "references/i18n/service/translation.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "translation-template",
+          "capability": "TranslateWithData Go text/template interpolation, string map inputs and template error fallback.",
+          "reference": "references/i18n/service/translation.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "error-translation",
+          "capability": "NewErrorTranslatorService translates errs.Error code in errors domain; unknown errors/missing keys unchanged, translated error drops OriginalError.",
+          "reference": "references/i18n/service/error-translation.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/itestkit",
+      "readme": "pkg/itestkit/README.md",
+      "exports": [
+        "CleanupAll",
+        "Config",
+        "Config.Database",
+        "Config.MigrationsPath",
+        "Config.Password",
+        "Config.PostgresImage",
+        "Config.RedisImage",
+        "Config.User",
+        "DefaultConfig",
+        "ITestKit",
+        "ITestKit.Cleanup",
+        "ITestKit.DB",
+        "ITestKit.Redis",
+        "ITestKit.RunMigrations",
+        "ITestKit.StartPostgres",
+        "ITestKit.StartRedis",
+        "ITestKit.StopPostgres",
+        "ITestKit.StopRedis",
+        "ITestKit.TruncateTables",
+        "New",
+        "TestMain"
+      ],
+      "branches": [
+        {
+          "id": "itestkit-postgres",
+          "capability": "Config/DefaultConfig and New, StartPostgres/DB, RunMigrations path resolution and TruncateTables; testkit bypasses Bricks constructors.",
+          "reference": "references/itestkit/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "itestkit-redis",
+          "capability": "StartRedis/Redis from controlled container, native go-redis client and constructor distinction.",
+          "reference": "references/itestkit/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "itestkit-cleanup",
+          "capability": "StopPostgres/StopRedis/Cleanup resource ownership; CleanupAll and TestMain remove every testcontainers-labeled Docker container, not just suite resources.",
+          "reference": "references/itestkit/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "itestkit-composition",
+          "capability": "Use controlled PostgreSQL/Redis endpoints with actual application wiring and Bricks constructors; own cleanup and Docker requirements.",
+          "reference": "recipes/integration-testing.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/logger",
+      "readme": "pkg/logger/README.md",
+      "exports": [
+        "Any",
+        "Bool",
+        "Config",
+        "Config.Development",
+        "Config.DisableCaller",
+        "Config.DisableStacktrace",
+        "Config.Encoding",
+        "Config.ErrorOutputPaths",
+        "Config.InitialFields",
+        "Config.Level",
+        "Config.OutputPaths",
+        "Config.SamplingConfig",
+        "DefaultConfig",
+        "DevelopmentConfig",
+        "Duration",
+        "Error",
+        "Field",
+        "Float64",
+        "Int",
+        "Int32",
+        "Int64",
+        "Logger",
+        "Logger.DPanic",
+        "Logger.Debug",
+        "Logger.Error",
+        "Logger.Fatal",
+        "Logger.GetZapLogger",
+        "Logger.Info",
+        "Logger.Named",
+        "Logger.Panic",
+        "Logger.Sync",
+        "Logger.Warn",
+        "Logger.With",
+        "Logger.WithError",
+        "Module",
+        "MustNew",
+        "MustNewWithOptions",
+        "Namespace",
+        "New",
+        "NewWithLifecycle",
+        "NewWithOptions",
+        "Option",
+        "SamplingConfig",
+        "SamplingConfig.Initial",
+        "SamplingConfig.Thereafter",
+        "String",
+        "Stringer",
+        "Time",
+        "Uint64",
+        "WithCaller",
+        "WithDevelopment",
+        "WithEncoding",
+        "WithErrorOutputPaths",
+        "WithField",
+        "WithInitialFields",
+        "WithLevel",
+        "WithOutputPaths",
+        "WithSampling",
+        "WithStacktrace",
+        "ZapLogger",
+        "ZapLogger.DPanic",
+        "ZapLogger.Debug",
+        "ZapLogger.Error",
+        "ZapLogger.Fatal",
+        "ZapLogger.GetZapLogger",
+        "ZapLogger.Info",
+        "ZapLogger.Named",
+        "ZapLogger.Panic",
+        "ZapLogger.Sync",
+        "ZapLogger.Warn",
+        "ZapLogger.With",
+        "ZapLogger.WithError"
+      ],
+      "branches": [
+        {
+          "id": "logger-construction",
+          "capability": "Choose New, MustNew, NewWithOptions or MustNewWithOptions; explicit defaults, development config, all logging options and build errors.",
+          "reference": "references/logger/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "logger-context",
+          "capability": "Use severity methods, fields, Named, With, WithError and GetZapLogger; panic/fatal behavior and field helpers.",
+          "reference": "references/logger/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "logger-lifecycle",
+          "capability": "Load app.logger and bind Logger through Module or NewWithLifecycle; direct callers own Sync and shutdown errors.",
+          "reference": "references/logger/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/metrics",
+      "readme": "pkg/metrics/README.md",
+      "exports": [
+        "Module",
+        "NewPrometheusUseCaseMetrics",
+        "PrometheusUseCaseMetrics",
+        "PrometheusUseCaseMetrics.IncError",
+        "PrometheusUseCaseMetrics.IncSuccess",
+        "PrometheusUseCaseMetrics.ObserveDuration",
+        "UseCaseMetrics",
+        "UseCaseMetrics.IncError",
+        "UseCaseMetrics.IncSuccess",
+        "UseCaseMetrics.ObserveDuration"
+      ],
+      "branches": [
+        {
+          "id": "usecase-metrics",
+          "capability": "NewPrometheusUseCaseMetrics or Module, duration/success/error methods and name label; global registration, duplicate/partial registration hazards.",
+          "reference": "references/metrics/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "collector-listener",
+          "capability": "Choose default versus application registerer/gatherer and independent versus Chi listener so intended collectors appear.",
+          "reference": "recipes/metrics-listeners.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/migration",
+      "readme": "pkg/migration/README.md",
+      "exports": [
+        "ErrDatabaseDirty",
+        "ErrDatabaseNewer",
+        "ErrInvalidMigration",
+        "ErrInvalidSchemaVersion",
+        "ErrMissingDownMigration",
+        "ErrNilDatabase",
+        "FileSystem",
+        "FileSystem.FS",
+        "New",
+        "NewRunner",
+        "Runner",
+        "Runner.DownSQLite",
+        "Runner.Up",
+        "Runner.UpSQLite"
+      ],
+      "branches": [
+        {
+          "id": "migration-filesystems",
+          "capability": "Contribute FileSystem values to NewRunner; flat migration roots, naming, directories, ordering and backend-specific collision behavior.",
+          "reference": "references/migration/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "migration-postgres",
+          "capability": "Runner.Up with PostgreSQL DSN, no-change success and backend ownership; no public PostgreSQL rollback method.",
+          "reference": "references/migration/postgresql.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "migration-sqlite",
+          "capability": "Runner.UpSQLite transaction and schema-version checks; caller retains database ownership.",
+          "reference": "references/migration/sqlite.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "migration-sqlite-down",
+          "capability": "Explicit development-only DownSQLite, required matching down migrations, descending order and atomic failures.",
+          "reference": "references/migration/sqlite.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/otel/trace",
+      "readme": "pkg/otel/trace/README.md",
+      "exports": [
+        "ErrAlreadyInitialized",
+        "ErrAppNameRequired",
+        "ErrCreateExporter",
+        "ErrCreateGRPCExporter",
+        "ErrCreateHTTPExporter",
+        "ErrCreateTracerProvider",
+        "ErrExporterShutdown",
+        "ErrInvalidExporterType",
+        "ErrInvalidLimits",
+        "ErrInvalidSampleRate",
+        "ErrMultipleShutdown",
+        "ErrNotInitialized",
+        "ErrTraceURLRequired",
+        "ErrTracerProviderShutdown",
+        "ExporterType",
+        "ExporterTypeGRPC",
+        "ExporterTypeHTTP",
+        "GORMModule",
+        "Initialize",
+        "InitializeWithLifecycle",
+        "IsInitialized",
+        "Module",
+        "MustInitialize",
+        "NewExporterType",
+        "RedisModule",
+        "Shutdown",
+        "Span",
+        "TracerConfig",
+        "TracerConfig.AppName",
+        "TracerConfig.AppVersion",
+        "TracerConfig.BatchTimeout",
+        "TracerConfig.ExportTimeout",
+        "TracerConfig.ExporterType",
+        "TracerConfig.Insecure",
+        "TracerConfig.MaxBatchSize",
+        "TracerConfig.MaxQueueSize",
+        "TracerConfig.SampleRate",
+        "TracerConfig.SampleRateSet",
+        "TracerConfig.ShutdownTimeout",
+        "TracerConfig.TraceEnabled",
+        "TracerConfig.TraceURL",
+        "TracerConfig.TracerVendor",
+        "TracerConfig.Validate"
+      ],
+      "branches": [
+        {
+          "id": "trace-init",
+          "capability": "Initialize/MustInitialize, IsInitialized, Shutdown and Fx Module/InitializeWithLifecycle; global provider ownership and lifecycle errors.",
+          "reference": "references/otel/trace/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "trace-config",
+          "capability": "TracerConfig validation, gRPC/HTTP ExporterType parsing, queue/batch/timeouts, explicit zero sample rate and app.open-telemetry YAML.",
+          "reference": "references/otel/trace/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "trace-span",
+          "capability": "Span context propagation, options and caller-owned End; disabled tracing behavior.",
+          "reference": "references/otel/trace/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "trace-gorm",
+          "capability": "GORMModule instead of Module, app.database.tracing.enabled, initialized client, lifecycle plugin removal and duplicate instrumentation errors.",
+          "reference": "recipes/gorm-tracing.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "trace-redis",
+          "capability": "RedisModule plus provider Module/GORMModule, app.redis.tracing.enabled and eligible *redis.Client; reject cluster/ring, suppress statements and disable hooks on stop.",
+          "reference": "recipes/redis-tracing.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/paginator",
+      "readme": "pkg/paginator/README.md",
+      "exports": [
+        "ErrInvalidPage",
+        "ErrInvalidPerPage",
+        "Metadata",
+        "Metadata.Page",
+        "Metadata.PerPage",
+        "Metadata.TotalCount",
+        "Metadata.TotalPages",
+        "NormalizeParams",
+        "OptionalTrimmedStringPtr",
+        "Params",
+        "Params.Limit",
+        "Params.Offset",
+        "Params.Page",
+        "Params.PerPage",
+        "ParseQueryParams",
+        "TotalPages"
+      ],
+      "branches": [
+        {
+          "id": "pagination-parse",
+          "capability": "Strict ParseQueryParams with defaults and ErrInvalidPage/ErrInvalidPerPage; OptionalTrimmedStringPtr for optional filters.",
+          "reference": "references/paginator/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "pagination-normalize",
+          "capability": "NormalizeParams separately for fallback and maximum page-size policy; Params.Offset and Limit edge behavior.",
+          "reference": "references/paginator/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "pagination-metadata",
+          "capability": "TotalPages and Metadata fields; explicit total count and response representation.",
+          "reference": "references/paginator/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "pagination-response",
+          "capability": "Compose strict parsing, capping, offset/limit and response metadata deliberately.",
+          "reference": "recipes/pagination-response.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/redis",
+      "readme": "pkg/redis/README.md",
+      "exports": [
+        "Client",
+        "Client.Close",
+        "Client.Config",
+        "Client.GetMetrics",
+        "Client.IsClosed",
+        "Client.Ping",
+        "Client.ResetMetrics",
+        "Client.Stats",
+        "Client.UniversalClient",
+        "Client.WithNamespace",
+        "Client.WithoutNamespace",
+        "ClientModule",
+        "ClientType",
+        "ClientTypeCluster",
+        "ClientTypeFailover",
+        "ClientTypeSentinel",
+        "ClientTypeSingleNode",
+        "Config",
+        "Config.ClusterAddrs",
+        "Config.CommandTimeout",
+        "Config.ConnMaxIdleTime",
+        "Config.ConnMaxLifetime",
+        "Config.ContextTimeoutEnabled",
+        "Config.DB",
+        "Config.DialTimeout",
+        "Config.DisableIndentity",
+        "Config.EnableMetrics",
+        "Config.EnableTLS",
+        "Config.IdentitySuffix",
+        "Config.MasterName",
+        "Config.MaxIdleConns",
+        "Config.MaxRedirects",
+        "Config.MaxRetries",
+        "Config.MaxRetryBackoff",
+        "Config.MinIdleConns",
+        "Config.MinRetryBackoff",
+        "Config.Namespace",
+        "Config.Password",
+        "Config.PoolFIFO",
+        "Config.PoolSize",
+        "Config.PoolTimeout",
+        "Config.Protocol",
+        "Config.ReadOnly",
+        "Config.ReadTimeout",
+        "Config.ReplicaOnly",
+        "Config.RouteByLatency",
+        "Config.RouteRandomly",
+        "Config.SentinelAddrs",
+        "Config.SentinelPassword",
+        "Config.SentinelUsername",
+        "Config.SetDefaults",
+        "Config.TLSServerName",
+        "Config.TLSSkipVerify",
+        "Config.Type",
+        "Config.URL",
+        "Config.UnstableMode",
+        "Config.Validate",
+        "Config.WriteTimeout",
+        "ConfigError",
+        "ConfigError.Err",
+        "ConfigError.Error",
+        "ConfigError.Field",
+        "ConfigError.Unwrap",
+        "ConfigError.Value",
+        "ConnectionError",
+        "ConnectionError.Attempt",
+        "ConnectionError.ClientType",
+        "ConnectionError.Err",
+        "ConnectionError.Error",
+        "ConnectionError.Is",
+        "ConnectionError.URL",
+        "ConnectionError.Unwrap",
+        "ErrClientClosed",
+        "ErrConnectionFailed",
+        "ErrEmptyClientType",
+        "ErrInvalidClientType",
+        "ErrInvalidConfig",
+        "ErrInvalidDB",
+        "ErrMissingURL",
+        "ErrPingFailed",
+        "Metrics",
+        "Metrics.AverageLatency",
+        "Metrics.CommandsExecuted",
+        "Metrics.CommandsFailed",
+        "Metrics.ConnectionErrors",
+        "Metrics.ConnectionRetries",
+        "Metrics.LastCommandTime",
+        "Metrics.TotalLatency",
+        "Module",
+        "NewClient",
+        "NewUniversalClientWithFx",
+        "NewWithFx",
+        "Option",
+        "Params",
+        "Params.Config",
+        "Params.In",
+        "Params.Options",
+        "Params.Tracing",
+        "PoolMetricsModule",
+        "PoolStats",
+        "PoolStats.Hits",
+        "PoolStats.IdleConns",
+        "PoolStats.Misses",
+        "PoolStats.StaleConns",
+        "PoolStats.Timeouts",
+        "PoolStats.TotalConns",
+        "TracingEnabled",
+        "UniversalClient",
+        "WithConnectTimeout",
+        "WithMaxRetries",
+        "WithOnConnect",
+        "WithOnDisconnect",
+        "WithRetryCallback",
+        "WithRetryDelay"
+      ],
+      "branches": [
+        {
+          "id": "redis-standalone",
+          "capability": "Create single_node clients using URL, DB, password/TLS behavior and topology-specific validation.",
+          "reference": "references/redis/standalone.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "redis-cluster",
+          "capability": "Create cluster clients from ClusterAddrs or URL, routing options and unsupported tracing.",
+          "reference": "references/redis/cluster.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "redis-sentinel",
+          "capability": "Create Sentinel clients using SentinelAddrs, MasterName, sentinel credentials and read-routing choices.",
+          "reference": "references/redis/sentinel.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "redis-failover",
+          "capability": "Create failover clients using a URL-derived sentinel address and MasterName; distinguish from Sentinel configuration.",
+          "reference": "references/redis/failover.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "redis-config",
+          "capability": "Config.SetDefaults and Validate; pool/retry/socket timeouts, TLS, protocol/identity, type errors and ConfigError/ConnectionError chains.",
+          "reference": "references/redis/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "redis-wrapper",
+          "capability": "NewClient versus UniversalClient; explicit namespace helpers, Config, Ping, Stats, IsClosed, Close and closed-client errors.",
+          "reference": "references/redis/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "redis-options",
+          "capability": "Connection retry/connect/disconnect option APIs; distinguish applied callbacks from unused ConnectTimeout, MaxRetries, RetryDelay and OnDisconnect settings.",
+          "reference": "references/redis/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "redis-fx",
+          "capability": "Choose Module or ClientModule at app.redis, Params.Options and TracingEnabled, eager connection plus startup Ping and stop Close.",
+          "reference": "references/redis/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "redis-telemetry",
+          "capability": "GetMetrics and ResetMetrics cover constructor ping attempts only, distinct from pool stats, Prometheus pool collectors and tracing.",
+          "reference": "references/redis/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "redis-pool-metrics",
+          "capability": "Register Redis pool collectors with application UniversalClient/registerer, app.redis.metrics.enabled and lifecycle ownership.",
+          "reference": "recipes/redis-pool-metrics.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/ucdecorator",
+      "readme": "pkg/ucdecorator/README.md",
+      "exports": [
+        "Chain",
+        "Config",
+        "Config.DebugMode",
+        "Config.Enabled",
+        "Config.Logging",
+        "Config.Metrics",
+        "Config.Tracing",
+        "Config.Translation",
+        "DefaultConfig",
+        "ErrorTranslator",
+        "ErrorTranslator.TranslateError",
+        "Factory",
+        "Module",
+        "NewFactory",
+        "UseCase",
+        "UseCase.Execute",
+        "Wrap"
+      ],
+      "branches": [
+        {
+          "id": "decorator-manual",
+          "capability": "Chain with explicit metric/use-case names and optional nil dependencies; execution logging, metrics, tracing, translation order.",
+          "reference": "references/ucdecorator/manual.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "decorator-factory",
+          "capability": "NewFactory, Module at app.ucdecorator and explicit generic Wrap; all constructor dependencies required even when flags disabled.",
+          "reference": "references/ucdecorator/factory.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "decorator-flags",
+          "capability": "Enabled, per-feature flags, DebugMode, DefaultConfig, inferred type and metric names, execution order and nil logger hazard in debug mode.",
+          "reference": "references/ucdecorator/factory.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "decorator-dependencies",
+          "capability": "Provide logger, UseCaseMetrics, ErrorTranslator and config; module installation alone never decorates application use cases.",
+          "reference": "recipes/decorator-factory.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "decorator-integrations",
+          "capability": "Compose logging, metrics, tracing and structured-error translation with interface bindings and lifecycle ownership.",
+          "reference": "recipes/decorator-integrations.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "runnable",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    },
+    {
+      "path": "pkg/validator",
+      "readme": "pkg/validator/README.md",
+      "exports": [
+        "Module",
+        "New",
+        "Validator",
+        "Validator.Engine",
+        "Validator.Struct",
+        "Validator.Translator",
+        "Validator.Validate",
+        "Validator.ValidateVar",
+        "Validator.Var"
+      ],
+      "branches": [
+        {
+          "id": "validator-validation",
+          "capability": "New or Module; struct/scalar Validate and ValidateVar plus Struct/Var aliases, required struct behavior and returned validation errors.",
+          "reference": "references/validator/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        },
+        {
+          "id": "validator-extension",
+          "capability": "Use Engine and Translator for aliases, custom validation rules and English translation extensions; distinguish from i18n translation.",
+          "reference": "references/validator/usage.md",
+          "status": "planned",
+          "examples": [
+            {
+              "kind": "fragment",
+              "path": null,
+              "status": "planned",
+              "checks": []
+            }
+          ],
+          "verification": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,156 @@
+{
+  "cases": [
+    {
+      "id": "json-parsing",
+      "task": "Decode a JSON request body with Bricks, reject unknown fields, and explain body limits and parse errors. I do not need server setup.",
+      "required": ["references/http/request/usage.md"],
+      "excluded": ["references/http/server/chi/usage.md", "references/database/usage.md", "references/redis/standalone.md"],
+      "conditional": [
+        {"when": "The caller also asks to validate decoded application input.", "references": ["references/validator/usage.md"]},
+        {"when": "The installed API disagrees with the example or the caller requests source verification.", "references": ["references/local-source.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "redis-standalone",
+      "task": "Connect a Bricks Redis standalone client with a key namespace and own its shutdown. Do not configure a cluster or Sentinel.",
+      "required": ["references/redis/standalone.md"],
+      "excluded": ["references/redis/cluster.md", "references/redis/sentinel.md", "references/redis/failover.md"],
+      "conditional": [
+        {"when": "The caller also requests Redis pool metrics.", "references": ["recipes/redis-pool-metrics.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "redis-cluster",
+      "task": "Use Bricks with an existing Redis Cluster. Explain the supported client and lifecycle without loading other topologies.",
+      "required": ["references/redis/cluster.md"],
+      "excluded": ["references/redis/standalone.md", "references/redis/sentinel.md", "references/redis/failover.md"],
+      "conditional": [],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "manual-decorators",
+      "task": "Build a manual Bricks use-case decorator chain and explain execution order. Do not use the configured factory.",
+      "required": ["references/ucdecorator/manual.md"],
+      "excluded": ["references/ucdecorator/factory.md", "recipes/decorator-factory.md", "references/config/usage.md"],
+      "conditional": [
+        {"when": "The caller changes the request to configured factory wrapping.", "references": ["recipes/decorator-factory.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "factory-dependencies",
+      "task": "Wire the Bricks decorator factory with Fx and wrap a use case explicitly, including the dependencies needed when optional decorations are disabled.",
+      "required": ["recipes/decorator-factory.md"],
+      "excluded": ["references/ucdecorator/manual.md", "references/database/usage.md"],
+      "conditional": [
+        {"when": "The caller asks for factory flags, naming rules, or configuration details beyond the recipe.", "references": ["references/ucdecorator/factory.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "translation",
+      "task": "Translate a message with Bricks using a selected language, fallback, and interpolation. I am not implementing an i18n backend.",
+      "required": ["references/i18n/usage.md"],
+      "excluded": ["references/i18n/config/usage.md", "references/i18n/dto/usage.md", "references/i18n/ports/usage.md", "references/i18n/service/usage.md", "references/ucdecorator/factory.md"],
+      "conditional": [
+        {"when": "The caller also needs filesystem locale contributions or locale file formats.", "references": ["references/i18n/locale/usage.md"]},
+        {"when": "The caller asks to translate structured use-case errors.", "references": ["recipes/localized-usecase.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "usecase-metrics",
+      "task": "Measure use-case executions with Bricks and explain collector ownership. I already have an HTTP metrics endpoint.",
+      "required": ["references/metrics/usage.md"],
+      "excluded": ["recipes/database-pool-metrics.md", "recipes/redis-pool-metrics.md", "references/http/server/metrics/usage.md", "references/http/server/chi/metrics.md"],
+      "conditional": [
+        {"when": "The caller needs to connect these collectors to the endpoint's gatherer.", "references": ["recipes/metrics-listeners.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "database-pool-metrics",
+      "task": "Expose Bricks database connection-pool metrics through an existing Prometheus endpoint. Explain registration ownership.",
+      "required": ["recipes/database-pool-metrics.md"],
+      "excluded": ["references/metrics/usage.md", "recipes/redis-pool-metrics.md", "references/http/server/metrics/usage.md"],
+      "conditional": [
+        {"when": "The caller also needs a new listener or collector-to-gatherer wiring.", "references": ["recipes/metrics-listeners.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "redis-pool-metrics",
+      "task": "Expose Redis client pool statistics with Bricks through my existing Prometheus endpoint, including topology limitations.",
+      "required": ["recipes/redis-pool-metrics.md"],
+      "excluded": ["references/metrics/usage.md", "recipes/database-pool-metrics.md", "references/http/server/metrics/usage.md"],
+      "conditional": [
+        {"when": "The caller also requests standalone Redis client construction and confirms that topology.", "references": ["references/redis/standalone.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "independent-metrics-endpoint",
+      "task": "Start and stop an independent Bricks metrics listener using my application's gatherer. Do not add a Chi application server.",
+      "required": ["references/http/server/metrics/usage.md"],
+      "excluded": ["references/http/server/chi/metrics.md", "references/metrics/usage.md", "recipes/database-pool-metrics.md", "recipes/redis-pool-metrics.md"],
+      "conditional": [
+        {"when": "The caller also needs to connect collectors with different ownership models.", "references": ["recipes/metrics-listeners.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "chi-metrics-endpoint",
+      "task": "Use the metrics listener provided by the Bricks Chi server and own its lifecycle. Do not create a separate metrics-server module.",
+      "required": ["references/http/server/chi/metrics.md"],
+      "excluded": ["references/http/server/metrics/usage.md", "references/metrics/usage.md", "recipes/database-pool-metrics.md", "recipes/redis-pool-metrics.md"],
+      "conditional": [
+        {"when": "The caller also needs collector-to-listener registry wiring.", "references": ["recipes/metrics-listeners.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "ambiguous-metrics",
+      "task": "Add Bricks metrics to my app.",
+      "required": [],
+      "excluded": ["references/metrics/usage.md", "recipes/database-pool-metrics.md", "recipes/redis-pool-metrics.md", "references/http/server/metrics/usage.md", "references/http/server/chi/metrics.md"],
+      "conditional": [],
+      "clarification": "Ask whether the caller needs use-case measurements, database or Redis pool statistics, or a metrics listener before loading those branches.",
+      "deduplicate": true
+    },
+    {
+      "id": "multigoal-pagination-and-http",
+      "task": "Build a complete Bricks HTTP flow with JSON decoding, validation, use-case execution, error responses, and pagination metadata for a list endpoint.",
+      "required": ["recipes/http-flow.md", "recipes/pagination-response.md"],
+      "excluded": ["references/database/usage.md", "references/redis/standalone.md", "references/i18n/usage.md"],
+      "conditional": [
+        {"when": "The caller asks for parsing policy, normalization, or capping details beyond the pagination recipe.", "references": ["references/paginator/usage.md"]},
+        {"when": "The caller asks for additional response contracts beyond the flow recipe.", "references": ["references/http/response/usage.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "local-source-investigation",
+      "task": "Find the Bricks source actually selected by this Go application and investigate an undocumented behavior. Respect replacements, workspace overrides, vendor mode, and unavailable local source without downloading anything.",
+      "required": ["references/local-source.md"],
+      "excluded": ["references/database/usage.md", "references/redis/standalone.md", "references/http/server/chi/usage.md"],
+      "conditional": [],
+      "clarification": "Ask which behavior or API to investigate if the caller has not named it. Source discovery does not justify loading unrelated package guides.",
+      "deduplicate": true
+    }
+  ],
+  "evaluations": []
+}
