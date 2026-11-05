@@ -2,11 +2,11 @@
   "cases": [
     {
       "id": "validation-operations",
-      "task": "Validate decoded Bricks input structs and scalar values, handle validation errors, and translate English messages. Do not add request parsing or server setup.",
+      "task": "Use validator.Module in Fx, inject validator.Validator into a use case, and validate its tagged input struct at the start of Execute. Propagate validation errors without custom providers or lifecycle validation.",
       "required": ["references/validator/usage.md"],
       "excluded": ["references/http/request/usage.md", "references/http/server/chi/usage.md", "references/i18n/usage.md", "references/paginator/usage.md", "references/local-source.md"],
       "conditional": [
-        {"when": "The caller needs a complete Fx application with alias, custom-rule registration, and a custom translation.", "references": ["examples/validation/README.md"]}
+        {"when": "The caller needs a complete application with validator.Module, constructor injection, and struct validation in Execute.", "references": ["examples/validation/README.md"]}
       ],
       "clarification": null,
       "deduplicate": true
@@ -17,7 +17,7 @@
       "required": ["references/validator/usage.md"],
       "excluded": ["references/i18n/usage.md", "references/config/usage.md", "references/http/response/usage.md", "references/local-source.md"],
       "conditional": [
-        {"when": "The caller requests the full translation callbacks and configured Fx provider as a complete program.", "references": ["examples/validation/README.md"]}
+        {"when": "The caller also requests the ordinary complete Fx application using validator.Module and a use case.", "references": ["examples/validation/README.md"]}
       ],
       "clarification": null,
       "deduplicate": true

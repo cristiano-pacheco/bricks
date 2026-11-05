@@ -6,15 +6,15 @@ Ticket 04 documents the validator and paginator packages against revision `702e6
 
 | Ticket criterion | Delivered content and source evidence |
 | --- | --- |
-| Struct and scalar operations, aliases, rules, translations, errors, Fx and direct construction | The [validation guide](../references/validator/usage.md) covers every Bricks export. The [complete Fx example](../examples/validation/README.md) registers an alias, string rule, and translation in its provider before consumers receive the interface. Direct construction and error handling are inline fragments. Inspected `pkg/validator/validator.go`, `fx.go`, and existing examples and tests. |
-| Engine extension points without an upstream tutorial | The validation guide explains initialization timing, aliases, field rules, cross-field rules, custom type extraction, field names, and the separate English translator. Inspected the pinned upstream `validator_instance.go` registration methods in the configured local cache. The complete example includes both translation callbacks and error handling. |
+| Struct and scalar operations, aliases, rules, translations, errors, Fx and direct construction | The [validation guide](../references/validator/usage.md) covers every Bricks export. The [complete Fx example](../examples/validation/README.md) uses `validator.Module`, constructor injection into `ProductQuoteUseCase`, and tagged struct validation as the first action of `Execute`. Direct construction, scalar operations, aliases, custom rules, and error translation are separate guide fragments. Inspected `pkg/validator/validator.go`, `fx.go`, and existing examples and tests. |
+| Engine extension points without an upstream tutorial | The validation guide explains initialization timing, aliases, field rules, cross-field rules, custom type extraction, field names, and the separate English translator. Inspected the pinned upstream `validator_instance.go` registration methods in the configured local cache. The guide explains custom translation callback responsibilities. Engine extensions are optional and do not replace the standard module and use-case pattern. |
 | Strict parsing, normalization, capping, offsets, limits, metadata and optional strings | The [pagination guide](../references/paginator/usage.md) covers all exports and their edge behavior. Inspected `pkg/paginator/paginator.go`, `errs.go`, and existing tests. The [complete pagination example](../examples/pagination/README.md) prints invalid and boundary cases without claiming executed proof. |
 | Parsing versus validation and page-size policy | Both guides distinguish decoding from application validation. The pagination guide separates strict rejection, forgiving integer fallback, capping, and application rejection of oversize pages. It records unchecked defaults, offset overflow risk, and floating-point total-page calculation. |
 | Separate ownership and conditional examples | Each package has its own authoritative guide. Branch-specific fragments stay beside their explanations. Each guide points to its complete example only when that setup is requested. No framework checkout, external writing skills, or repository files are consumer prerequisites. HTTP response composition remains later-ticket work. |
 | Writing, coverage, links, routing and token records | Loaded `writing-for-agents`, its skill mechanics reference, and `unslop` before authoring. Applied their hierarchy, conditional pointers, co-location, and prose rules after writing. `coverage.json` records authored destinations, source evidence, and unverified complete examples. `routing.json` adds four focused cases. The inventory links to the delivered guides and this evidence. Size-only measurements appear below. Automated link and structural checks were waived. |
 | Required behavior verification and example compilation | Waived by the user, not implemented or passed. The source is complete but uncompiled and unexecuted. No new tests were added. |
 
-`CODING_STANDARDS.md` was absent from the root and checked ancestor directories. Available repository instructions and the shared authoring contract applied instead. New `main.go` files are executable composition examples, an explicit naming exception, not framework components. No framework implementation, dependency declaration, existing README, or root documentation changed.
+`CODING_STANDARDS.md` was absent from the root and checked ancestor directories. Available repository instructions and the shared authoring contract applied instead. New `main.go` files are executable composition examples, an explicit naming exception. `product_quote_usecase.go` owns the application quote operation and follows the use-case filename and constructor contract. No framework implementation, dependency declaration, existing README, or root documentation changed.
 
 ## Verification and waivers
 
@@ -38,14 +38,23 @@ The method is UTF-8 byte length divided by four, rounded up per file. A Python f
 
 | Document | Bytes | Estimated tokens |
 | --- | --- | --- |
-| `references/validator/usage.md` | 5403 | 1351 |
+| `references/validator/usage.md` | 6136 | 1534 |
 | `references/paginator/usage.md` | 5580 | 1395 |
-| `examples/validation/README.md` | 2137 | 535 |
-| `examples/validation/main.go` | 2905 | 727 |
+| `examples/validation/README.md` | 2280 | 570 |
+| `examples/validation/main.go` | 874 | 219 |
+| `examples/validation/product_quote_usecase.go` | 813 | 204 |
 | `examples/pagination/README.md` | 1783 | 446 |
 | `examples/pagination/main.go` | 2077 | 520 |
 
-Both focused references meet the 2,000-token soft target. A combined validation-and-pagination task reads each guide once for 2,746 estimated tokens before the future router. Complete programs load only on explicit example requests. Their additional README-plus-source loads are 1,262 tokens for validation and 966 for pagination. Router-inclusive measurements remain unavailable until the router exists.
+Both focused references meet the 2,000-token soft target. A combined validation-and-pagination task reads each guide once for 2,929 estimated tokens before the future router. Complete programs load only on explicit example requests. Their additional README-plus-source loads are 993 tokens for validation and 966 for pagination. Router-inclusive measurements remain unavailable until the router exists.
+
+## Correction after consumer feedback
+
+The user rejected the initial validation example. It replaced `validator.Module` with an anonymous configured provider and used an OnStart hook to demonstrate validation checks. That was not the application pattern requested.
+
+Inspected JBN's `internal/modules/catalog/usecase/product_create_usecase.go`, plus go-shortner's `cmd/server.go`, `internal/modules/shortener/fx.go`, and `internal/modules/shortener/usecase/link_create_usecase.go`. These projects install `validator.Module` in composition and inject `validator.Validator` into use cases. The first application action validates the input struct. JBN propagates validation failures directly; go-shortner adapts them through its application error contract.
+
+The corrected example uses the module unchanged, registers a concrete use case, validates its tagged input at the start of `Execute`, and returns validation errors unchanged. No custom provider or lifecycle validation remains. Scalar APIs and engine extensions remain separately documented supported alternatives, not the main example. External project paths are authoring evidence only; copied skill contents do not depend on them. Tests, lint, and code review remain waived.
 
 ## Routing cases
 

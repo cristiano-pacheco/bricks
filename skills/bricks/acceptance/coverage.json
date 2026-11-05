@@ -1995,7 +1995,8 @@
         "source_revision": "702e646e40fe756db90bb25c508839a681e90df5",
         "authored": "references/validator/usage.md",
         "source_inspected": ["pkg/validator/validator.go", "pkg/validator/fx.go", "pkg/validator/example_test.go", "pkg/validator/validator_test.go", "github.com/go-playground/validator/v10@v10.30.5/validator_instance.go"],
-        "example": {"kind": "runnable", "path": "examples/validation/main.go", "fx": true, "status": "planned", "checks": []},
+        "example": {"kind": "runnable", "path": "examples/validation/main.go", "supporting_files": ["examples/validation/product_quote_usecase.go"], "fx": true, "status": "planned", "checks": []},
+        "consumer_pattern": "validator.Module in Fx; constructor injection of validator.Validator; Validate(input) first in Execute. Corrected after user feedback using JBN and go-shortner as authoring evidence. No custom validator provider or validation lifecycle hook.",
         "verification": "Static source inspection only. Compilation, Fx graph, runtime validation/custom-rule/translation integration, lifecycle, tests, lint, structural/link checks, and code review were waived by the user for ticket 04, not passed. Branches remain planned; README removal remains gated. See acceptance/validation-pagination.md."
       },
       "readme": "pkg/validator/README.md",

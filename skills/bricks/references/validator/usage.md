@@ -1,35 +1,51 @@
 # Validation
 
-Use `github.com/cristiano-pacheco/bricks/pkg/validator` to validate decoded application input. JSON decoding checks representation, not application rules. Call validation explicitly after decoding and before executing the operation. This package does not parse requests or select HTTP status codes.
+Use `github.com/cristiano-pacheco/bricks/pkg/validator` to validate application input structs at the start of a use case's `Execute` method. JSON decoding checks representation, not application rules. The transport decodes the request and calls the use case. The use case validates its input before performing business work.
 
 ## Construction and operations
 
 `New() (Validator, error)` builds a go-playground engine with required-struct validation enabled and English translations registered. Handle construction errors. A missing English translator returns `translator not found`; translation-registration errors propagate. There is no configuration file, lifecycle hook, or shutdown operation.
 
-Prefer `validator.Module` in an Fx application. It provides `validator.Validator`; consumers must request that interface. A wiring fragment follows, with `fx` imported from `go.uber.org/fx`:
+Use `validator.Module` once in the Fx process composition. Inject `validator.Validator` into the use case through its constructor. Do not replace the module with a custom validator provider or run application validation in lifecycle hooks.
+
+Composition fragment, with `fx` imported from `go.uber.org/fx`:
 
 ```go
 app := fx.New(
 	validator.Module,
-	fx.Invoke(func(inputValidator validator.Validator) error {
-		return inputValidator.ValidateVar("person@example.com", "required,email")
-	}),
+	fx.Provide(NewProductQuoteUseCase),
 )
 ```
 
-Direct-construction fragment:
+Use-case fragment, with the standard-library `context` import:
 
 ```go
-inputValidator, err := validator.New()
-if err != nil {
-	return err
+type ProductQuoteInput struct {
+	UnitPriceInCents int64 `validate:"required,gt=0,lte=1000000000"`
+	Quantity         int64 `validate:"required,gt=0,lte=1000"`
 }
-type Input struct {
-	Name  string `validate:"required,min=3"`
-	Email string `validate:"required,email"`
+
+type ProductQuoteOutput struct {
+	TotalInCents int64
 }
-err = inputValidator.Validate(Input{Name: "Ada", Email: "ada@example.com"})
+
+type ProductQuoteUseCase struct {
+	validator validator.Validator
+}
+
+func NewProductQuoteUseCase(validator validator.Validator) *ProductQuoteUseCase {
+	return &ProductQuoteUseCase{validator: validator}
+}
+
+func (uc *ProductQuoteUseCase) Execute(_ context.Context, input ProductQuoteInput) (ProductQuoteOutput, error) {
+	if err := uc.validator.Validate(input); err != nil {
+		return ProductQuoteOutput{}, err
+	}
+	return ProductQuoteOutput{TotalInCents: input.UnitPriceInCents * input.Quantity}, nil
+}
 ```
+
+For a caller without Fx, the supported direct alternative is `inputValidator, err := validator.New()`. Handle the error, then pass the instance to `NewProductQuoteUseCase`. This does not change where the use case validates its input.
 
 `Validate` and `Struct` are identical struct-validation operations. `ValidateVar` and `Var` are identical scalar-validation operations, for example `inputValidator.Var(17, "gte=18")`. Validation returns nil on success and does not normalize or trim values.
 
@@ -81,4 +97,4 @@ Import `strings`. The `sku` rule is string-only; apply it only to string fields.
 
 Other supported upstream extension points are `RegisterStructValidation` for cross-field acceptance, `RegisterCustomTypeFunc` for extracting values from custom types, and `RegisterTagNameFunc` for client-facing field names. These are engine APIs, not additional Bricks wrappers. Keep acceptance rules in the validator rather than performing I/O inside a rule. The Bricks interface has no context-taking validation methods; context-aware engine operations require explicit use of `Engine()`.
 
-For a complete Fx program with a configured provider, alias, custom rule, custom English translation, scalar and struct operations, and owned start/stop, read [the validation example](../../examples/validation/README.md). Load it only when implementing that complete setup. Short snippets here are fragments, not standalone programs. The complete example is unexecuted; compilation and runtime checks were waived for this documentation ticket.
+For a complete program with `validator.Module`, constructor injection, and struct validation at the start of `Execute`, read [the validation example](../../examples/validation/README.md). Load it only when a complete example is requested. Short snippets here are fragments, not standalone programs. The complete example is unexecuted; compilation and runtime checks were waived for this documentation ticket.
