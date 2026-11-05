@@ -22,7 +22,7 @@ app:
     applicationname: bricks_skill_startup
 ```
 
-The database and user must already exist. The user needs permissions for application operations. The migration connection also needs DDL and migration-state permissions. TLS is disabled here only for local development. For every connection field, default, TLS alternative, and Go-only option, read the [database configuration reference](../references/database/usage.md#configuration-reference).
+The database and user must already exist. The user needs permissions for application operations. The migration connection also needs DDL and migration-state permissions. TLS is disabled here only for local development. For every connection field, default, TLS alternative, and Go-only option, read the [database configuration reference](../references/database/configuration.md).
 
 This recipe uses a separate `MIGRATION_DSN` environment variable for the migration URL. Point it at the same database and schema. It can use a distinct migration user. The migration package has no YAML configuration provider of its own.
 
@@ -174,7 +174,7 @@ For contribution layouts, filenames, collision rules, and public operation selec
 
 `database.Module` owns the application GORM pool and closes it on normal shutdown. `runner.Up(url)` opens a separate migration connection and defers its own close after successful migrate-instance construction. It does not reuse GORM or the application pool. Do not close GORM from the migration hook. Application pool limits do not configure the migration connection.
 
-Use a migration URL built with `net/url` and explicit deployment TLS policy. If deriving the migration URL from typed database configuration in your application, preserve host, credentials, database name, SSL mode, certificates, time zone, search path, application name, and positive timeout settings. Pool and GORM fields have no URL equivalent. This guide does not distribute an alternate URL-building program. `Config.DSN()` is the application's keyword DSN, not this recipe's migration URL. `Config.PostgresDSN()` omits certificate and timeout settings and does not escape values; it is not a lossless conversion. For those constructor contracts, read the [database guide](../references/database/usage.md) only when changing connection setup.
+Use a migration URL built with `net/url` and explicit deployment TLS policy. If deriving the migration URL from typed database configuration in your application, preserve host, credentials, database name, SSL mode, certificates, time zone, search path, application name, and positive timeout settings. Pool and GORM fields have no URL equivalent. This guide does not distribute an alternate URL-building program. `Config.DSN()` is the application's keyword DSN, not this recipe's migration URL. `Config.PostgresDSN()` omits certificate and timeout settings and does not escape values; it is not a lossless conversion. For those constructor contracts, read [database configuration](../references/database/configuration.md) only when those contracts matter.
 
 A deployment can instead supply a separately escaped migration URL with distinct privileges. Keep its target database and schema consistent with the application connection. Never print secrets or either DSN. Database permissions must permit the application's operations, while migration credentials must permit the required DDL and migration-state updates.
 

@@ -215,4 +215,4 @@ _, err = quoted.Execute(ctx, QuoteInput{Quantity: 2})
 return err
 ```
 
-`NewFactory` takes four arguments, including `config.Config[ucdecorator.Config]`. The older three-argument README call does not match this API. For missing Fx dependencies, inspect the provider's exact return type. A concrete logger or a structurally compatible translator provider is not automatically registered under the required interface. The inline setup makes those interfaces explicit.
+`NewFactory` takes four arguments, including `config.Config[ucdecorator.Config]`. The older three-argument README call does not match this API. For missing Fx dependencies, inspect the provider's exact return type. A concrete logger or a structurally compatible translator provider is not automatically registered under the required interface. The inline setup makes those interfaces explicit. When publication, flags, or effects change, follow [decorator verification](verification.md). It separates graph checks from actual execution and export.
