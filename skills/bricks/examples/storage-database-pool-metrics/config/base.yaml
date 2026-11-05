@@ -1,0 +1,14 @@
+app:
+  database:
+    host: localhost
+    port: 5432
+    name: bricks_skill
+    user: bricks_skill
+    password: env://POSTGRES_PASSWORD
+    sslmode: false
+    metrics:
+      enabled: true
+  metrics:
+    enabled: true
+    address: 127.0.0.1
+    port: 9092

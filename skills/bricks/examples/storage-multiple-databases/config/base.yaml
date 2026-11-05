@@ -1,0 +1,10 @@
+app:
+  database:
+    host: localhost
+    port: 5432
+    name: bricks_skill
+    user: bricks_skill
+    password: env://POSTGRES_PASSWORD
+    sslmode: false
+  sqlite:
+    path: ./storage-demo.db

@@ -1,0 +1,13 @@
+app:
+  redis:
+    type: single_node
+    url: redis://localhost:6379
+    tracing:
+      enabled: true
+  open-telemetry:
+    app_name: storage-demo
+    trace_enabled: true
+    trace_url: localhost:4318
+    exporter_type: http
+    insecure: true
+    sample_rate: 1.0
