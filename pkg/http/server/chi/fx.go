@@ -14,12 +14,10 @@ import (
 //
 // Usage in your application:
 //
-//	fx.Module(
-//	    "httpserver",
-//	    config.Provide[chi.Config]("app.http"),
-//	    chi.Module,
-//	    fx.Invoke(func(*chi.Server) {}), // Force server construction
-//	)
+//	fx.New(chi.Module).Run()
+//
+// The module loads app.http from the application's configuration directory.
+// See config/config.yaml for a configuration skeleton.
 var Module = fx.Module(
 	"httpserver-chi",
 	config.Provide[Config]("app.http"),

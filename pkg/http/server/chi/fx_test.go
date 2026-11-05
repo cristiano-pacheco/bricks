@@ -101,3 +101,36 @@ func TestLegacyMetricsLifecycle_OccupiedMetricsPortReleasesPublicListener(t *tes
 	require.NoError(t, err)
 	require.NoError(t, listener.Close())
 }
+
+func TestModule_ConfigSkeleton_StartsServer(t *testing.T) {
+	// Arrange: use the published skeleton with ephemeral listener addresses.
+	data, err := os.ReadFile("config/config.yaml")
+	require.NoError(t, err)
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "base.yaml"), data, 0600))
+	require.NoError(
+		t,
+		os.WriteFile(
+			filepath.Join(dir, "local.yaml"),
+			[]byte("app:\n  http:\n    address: '127.0.0.1:0'\n    metricsaddress: '127.0.0.1:0'\n"),
+			0600,
+		),
+	)
+	t.Setenv("APP_CONFIG_DIR", dir)
+	t.Setenv("APP_ENV", "local")
+
+	var server *chi.Server
+
+	app := fx.New(fx.NopLogger, chi.Module, fx.Populate(&server))
+
+	// Act
+	require.NoError(t, app.Start(context.Background()))
+	t.Cleanup(func() { require.NoError(t, app.Stop(context.Background())) })
+
+	// Assert
+	client := &http.Client{Timeout: time.Second}
+	response, err := client.Get("http://" + server.Addr() + "/healthz")
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+}

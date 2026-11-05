@@ -5,7 +5,7 @@ app:
     port: 5432                            # (required) Database port, no default
     name: myapp_db                        # (required) Database name, no default
     user: dbuser                          # (required) Database user, no default
-    password: ***                         # (optional) Database password, default: ""
+    password: ""                          # (optional) Database password, default: ""
 
     # SSL configuration
     sslmode: false                        # (optional) Enable SSL mode, default: false
