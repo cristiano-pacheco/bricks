@@ -5,9 +5,10 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/fx"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
 )
 
 const defaultReadHeaderTimeout = 10 * time.Second

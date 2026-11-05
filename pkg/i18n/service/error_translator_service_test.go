@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/stretchr/testify/suite"
+
 	"github.com/cristiano-pacheco/bricks/pkg/errs"
 	"github.com/cristiano-pacheco/bricks/pkg/i18n/service"
-	"github.com/stretchr/testify/suite"
 )
 
 type ErrorTranslatorServiceTestSuite struct {

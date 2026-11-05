@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"go.uber.org/fx"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
 )
 
 // Module loads tracing configuration and manages the tracer lifecycle.

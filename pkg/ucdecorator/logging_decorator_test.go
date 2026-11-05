@@ -5,10 +5,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/cristiano-pacheco/bricks/pkg/ucdecorator"
-	"github.com/cristiano-pacheco/bricks/test/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/cristiano-pacheco/bricks/pkg/ucdecorator"
+	"github.com/cristiano-pacheco/bricks/test/mocks"
 )
 
 type LoggingDecoratorTestSuite struct {

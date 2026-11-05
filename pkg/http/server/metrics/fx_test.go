@@ -11,10 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cristiano-pacheco/bricks/pkg/http/server/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/fx"
+
+	"github.com/cristiano-pacheco/bricks/pkg/http/server/metrics"
 )
 
 func writeConfig(t *testing.T, enabled bool, port int) {

@@ -7,11 +7,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/suite"
+
 	"github.com/cristiano-pacheco/bricks/pkg/errs"
 	"github.com/cristiano-pacheco/bricks/pkg/http/response"
 	"github.com/cristiano-pacheco/bricks/pkg/logger"
 	"github.com/cristiano-pacheco/bricks/pkg/validator"
-	"github.com/stretchr/testify/suite"
 )
 
 type ErrorHandlerTestSuite struct {

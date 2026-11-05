@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/extra/redisprometheus/v9"
 	"go.uber.org/fx"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
 )
 
 // PoolMetricsModule registers pool metrics for an application-owned Redis client.

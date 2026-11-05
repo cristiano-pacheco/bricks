@@ -6,8 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/cristiano-pacheco/bricks/pkg/http/response"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cristiano-pacheco/bricks/pkg/http/response"
 )
 
 func TestJSON_SetsHeadersAndEnvelopes(t *testing.T) {

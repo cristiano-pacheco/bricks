@@ -5,10 +5,11 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/stretchr/testify/suite"
+
 	"github.com/cristiano-pacheco/bricks/pkg/i18n/locale"
 	"github.com/cristiano-pacheco/bricks/pkg/i18n/service"
 	"github.com/cristiano-pacheco/bricks/pkg/logger"
-	"github.com/stretchr/testify/suite"
 )
 
 type LocaleLoaderServiceTestSuite struct {

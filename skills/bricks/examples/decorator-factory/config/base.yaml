@@ -1,0 +1,4 @@
+app:
+  ucdecorator:
+    enabled: true
+    logging: true

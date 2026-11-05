@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
 )
 
 // Logger is the interface for logging operations.

@@ -7,8 +7,9 @@ import (
 	"os"
 	"time"
 
-	brickstrace "github.com/cristiano-pacheco/bricks/pkg/otel/trace"
 	"go.uber.org/fx"
+
+	brickstrace "github.com/cristiano-pacheco/bricks/pkg/otel/trace"
 )
 
 func registerOrder(lifecycle fx.Lifecycle) {
@@ -20,6 +21,7 @@ func registerOrder(lifecycle fx.Lifecycle) {
 func createOrder(ctx context.Context) error {
 	ctx, span := brickstrace.Span(ctx, "create-order")
 	defer span.End()
+
 	return ctx.Err()
 }
 
@@ -28,11 +30,15 @@ func run() error {
 	if err := app.Err(); err != nil {
 		return err
 	}
+
 	startCtx, cancelStart := context.WithTimeout(context.Background(), 10*time.Second)
 	err := app.Start(startCtx)
+
 	cancelStart()
+
 	stopCtx, cancelStop := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancelStop()
+
 	return errors.Join(err, app.Stop(stopCtx))
 }
 

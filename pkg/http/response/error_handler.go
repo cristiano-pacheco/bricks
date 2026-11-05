@@ -9,10 +9,11 @@ import (
 	"regexp"
 	"strings"
 
+	lib_validator "github.com/go-playground/validator/v10"
+
 	"github.com/cristiano-pacheco/bricks/pkg/errs"
 	"github.com/cristiano-pacheco/bricks/pkg/logger"
 	"github.com/cristiano-pacheco/bricks/pkg/validator"
-	lib_validator "github.com/go-playground/validator/v10"
 )
 
 var camelToSnakeRe = regexp.MustCompile("([a-z0-9])([A-Z])")

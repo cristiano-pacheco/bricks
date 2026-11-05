@@ -8,10 +8,11 @@ import (
 	"os"
 	"time"
 
+	"go.uber.org/fx"
+
 	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"github.com/cristiano-pacheco/bricks/pkg/errs"
 	"github.com/cristiano-pacheco/bricks/pkg/logger"
-	"go.uber.org/fx"
 )
 
 type ServiceConfig struct {
@@ -26,13 +27,16 @@ func registerService(lc fx.Lifecycle, cfg config.Config[ServiceConfig], log logg
 	}
 
 	child := log.Named(service.Name).With(logger.Int("port", service.Port))
+
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
 			child.Info("service started")
+
 			problem := errs.New("EXAMPLE_REJECTION", "Example request rejected", http.StatusUnprocessableEntity,
 				[]errs.Detail{{Field: "email", Message: "must be a valid address"}})
 			problem.OriginalError = errors.New("example diagnostic cause")
 			child.Warn("example application error", logger.String("code", problem.Code), logger.Error(problem))
+
 			return nil
 		},
 		OnStop: func(context.Context) error {
@@ -40,6 +44,7 @@ func registerService(lc fx.Lifecycle, cfg config.Config[ServiceConfig], log logg
 			return nil
 		},
 	})
+
 	return nil
 }
 
@@ -55,10 +60,12 @@ func run() error {
 
 	startCtx, cancelStart := context.WithTimeout(context.Background(), 5*time.Second)
 	err := app.Start(startCtx)
+
 	cancelStart()
 
 	stopCtx, cancelStop := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelStop()
+
 	return errors.Join(err, app.Stop(stopCtx))
 }
 

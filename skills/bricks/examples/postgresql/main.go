@@ -7,9 +7,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/cristiano-pacheco/bricks/pkg/database"
 	"go.uber.org/fx"
 	"gorm.io/gorm"
+
+	"github.com/cristiano-pacheco/bricks/pkg/database"
 )
 
 func registerQuery(lifecycle fx.Lifecycle, db *gorm.DB) {
@@ -19,9 +20,11 @@ func registerQuery(lifecycle fx.Lifecycle, db *gorm.DB) {
 			if err := db.WithContext(ctx).Raw("SELECT 1").Scan(&value).Error; err != nil {
 				return fmt.Errorf("query PostgreSQL: %w", err)
 			}
+
 			if value != 1 {
 				return errors.New("unexpected PostgreSQL query result")
 			}
+
 			return nil
 		},
 	})
@@ -35,10 +38,12 @@ func run() error {
 
 	startCtx, cancelStart := context.WithTimeout(context.Background(), 30*time.Second)
 	startErr := app.Start(startCtx)
+
 	cancelStart()
 
 	stopCtx, cancelStop := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelStop()
+
 	return errors.Join(startErr, app.Stop(stopCtx))
 }
 

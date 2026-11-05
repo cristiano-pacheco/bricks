@@ -10,13 +10,14 @@ import (
 	"sync/atomic"
 	"weak"
 
-	"github.com/cristiano-pacheco/bricks/pkg/config"
-	bricksredis "github.com/cristiano-pacheco/bricks/pkg/redis"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/otel"
 	oteltrace "go.opentelemetry.io/otel/trace"
 	"go.uber.org/fx"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
+	bricksredis "github.com/cristiano-pacheco/bricks/pkg/redis"
 )
 
 // RedisModule instruments an application-owned Redis client when enabled. Include

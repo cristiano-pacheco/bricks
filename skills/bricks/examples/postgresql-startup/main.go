@@ -13,11 +13,12 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/fx"
+	"gorm.io/gorm"
+
 	"github.com/cristiano-pacheco/bricks/pkg/config"
 	"github.com/cristiano-pacheco/bricks/pkg/database"
 	"github.com/cristiano-pacheco/bricks/pkg/migration"
-	"go.uber.org/fx"
-	"gorm.io/gorm"
 )
 
 //go:embed migrations/*.sql
@@ -28,6 +29,7 @@ type schemaReady struct{}
 
 type migrationInputs struct {
 	fx.In
+
 	Files []migration.FileSystem `group:"application_migrations"`
 }
 
@@ -36,6 +38,7 @@ func migrationFiles() (migration.FileSystem, error) {
 	if err != nil {
 		return migration.FileSystem{}, err
 	}
+
 	return migration.New(root), nil
 }
 
@@ -48,10 +51,13 @@ func migrationURL(cfg database.Config) (string, error) {
 	if err := cfg.Validate(); err != nil {
 		return "", err
 	}
+
 	query := url.Values{}
 	query.Set("sslmode", "disable")
+
 	if cfg.SSLMode {
 		query.Set("sslmode", "require")
+
 		for key, value := range map[string]string{
 			"sslcert": cfg.SSLCert, "sslkey": cfg.SSLKey, "sslrootcert": cfg.SSLRootCert,
 		} {
@@ -60,11 +66,14 @@ func migrationURL(cfg database.Config) (string, error) {
 			}
 		}
 	}
+
 	timeZone := cfg.TimeZone
 	if strings.TrimSpace(timeZone) == "" {
 		timeZone = "UTC"
 	}
+
 	query.Set("TimeZone", timeZone)
+
 	for key, value := range map[string]string{
 		"application_name": cfg.ApplicationName, "search_path": cfg.SearchPath,
 	} {
@@ -72,6 +81,7 @@ func migrationURL(cfg database.Config) (string, error) {
 			query.Set(key, value)
 		}
 	}
+
 	for key, value := range map[string]int{
 		"connect_timeout":                     cfg.ConnectTimeout,
 		"statement_timeout":                   cfg.StatementTimeout,
@@ -82,6 +92,7 @@ func migrationURL(cfg database.Config) (string, error) {
 			query.Set(key, strconv.Itoa(value))
 		}
 	}
+
 	target := url.URL{
 		Scheme:   "postgres",
 		User:     url.UserPassword(cfg.User, cfg.Password),
@@ -89,6 +100,7 @@ func migrationURL(cfg database.Config) (string, error) {
 		Path:     "/" + cfg.Name,
 		RawQuery: query.Encode(),
 	}
+
 	return target.String(), nil
 }
 
@@ -102,14 +114,17 @@ func registerMigrations(
 	if err != nil {
 		return nil, err
 	}
+
 	lifecycle.Append(fx.Hook{
 		OnStart: func(context.Context) error {
 			if err := runner.Up(dsn); err != nil {
 				return fmt.Errorf("apply PostgreSQL migrations: %w", err)
 			}
+
 			return nil
 		},
 	})
+
 	return &schemaReady{}, nil
 }
 
@@ -120,6 +135,7 @@ func registerApplication(lifecycle fx.Lifecycle, db *gorm.DB, _ *schemaReady) {
 			if err := db.WithContext(ctx).Table("bricks_skill_startup_items").Count(&count).Error; err != nil {
 				return fmt.Errorf("query migrated table: %w", err)
 			}
+
 			return nil
 		},
 	})
@@ -138,12 +154,15 @@ func run() error {
 	if err := app.Err(); err != nil {
 		return err
 	}
+
 	startCtx, cancelStart := context.WithTimeout(context.Background(), 30*time.Second)
 	startErr := app.Start(startCtx)
+
 	cancelStart()
 
 	stopCtx, cancelStop := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelStop()
+
 	return errors.Join(startErr, app.Stop(stopCtx))
 }
 

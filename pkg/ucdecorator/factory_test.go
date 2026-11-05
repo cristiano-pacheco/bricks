@@ -5,11 +5,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/cristiano-pacheco/bricks/pkg/ucdecorator"
-	"github.com/cristiano-pacheco/bricks/test/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/cristiano-pacheco/bricks/pkg/ucdecorator"
+	"github.com/cristiano-pacheco/bricks/test/mocks"
 )
 
 // testHandlerUseCase is a named UseCase for predictable name-inference testing.

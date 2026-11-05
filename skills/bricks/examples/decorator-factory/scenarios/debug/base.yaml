@@ -1,0 +1,8 @@
+app:
+  ucdecorator:
+    enabled: true
+    debug_mode: true
+    logging: true
+    metrics: true
+    tracing: true
+    translation: true

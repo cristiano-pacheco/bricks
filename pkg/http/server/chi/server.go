@@ -11,8 +11,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cristiano-pacheco/bricks/pkg/config"
-	metricslistener "github.com/cristiano-pacheco/bricks/pkg/http/server/metrics"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -20,6 +18,9 @@ import (
 	"github.com/samber/lo"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"go.uber.org/fx"
+
+	"github.com/cristiano-pacheco/bricks/pkg/config"
+	metricslistener "github.com/cristiano-pacheco/bricks/pkg/http/server/metrics"
 )
 
 const (

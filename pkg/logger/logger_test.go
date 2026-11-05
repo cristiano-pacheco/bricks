@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cristiano-pacheco/bricks/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/cristiano-pacheco/bricks/pkg/logger"
 )
 
 func TestLogger_BasicUsage(t *testing.T) {

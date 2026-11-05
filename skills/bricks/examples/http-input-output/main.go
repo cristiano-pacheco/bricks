@@ -12,14 +12,15 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"go.uber.org/fx"
+
 	"github.com/cristiano-pacheco/bricks/pkg/errs"
 	"github.com/cristiano-pacheco/bricks/pkg/http/request"
 	"github.com/cristiano-pacheco/bricks/pkg/http/response"
 	pathrequest "github.com/cristiano-pacheco/bricks/pkg/http/server/chi/request"
 	"github.com/cristiano-pacheco/bricks/pkg/logger"
 	"github.com/cristiano-pacheco/bricks/pkg/validator"
-	"github.com/go-chi/chi/v5"
-	"go.uber.org/fx"
 )
 
 type UserInput struct {
@@ -34,6 +35,7 @@ func (uc *CreateUser) Execute(input UserInput) (UserInput, error) {
 	if err := uc.validate.Validate(input); err != nil {
 		return UserInput{}, err
 	}
+
 	return input, nil
 }
 
@@ -43,7 +45,7 @@ func adapt(handler endpoint) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := handler(w, r); err != nil {
 			// A response may already have started. Do not write a second response.
-			slog.Error("write HTTP response", "error", err)
+			slog.ErrorContext(r.Context(), "write HTTP response", "error", err)
 		}
 	}
 }
@@ -58,14 +60,17 @@ func routes(v validator.Validator, h response.ErrorHandler) http.Handler {
 				h.Error(w, err)
 				return nil
 			}
+
 			if validate {
 				output, err := uc.Execute(input)
 				if err != nil {
 					h.Error(w, err)
 					return nil
 				}
+
 				return response.JSON(w, http.StatusCreated, output, nil)
 			}
+
 			return response.JSON(w, http.StatusCreated, input, nil)
 		})
 	}
@@ -88,6 +93,7 @@ func routes(v validator.Validator, h response.ErrorHandler) http.Handler {
 	r.Get("/unknown-error", func(w http.ResponseWriter, _ *http.Request) {
 		h.Error(w, errors.New("private database credentials must not reach the client"))
 	})
+
 	return r
 }
 
@@ -98,16 +104,20 @@ func provideLogger(lc fx.Lifecycle) (logger.Logger, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	lc.Append(fx.Hook{OnStop: func(context.Context) error { return log.Sync() }})
+
 	return log, nil
 }
 
 func serve(lc fx.Lifecycle, handler http.Handler, shutdown fx.Shutdowner) {
 	server := &http.Server{Addr: "127.0.0.1:8080", Handler: handler, ReadHeaderTimeout: 5 * time.Second}
 	done := make(chan error, 1)
+
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
 			listener, err := net.Listen("tcp", server.Addr)
+
 			if err != nil {
 				return err
 			}
@@ -116,14 +126,18 @@ func serve(lc fx.Lifecycle, handler http.Handler, shutdown fx.Shutdowner) {
 				if errors.Is(err, http.ErrServerClosed) {
 					err = nil
 				}
+
 				done <- err
+
 				if err != nil {
 					if stopErr := shutdown.Shutdown(); stopErr != nil {
 						slog.Error("request application shutdown", "error", stopErr)
 					}
 				}
 			}()
+
 			fmt.Println("HTTP listening on http://127.0.0.1:8080")
+
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
@@ -131,6 +145,7 @@ func serve(lc fx.Lifecycle, handler http.Handler, shutdown fx.Shutdowner) {
 			if err != nil {
 				err = errors.Join(err, server.Close())
 			}
+
 			return errors.Join(err, <-done)
 		},
 	})
@@ -139,22 +154,29 @@ func serve(lc fx.Lifecycle, handler http.Handler, shutdown fx.Shutdowner) {
 func run() (err error) {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
+
 	app := fx.New(validator.Module, response.Module, fx.Provide(provideLogger, routes), fx.Invoke(serve))
 	if err := app.Err(); err != nil {
 		return err
 	}
+
 	startCtx, cancelStart := context.WithTimeout(ctx, 5*time.Second)
 	err = app.Start(startCtx)
+
 	cancelStart()
+
 	if err != nil {
 		return err
 	}
+
 	select {
 	case <-ctx.Done():
 	case <-app.Done():
 	}
+
 	stopCtx, cancelStop := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelStop()
+
 	return app.Stop(stopCtx)
 }
 

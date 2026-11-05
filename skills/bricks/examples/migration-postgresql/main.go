@@ -8,8 +8,9 @@ import (
 	"io/fs"
 	"os"
 
-	"github.com/cristiano-pacheco/bricks/pkg/migration"
 	"go.uber.org/fx"
+
+	"github.com/cristiano-pacheco/bricks/pkg/migration"
 )
 
 //go:embed migrations/*.sql
@@ -17,6 +18,7 @@ var embedded embed.FS
 
 type migrationInputs struct {
 	fx.In
+
 	Files []migration.FileSystem `group:"application_migrations"`
 }
 
@@ -25,6 +27,7 @@ func migrationFiles() (migration.FileSystem, error) {
 	if err != nil {
 		return migration.FileSystem{}, err
 	}
+
 	return migration.New(root), nil
 }
 
@@ -39,6 +42,7 @@ func registerMigration(lifecycle fx.Lifecycle, runner *migration.Runner) {
 			if dsn == "" {
 				return errors.New("MIGRATION_DSN is required")
 			}
+
 			return runner.Up(dsn)
 		},
 	})
@@ -60,9 +64,11 @@ func run() (err error) {
 			err = errors.Join(err, fmt.Errorf("stop migration application: %w", stopErr))
 		}
 	}()
+
 	if err := app.Start(context.Background()); err != nil {
 		return fmt.Errorf("start migration application: %w", err)
 	}
+
 	return nil
 }
 

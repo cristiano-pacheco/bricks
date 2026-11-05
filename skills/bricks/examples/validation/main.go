@@ -7,12 +7,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/cristiano-pacheco/bricks/pkg/validator"
 	"go.uber.org/fx"
+
+	"github.com/cristiano-pacheco/bricks/pkg/validator"
 )
 
 func run() (err error) {
 	var productQuoteUseCase *ProductQuoteUseCase
+
 	app := fx.New(
 		validator.Module,
 		fx.Provide(NewProductQuoteUseCase),
@@ -22,9 +24,11 @@ func run() (err error) {
 	if err := app.Err(); err != nil {
 		return fmt.Errorf("construct validation application: %w", err)
 	}
+
 	defer func() {
 		stopContext, cancelStop := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancelStop()
+
 		if stopErr := app.Stop(stopContext); stopErr != nil {
 			err = errors.Join(err, fmt.Errorf("stop validation application: %w", stopErr))
 		}
@@ -32,7 +36,9 @@ func run() (err error) {
 
 	startContext, cancelStart := context.WithTimeout(context.Background(), 5*time.Second)
 	startErr := app.Start(startContext)
+
 	cancelStart()
+
 	if startErr != nil {
 		return fmt.Errorf("start validation application: %w", startErr)
 	}
@@ -44,7 +50,9 @@ func run() (err error) {
 	if err != nil {
 		return fmt.Errorf("execute product quote: %w", err)
 	}
+
 	fmt.Println(output.TotalInCents)
+
 	return nil
 }
 

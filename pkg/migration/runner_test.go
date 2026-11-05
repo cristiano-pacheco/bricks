@@ -7,10 +7,11 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/cristiano-pacheco/bricks/pkg/database/sqlite"
-	"github.com/cristiano-pacheco/bricks/pkg/migration"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cristiano-pacheco/bricks/pkg/database/sqlite"
+	"github.com/cristiano-pacheco/bricks/pkg/migration"
 )
 
 type migrationFile struct {
