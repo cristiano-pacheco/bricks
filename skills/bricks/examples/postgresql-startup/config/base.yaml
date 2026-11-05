@@ -1,0 +1,15 @@
+app:
+  database:
+    host: localhost
+    port: 5432
+    name: bricks_skill
+    user: bricks_skill
+    password: env://POSTGRES_PASSWORD
+    sslmode: false
+    connecttimeout: 5
+    statementtimeout: 5000
+    locktimeout: 5000
+    applicationname: bricks_skill_startup
+    searchpath: public
+    maxopenconnections: 10
+    maxidleconnections: 2

@@ -102,6 +102,17 @@
     },
     {
       "path": "pkg/database",
+      "documentation_evidence": {
+        "source_revision": "51b78e7016eba26cd6c3e787519a1f15a5ceccd3",
+        "authored": "references/database/usage.md",
+        "source_inspected": ["pkg/database/config.go", "pkg/database/database.go", "pkg/database/errs.go", "pkg/database/fx.go", "pkg/database/stats.go", "pkg/database/pool_metrics_fx.go", "pkg/otel/trace/gorm_fx.go", "pkg/migration/runner.go"],
+        "examples": [
+          {"kind": "runnable", "path": "examples/postgresql/main.go", "fx": true, "status": "planned"},
+          {"kind": "runnable", "path": "examples/postgresql-startup/main.go", "fx": true, "status": "planned"}
+        ],
+        "evidence": "acceptance/postgresql.md",
+        "verification": "Source inspection only. Review, compilation, graph validation, PostgreSQL integration, startup/failure/shutdown checks, lint, structural checks, and repository suites were waived by the user for ticket 06. Branches remain planned, not verified; README removal remains gated. Pool metrics, tracing, and multiple-database compositions remain ticket 14."
+      },
       "readme": "pkg/database/README.md",
       "exports": [
         "Config",
@@ -174,7 +185,8 @@
           "examples": [
             {
               "kind": "runnable",
-              "path": null,
+              "fx": true,
+              "path": "examples/postgresql/main.go",
               "status": "planned",
               "checks": []
             }
@@ -234,7 +246,8 @@
           "examples": [
             {
               "kind": "runnable",
-              "path": null,
+              "fx": true,
+              "path": "examples/postgresql-startup/main.go",
               "status": "planned",
               "checks": []
             }

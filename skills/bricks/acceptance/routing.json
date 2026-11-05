@@ -1,6 +1,44 @@
 {
   "cases": [
     {
+      "id": "postgres-connection",
+      "task": "Connect my Fx application to PostgreSQL using Bricks typed configuration. Explain the actual pool limits, timeouts, logger settings, retry behavior, and shutdown. No migrations or telemetry are needed.",
+      "required": ["references/database/usage.md"],
+      "excluded": ["recipes/postgresql-migrations.md", "references/migration/usage.md", "references/migration/postgresql.md", "references/database/sqlite/usage.md", "recipes/database-pool-metrics.md", "recipes/gorm-tracing.md", "recipes/multiple-databases.md", "references/local-source.md"],
+      "conditional": [
+        {"when": "The caller needs the complete Fx connection application and YAML.", "references": ["examples/postgresql/README.md"]},
+        {"when": "The caller asks about environment overlays or whole-document versus subtree configuration.", "references": ["references/config/usage.md"]},
+        {"when": "The caller explicitly adds pool monitoring.", "references": ["recipes/database-pool-metrics.md"]},
+        {"when": "The caller explicitly adds GORM tracing.", "references": ["recipes/gorm-tracing.md"]},
+        {"when": "The caller explicitly adds a simultaneous SQLite connection.", "references": ["recipes/multiple-databases.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "postgres-migration-startup",
+      "task": "Run embedded SQL migrations before my Bricks PostgreSQL application becomes ready. Explain Fx ordering, connection ownership, contribution groups, migration URL settings, and failure propagation.",
+      "required": ["recipes/postgresql-migrations.md"],
+      "excluded": ["references/database/sqlite/usage.md", "references/migration/sqlite.md", "recipes/database-pool-metrics.md", "recipes/gorm-tracing.md", "recipes/multiple-databases.md", "references/local-source.md"],
+      "conditional": [
+        {"when": "The caller needs the complete startup program with YAML and embedded SQL.", "references": ["examples/postgresql-startup/README.md"]},
+        {"when": "The caller changes ordinary connection setup or needs constructor options.", "references": ["references/database/usage.md"]},
+        {"when": "The caller needs migration contribution naming or collision rules.", "references": ["references/migration/usage.md"]},
+        {"when": "The caller needs PostgreSQL dirty-state, transaction, or rollback semantics.", "references": ["references/migration/postgresql.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "multigoal-postgres-startup",
+      "task": "Configure Bricks PostgreSQL connections and run migrations before application startup, including connection errors and ownership. Do not load complete examples or optional telemetry.",
+      "required": ["references/database/usage.md", "recipes/postgresql-migrations.md"],
+      "excluded": ["examples/postgresql/README.md", "examples/postgresql-startup/README.md", "recipes/database-pool-metrics.md", "recipes/gorm-tracing.md", "recipes/multiple-databases.md", "references/local-source.md"],
+      "conditional": [],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
       "id": "migration-postgresql",
       "task": "Combine embedded migration contributions and apply them to a PostgreSQL URL using Bricks. Explain duplicate files, dirty state, transactions, and whether rollback is exposed. No GORM connection is needed.",
       "required": ["references/migration/usage.md", "references/migration/postgresql.md"],
