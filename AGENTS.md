@@ -1,3 +1,8 @@
+## Project context
+
+- For domain language, read `GLOSSARY-MAP.md`.
+- For testing and tooling, read `docs/agents/commands.md`.
+
 ## Agent skills
 
 ### Issue tracker
