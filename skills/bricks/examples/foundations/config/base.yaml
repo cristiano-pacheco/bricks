@@ -1,0 +1,16 @@
+app:
+  service:
+    name: orders
+    port: 8080
+  logger:
+    level: info
+    encoding: json
+    development: false
+    disablecaller: false
+    disablestacktrace: false
+    outputpaths:
+      - application.log
+    erroroutputpaths:
+      - stderr
+    initialfields:
+      application: foundations

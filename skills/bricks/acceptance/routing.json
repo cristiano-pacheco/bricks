@@ -1,6 +1,45 @@
 {
   "cases": [
     {
+      "id": "config-loading",
+      "task": "Load Bricks configuration from YAML, choose a whole document or subtree, and explain optional overlays, env references, and load errors. Do not add logging.",
+      "required": ["references/config/usage.md"],
+      "excluded": ["references/logger/usage.md", "references/errs/usage.md", "references/local-source.md"],
+      "conditional": [],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "logger-lifecycle",
+      "task": "Configure a Bricks logger with Fx, consume the logger interface, and own shutdown. Explain alternatives without loading unrelated packages.",
+      "required": ["references/logger/usage.md"],
+      "excluded": ["references/config/usage.md", "references/errs/usage.md", "references/local-source.md"],
+      "conditional": [
+        {"when": "The caller needs overlay, environment substitution, or loader failure details beyond the logger guide.", "references": ["references/config/usage.md"]},
+        {"when": "The caller requests a complete runnable configuration-and-logger application.", "references": ["examples/foundations/README.md"]}
+      ],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "structured-errors",
+      "task": "Construct a Bricks structured error with details and HTTP status, and explain whether OriginalError participates in errors.Is or errors.As.",
+      "required": ["references/errs/usage.md"],
+      "excluded": ["references/logger/usage.md", "references/config/usage.md", "references/http/response/usage.md", "references/local-source.md"],
+      "conditional": [],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
+      "id": "multigoal-foundations",
+      "task": "Explain Bricks whole-document versus subtree configuration and logger options, including shared Fx lifecycle wiring without a full example.",
+      "required": ["references/config/usage.md", "references/logger/usage.md"],
+      "excluded": ["references/errs/usage.md", "references/local-source.md", "examples/foundations/README.md"],
+      "conditional": [],
+      "clarification": null,
+      "deduplicate": true
+    },
+    {
       "id": "json-parsing",
       "task": "Decode a JSON request body with Bricks, reject unknown fields, and explain body limits and parse errors. I do not need server setup.",
       "required": ["references/http/request/usage.md"],

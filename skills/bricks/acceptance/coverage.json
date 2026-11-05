@@ -32,6 +32,13 @@
   "packages": [
     {
       "path": "pkg/config",
+      "documentation_evidence": {
+        "source_revision": "518e8ba",
+        "authored": "references/config/usage.md",
+        "source_inspected": ["pkg/config/config.go", "pkg/config/provider.go", "pkg/config/errs.go"],
+        "example": {"kind": "runnable", "path": "examples/foundations/main.go", "fx": true, "status": "planned"},
+        "verification": "Source inspection only. Compilation, unit, integration, graph, runtime, lint, structural checks, and code review were waived by the user for ticket 03. Branches remain planned, not verified; README removal remains gated."
+      },
       "readme": "pkg/config/README.md",
       "exports": [
         "Config",
@@ -374,6 +381,13 @@
     },
     {
       "path": "pkg/errs",
+      "documentation_evidence": {
+        "source_revision": "518e8ba",
+        "authored": "references/errs/usage.md",
+        "source_inspected": ["pkg/errs/errs.go"],
+        "example": {"kind": "fragment", "path": "references/errs/usage.md", "status": "planned"},
+        "verification": "Source inspection confirms constructor assignments, JSON tags, pointer Error method, and absence of Unwrap or Is. Unit and runtime checks were waived by the user for ticket 03. Branches remain planned, not verified."
+      },
       "readme": null,
       "exports": [
         "Detail",
@@ -1126,6 +1140,13 @@
     },
     {
       "path": "pkg/logger",
+      "documentation_evidence": {
+        "source_revision": "518e8ba",
+        "authored": "references/logger/usage.md",
+        "source_inspected": ["pkg/logger/logger.go", "pkg/logger/config.go", "pkg/logger/options.go", "pkg/logger/fx.go"],
+        "example": {"kind": "runnable", "path": "examples/foundations/main.go", "fx": true, "status": "planned"},
+        "verification": "Source inspection only. Compilation, graph, failures, startup, shutdown, and repository checks were waived by the user for ticket 03. No execution claims; branches remain planned until verified."
+      },
       "readme": "pkg/logger/README.md",
       "exports": [
         "Any",
