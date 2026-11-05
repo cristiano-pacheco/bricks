@@ -1,0 +1,9 @@
+app:
+  metrics:
+    enabled: true
+    address: 127.0.0.1
+    port: 9090
+    readtimeout: 5s
+    readheadertimeout: 10s
+    writetimeout: 10s
+    idletimeout: 60s

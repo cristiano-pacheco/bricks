@@ -1,0 +1,4 @@
+app:
+  open-telemetry:
+    app_name: orders
+    trace_enabled: false
