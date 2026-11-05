@@ -1,0 +1,37 @@
+app:
+  redis:
+    type: sentinel
+    sentineladdrs:
+      - localhost:26379
+    mastername: mymaster
+    sentinelpassword: ""
+    sentinelusername: ""
+    db: 0
+    routebylatency: false
+    routerandomly: false
+    replicaonly: false
+    password: ""
+    maxretries: 3
+    minretrybackoff: 8ms
+    maxretrybackoff: 512ms
+    dialtimeout: 5s
+    readtimeout: 3s
+    writetimeout: 3s
+    contexttimeoutenabled: true
+    poolfifo: false
+    poolsize: 10
+    pooltimeout: 4s
+    minidleconns: 2
+    maxidleconns: 0
+    connmaxidletime: 30m
+    connmaxlifetime: 1h
+    enabletls: true
+    tlsskipverify: false
+    tlsservername: redis.example.com
+    protocol: 3
+    disableindentity: false
+    identitysuffix: ""
+    namespace: demo
+    enablemetrics: false
+    commandtimeout: 5s
+    unstablemode: false
